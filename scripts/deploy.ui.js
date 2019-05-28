@@ -12,11 +12,11 @@ governing permissions and limitations under the License.
 */
 
 const CNAScript = require('../lib/abstract-script')
-const utils = require('../lib/utils')
+const TVMClient = require('../lib/tvm-client')
+const RemoteStorage = require('../lib/remote-storage')
 
 const fs = require('fs')
 const path = require('path')
-const aws = require('aws-sdk')
 
 class DeployUI extends CNAScript {
   async run () {
@@ -31,18 +31,19 @@ class DeployUI extends CNAScript {
     }
 
     const creds = this.config.s3.creds ||
-      await utils.getTmpS3Credentials(
-        this.config.s3.tvmUrl,
-        this.config.ow.namespace,
-        this.config.ow.auth,
-        this.config.s3.credsCacheFile)
-    const s3 = new aws.S3(creds)
+        (await new TVMClient({
+          tvmUrl: this.config.s3.tvmUrl,
+          owNamespace: this.config.ow.namespace,
+          owAuth: this.config.ow.auth,
+          cacheCredsFile: this.config.s3.credsCacheFile
+        }).getCredentials())
+    const remoteStorage = new RemoteStorage(creds)
 
-    if (await utils.s3.folderExists(s3, this.config.s3.folder)) {
+    if (await remoteStorage.folderExists(this.config.s3.folder)) {
       this.emit('warning', `An already existing deployment for version ${this.config.app.version} will be overwritten`)
-      await utils.s3.emptyFolder(s3, this.config.s3.folder)
+      await remoteStorage.emptyFolder(this.config.s3.folder)
     }
-    await utils.s3.uploadDir(s3, this.config.s3.folder, dist, f => this.emit('progress', path.basename(f)))
+    await remoteStorage.uploadDir(this.config.s3.folder, dist, f => this.emit('progress', path.basename(f)))
 
     const url = `https://s3.amazonaws.com/${creds.params.Bucket}/${this.config.s3.folder}/index.html`
     this.emit('resource', url) // a bit hacky
