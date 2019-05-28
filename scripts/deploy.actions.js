@@ -12,6 +12,7 @@ governing permissions and limitations under the License.
 */
 
 const CNAScript = require('../lib/abstract-script')
+const utils = require('../lib/utils')
 
 const fs = require('fs')
 const path = require('path')
@@ -53,7 +54,7 @@ class DeployActions extends CNAScript {
     fs.writeFileSync(distManifestFile, manifestString)
 
     // 2. invoke aio runtime deploy command
-    this._spawnAioRuntime('deploy')
+    await utils.spawnAioRuntimeDeploy(distManifestFile)
 
     // 3. show list of deployed actions
     Object.keys(this.config.manifest.package.actions).forEach(an => {

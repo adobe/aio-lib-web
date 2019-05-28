@@ -12,7 +12,7 @@ governing permissions and limitations under the License.
 */
 
 const path = require('path')
-const spawn = require('cross-spawn')
+const execa = require('execa')
 const fs = require('fs')
 const args = process.argv.slice(2)
 
@@ -24,6 +24,9 @@ const script = path.join(scriptDir, scriptName + '.js')
 
 if (!fs.existsSync(script)) throw new Error(`script '${scriptName}' is not supported, choose one of: ${fs.readdirSync(scriptDir).map(f => path.parse(f).name).join(', ')}`)
 
-const res = spawn.sync(script, args.slice(1), { stdio: 'inherit' })
-if (res.error) throw res.error
-process.exit(res.status)
+try {
+  execa.sync(script, args.slice(1), { stdio: 'inherit' })
+} catch (e) {
+  console.error(e.message)
+  process.exit(1)
+}
