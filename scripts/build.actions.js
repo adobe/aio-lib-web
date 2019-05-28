@@ -14,7 +14,7 @@ governing permissions and limitations under the License.
 const CNAScript = require('../lib/abstract-script')
 const utils = require('../lib/utils')
 
-const fs = require('fs')
+const fs = require('fs-extra')
 const path = require('path')
 const Bundler = require('parcel-bundler')
 
@@ -26,7 +26,7 @@ class BuildActions extends CNAScript {
     const build = async (name, action) => {
       const actionPath = this._absApp(action.function)
 
-      if (fs.statSync(actionPath).isDirectory()) {
+      if ((await fs.stat(actionPath)).isDirectory()) {
         // if directory install dependencies and zip it
         await utils.installDeps(actionPath)
         const outFile = path.join(this.config.actions.dist, `${name}.zip`)

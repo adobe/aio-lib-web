@@ -15,7 +15,7 @@ const CNAScript = require('../lib/abstract-script')
 const TVMClient = require('../lib/tvm-client')
 const RemoteStorage = require('../lib/remote-storage')
 
-const fs = require('fs')
+const fs = require('fs-extra')
 const path = require('path')
 
 class DeployUI extends CNAScript {
@@ -24,9 +24,9 @@ class DeployUI extends CNAScript {
     this.emit('start', taskName)
 
     const dist = this.config.web.distProd
-    if (!fs.existsSync(dist) ||
-        !fs.statSync(dist).isDirectory() ||
-        fs.readdirSync(dist).length === 0) {
+    if (!(await fs.exists(dist)) ||
+      !(await fs.stat(dist)).isDirectory() ||
+      !(await fs.readdir(dist)).length === 0) {
       throw new Error(`${this._relCwd(dist)} should not be empty, maybe you forgot to build your UI ?`)
     }
 
