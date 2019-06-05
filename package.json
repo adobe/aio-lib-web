@@ -7,15 +7,24 @@
     "lib": "lib",
     "scripts": "scripts"
   },
-  "author": "",
+  "author": "Adobe Inc.",
   "license": "Apache-2.0",
   "engines": {
     "node": ">=8.0.0"
   },
+  "repository": "adobe/io-cna-scripts",
+  "homepage": "https://github.com/adobe/adobeio-cna-scripts",
+  "keywords": [
+    "scripts",
+    "openwhisk",
+    "reactjs",
+    "adobe-io",
+    "jamstack"
+  ],
   "scripts": {
     "lint": "eslint .",
     "beautify": "npm run lint -- --fix",
-    "test": "jest -c ./jest.config.js"
+    "test": "npm run lint && jest -c ./jest.config.js"
   },
   "bin": {
     "cna-scripts": "./bin/cna-scripts.js"
