@@ -24,7 +24,7 @@
   "scripts": {
     "lint": "eslint .",
     "beautify": "npm run lint -- --fix",
-    "test": "jest -c ./jest.config.js"
+    "test": "npm run lint && jest -c ./jest.config.js"
   },
   "bin": {
     "cna-scripts": "./bin/cna-scripts.js"
