@@ -26,10 +26,10 @@ class BuildUI extends CNAScript {
     const src = this.config.web.src
 
     // clean/create needed dirs
-    fs.emptyDirSync(dist)
+    await fs.emptyDir(dist)
 
     // 1. generate config
-    this._injectWebConfig()
+    await this._injectWebConfig()
 
     // 2. build UI files
     const bundler = new Bundler(path.join(src, 'index.html'), {
@@ -43,7 +43,8 @@ class BuildUI extends CNAScript {
     await bundler.bundle()
 
     // 3. show built files
-    fs.readdirSync(dist).forEach(f => this.emit('progress', `${this._relCwd(path.join(dist, f))}`))
+    const files = await fs.readdir(dist)
+    files.forEach(f => this.emit('progress', `${this._relCwd(path.join(dist, f))}`))
 
     this.emit('end', taskName)
   }

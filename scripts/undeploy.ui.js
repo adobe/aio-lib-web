@@ -12,30 +12,28 @@ governing permissions and limitations under the License.
 */
 
 const CNAScript = require('../lib/abstract-script')
-const utils = require('../lib/utils')
+const TVMClient = require('../lib/tvm-client')
+const RemoteStorage = require('../lib/remote-storage')
 
-const aws = require('aws-sdk')
-
-// This should eventually be fully covered by `aio runtime deploy`
 class UndeployUI extends CNAScript {
   async run () {
     const taskName = `Undeploy static files`
     this.emit('start', taskName)
 
     const creds = this.config.s3.creds ||
-      await utils.getTmpS3Credentials(
-        this.config.s3.tvmUrl,
-        this.config.ow.namespace,
-        this.config.ow.auth,
-        this.config.s3.credsCacheFile)
-    const s3 = new aws.S3(creds)
-    console.log(this.config.s3)
+        (await new TVMClient({
+          tvmUrl: this.config.s3.tvmUrl,
+          owNamespace: this.config.ow.namespace,
+          owAuth: this.config.ow.auth,
+          cacheCredsFile: this.config.s3.credsCacheFile
+        }).getCredentials())
+    const remoteStorage = new RemoteStorage(creds)
 
-    if (!(await utils.s3.folderExists(s3, this.config.s3.folder))) {
+    if (!(await remoteStorage.folderExists(this.config.s3.folder))) {
       throw new Error(`Cannot undeploy static files, S3 folder ${this.config.s3.folder} does not exist.`)
     }
 
-    await utils.s3.emptyFolder(s3, this.config.s3.folder)
+    await remoteStorage.emptyFolder(this.config.s3.folder)
 
     this.emit('end', taskName)
   }

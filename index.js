@@ -12,9 +12,19 @@ governing permissions and limitations under the License.
 
 const loadConfig = require('./lib/config-loader')
 
+// load here - no lazy loading, as it breaks unit tests (mockfs require)
+// Don't use lazy loading within scripts neither..
+// todo fix this
+const BuildUI = require('./scripts/build.ui')
+const BuildActions = require('./scripts/build.actions')
+const DeployUI = require('./scripts/deploy.ui')
+const DeployActions = require('./scripts/deploy.actions')
+const UndeployUI = require('./scripts/undeploy.ui')
+const UndeployActions = require('./scripts/undeploy.actions')
+
 /**
- * @param  {object} [options]
- * @param {string} [options.appDir] The path to the app, default to cwd
+ * @param  {object|string} [options] if string refers to options.appDir
+ * @param {string} [options.appDir] The path to the app, defaults to cwd
  * @param {object} [options.listeners]
  * @param {function} [options.listeners.onStart]
  * @param {function} [options.listeners.onEnd]
@@ -24,13 +34,14 @@ const loadConfig = require('./lib/config-loader')
  * @returns {object} With all script functions
  */
 function exportScripts (options, listeners) {
+  if (typeof options === 'string') options = { appDir: options }
   options = options || {}
   listeners = options.listeners || {}
 
   const appConfig = loadConfig(options.appDir)
 
-  const instantiate = (scriptPath) => {
-    const instance = new (require(scriptPath))(appConfig)
+  const instantiate = (ClassDesc) => {
+    const instance = new ClassDesc(appConfig)
 
     if (listeners.onStart) instance.on('start', listeners.onStart)
     if (listeners.onEnd) instance.on('end', listeners.onEnd)
@@ -40,13 +51,17 @@ function exportScripts (options, listeners) {
 
     return instance.run.bind(instance)
   }
+  // interface
   return {
-    buildUI: instantiate('./scripts/build.ui'),
-    buildActions: instantiate('./scripts/build.actions'),
-    deployUI: instantiate('./scripts/deploy.ui'),
-    deployActions: instantiate('./scripts/deploy.actions'),
-    undeployUI: instantiate('./scripts/undeploy.ui'),
-    undeployActions: instantiate('./scripts/undeploy.actions')
+    buildUI: instantiate(BuildUI),
+    buildActions: instantiate(BuildActions),
+    deployUI: instantiate(DeployUI),
+    deployActions: instantiate(DeployActions),
+    undeployUI: instantiate(UndeployUI),
+    undeployActions: instantiate(UndeployActions),
+
+    // for unit testing
+    _config: appConfig
   }
 }
 

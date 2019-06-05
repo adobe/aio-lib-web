@@ -13,9 +13,9 @@
     "node": ">=8.0.0"
   },
   "scripts": {
-    "lint": "eslint lib scripts",
+    "lint": "eslint .",
     "beautify": "npm run lint -- --fix",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest -c ./jest.config.js"
   },
   "bin": {
     "cna-scripts": "./bin/cna-scripts.js"
@@ -23,9 +23,10 @@
   "dependencies": {
     "archiver": "^3.0.0",
     "aws-sdk": "^2.454.0",
-    "cross-spawn": "^6.0.5",
     "dotenv": "^8.0.0",
-    "fs-extra": "^8.0.1",
+    "execa": "^1.0.0",
+    "fs-extra": "^7.0.1",
+    "joi": "^14.3.1",
     "js-yaml": "^3.13.1",
     "mime-types": "^2.1.24",
     "open": "^6.3.0",
@@ -36,8 +37,11 @@
     "eslint": "^5.16.0",
     "eslint-config-standard": "^12.0.0",
     "eslint-plugin-import": "^2.17.2",
+    "eslint-plugin-jest": "^22.6.4",
     "eslint-plugin-node": "^8.0.0",
     "eslint-plugin-promise": "^4.0.1",
-    "eslint-plugin-standard": "^4.0.0"
+    "eslint-plugin-standard": "^4.0.0",
+    "jest": "^24.8.0",
+    "mock-fs": "^4.10.0"
   }
 }

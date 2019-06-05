@@ -12,8 +12,9 @@ governing permissions and limitations under the License.
 */
 
 const CNAScript = require('../lib/abstract-script')
+const utils = require('../lib/utils')
 
-const fs = require('fs')
+const fs = require('fs-extra')
 const path = require('path')
 const yaml = require('js-yaml')
 
@@ -24,10 +25,10 @@ class DeployActions extends CNAScript {
     this.emit('start', taskName)
 
     const dist = this.config.actions.dist
-    if (!fs.existsSync(dist) ||
-        !fs.statSync(dist).isDirectory() ||
-        fs.readdirSync(dist).length === 0) {
-      throw new Error(`${this._relCwd(dist)} should not be empty, maybe you forgot to build your actions ?`)
+    if (!(await fs.exists(dist)) ||
+        !(await fs.stat(dist)).isDirectory() ||
+        !(await fs.readdir(dist)).length === 0) {
+      throw new Error(`missing files in ${this._relCwd(dist)}, maybe you forgot to build your actions ?`)
     }
 
     // 1. rewrite wskManifest config
@@ -35,25 +36,25 @@ class DeployActions extends CNAScript {
     const manifestPackage = manifest.packages[this.config.manifest.packagePlaceholder]
     manifestPackage.version = this.config.app.version
     const relDist = this._relApp(this.config.actions.dist)
-    Object.entries(manifestPackage.actions).forEach(([name, action]) => {
+    await Promise.all(Object.entries(manifestPackage.actions).map(async ([name, action]) => {
       const actionPath = this._absApp(action.function)
       // change path to built action
-      if (fs.statSync(actionPath).isDirectory()) {
+      if ((await fs.stat(actionPath)).isDirectory()) {
         action.function = path.join(relDist, name + '.zip')
       } else {
         action.function = path.join(relDist, name + '.js')
         action.main = 'module.exports.' + (action.main || 'main')
       }
-    })
+    }))
     // replace package name
     const manifestString = yaml.safeDump(manifest)
       .replace(this.config.manifest.packagePlaceholder, this.config.ow.package)
     // write the new wskManifest yaml
     const distManifestFile = this.config.manifest.dist
-    fs.writeFileSync(distManifestFile, manifestString)
+    await fs.writeFile(distManifestFile, manifestString)
 
     // 2. invoke aio runtime deploy command
-    this._spawnAioRuntime('deploy')
+    await utils.spawnAioRuntimeDeploy(distManifestFile)
 
     // 3. show list of deployed actions
     Object.keys(this.config.manifest.package.actions).forEach(an => {
