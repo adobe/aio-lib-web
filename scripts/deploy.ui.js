@@ -27,7 +27,7 @@ class DeployUI extends CNAScript {
     if (!(await fs.exists(dist)) ||
       !(await fs.stat(dist)).isDirectory() ||
       !(await fs.readdir(dist)).length === 0) {
-      throw new Error(`${this._relCwd(dist)} should not be empty, maybe you forgot to build your UI ?`)
+      throw new Error(`missing files in ${this._relCwd(dist)}, maybe you forgot to build your UI ?`)
     }
 
     const creds = this.config.s3.creds ||
@@ -43,7 +43,7 @@ class DeployUI extends CNAScript {
       this.emit('warning', `An already existing deployment for version ${this.config.app.version} will be overwritten`)
       await remoteStorage.emptyFolder(this.config.s3.folder)
     }
-    await remoteStorage.uploadDir(this.config.s3.folder, dist, f => this.emit('progress', path.basename(f)))
+    await remoteStorage.uploadDir(dist, this.config.s3.folder, f => this.emit('progress', path.basename(f)))
 
     const url = `https://s3.amazonaws.com/${creds.params.Bucket}/${this.config.s3.folder}/index.html`
     this.emit('resource', url) // a bit hacky

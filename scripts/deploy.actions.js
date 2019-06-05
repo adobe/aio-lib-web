@@ -28,7 +28,7 @@ class DeployActions extends CNAScript {
     if (!(await fs.exists(dist)) ||
         !(await fs.stat(dist)).isDirectory() ||
         !(await fs.readdir(dist)).length === 0) {
-      throw new Error(`${this._relCwd(dist)} should not be empty, maybe you forgot to build your actions ?`)
+      throw new Error(`missing files in ${this._relCwd(dist)}, maybe you forgot to build your actions ?`)
     }
 
     // 1. rewrite wskManifest config

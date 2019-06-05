@@ -23,9 +23,10 @@ class BuildActions extends CNAScript {
     const taskName = 'Build actions'
     this.emit('start', taskName)
 
+    await fs.emptyDir(this.config.actions.dist)
+
     const build = async (name, action) => {
       const actionPath = this._absApp(action.function)
-
       if ((await fs.stat(actionPath)).isDirectory()) {
         // if directory install dependencies and zip it
         await utils.installDeps(actionPath)
