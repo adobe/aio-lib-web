@@ -1,11 +1,11 @@
 # CNA Scripts
 
-The module implementing the CNA scripts
+The module implementing the Adobe I/O CNA scripts
 
 ## Setup
 
 ```bash
-npm install git+ssh://git@github.com:adobe/adobeio-cna-scripts.git
+npm i @adobe/io-cna-scripts
 ```
 
 ## Run from cmdline
