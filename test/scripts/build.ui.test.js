@@ -38,8 +38,15 @@ afterEach(async () => {
   await fs.remove(buildDir)
 })
 
-test('Build static files: index.html', async () => {
+test('Build static files index.html', async () => {
   await scripts.buildUI()
+  // make sure action and sequence urls are available to the UI
+  const uiConfig = JSON.parse((await fs.readFile(scripts._config.web.injectedConfig)).toString())
+  expect(uiConfig).toEqual(expect.objectContaining({
+    action: expect.any(String),
+    'action-zip': expect.any(String),
+    'action-sequence': expect.any(String)
+  }))
   const buildFiles = await fs.readdir(buildDir)
   expect(buildFiles.sort()).toEqual(['index.html'])
 })

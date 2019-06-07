@@ -57,7 +57,7 @@ class DeployActions extends CNAScript {
     await utils.spawnAioRuntimeDeploy(distManifestFile)
 
     // 3. show list of deployed actions
-    Object.keys(this.config.manifest.package.actions).forEach(an => {
+    Object.keys(this.config.actions.urls).forEach(an => {
       // emulates progress
       this.emit('progress', this.config.actions.urls[an])
     })

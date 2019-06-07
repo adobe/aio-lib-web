@@ -10,3 +10,6 @@ packages:
         function: actions/action-zip
         web: yes
         runtime: 'nodejs:10'
+    sequences:
+      action-sequence:
+        actions: action, action-zip
