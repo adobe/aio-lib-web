@@ -32,8 +32,8 @@ class UndeployActions extends CNAScript {
     // rm autogen manifest
     await fs.unlink(distManifest)
 
-    Object.keys(this.config.manifest.package.actions).forEach(an => {
-      this.emit('progress', `${this.config.ow.package}/${an}`)
+    Object.keys(this.config.actions.urls).forEach(an => {
+      this.emit('progress', `/${this.config.ow.namespace}/${this.config.ow.package}/${an}`)
     })
 
     this.emit('end', taskName)
