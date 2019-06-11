@@ -25,24 +25,20 @@ beforeEach(() => {
   TVMClient.mockClear()
 })
 
-let appDir
 beforeAll(async () => {
   await global.mockFS()
-  // create test app
-  appDir = await global.createTestApp()
 })
 afterAll(async () => {
   await global.resetFS()
-  await fs.remove(appDir)
 })
 
 describe('Deploy static files with tvm', () => {
   let scripts
   let buildDir
   beforeAll(async () => {
-    await global.writeEnvTVM(appDir)
-    await global.clearProcessEnv()
-    scripts = await CNAScripts(appDir)
+    // create test app
+    await global.setTestAppAndEnv(global.fakeEnvs.tvm)
+    scripts = await CNAScripts()
     buildDir = scripts._config.web.distProd
   })
   afterEach(async () => {
@@ -89,9 +85,9 @@ describe('Deploy static files with env credentials', () => {
   let scripts
   let buildDir
   beforeAll(async () => {
-    await global.writeEnvCreds(appDir)
-    await global.clearProcessEnv()
-    scripts = await CNAScripts(appDir)
+    // create test app
+    await global.setTestAppAndEnv(global.fakeEnvs.creds)
+    scripts = await CNAScripts()
     buildDir = scripts._config.web.distProd
   })
   afterEach(async () => {

@@ -12,7 +12,6 @@ governing permissions and limitations under the License.
 
 const RemoteStorage = require('../../lib/remote-storage')
 const TVMClient = require('../../lib/tvm-client')
-const fs = require('fs-extra')
 const CNAScripts = require('../..')
 
 jest.mock('../../lib/remote-storage')
@@ -24,23 +23,20 @@ beforeEach(() => {
   TVMClient.mockClear()
 })
 
-let appDir
 beforeAll(async () => {
   await global.mockFS()
-  // create test app
-  appDir = await global.createTestApp()
 })
+
 afterAll(async () => {
   await global.resetFS()
-  await fs.remove(appDir)
 })
 
 describe('Undeploy static files with tvm', () => {
   let scripts
   beforeAll(async () => {
-    await global.writeEnvTVM(appDir)
-    await global.clearProcessEnv()
-    scripts = await CNAScripts(appDir)
+    // create test env
+    await global.setTestAppAndEnv(global.fakeEnvs.tvm)
+    scripts = await CNAScripts()
   })
 
   test('Should call tvm client and remote storage mocks once', async () => {
@@ -69,9 +65,9 @@ describe('Undeploy static files with tvm', () => {
 describe('Undeploy static files with env credentials', () => {
   let scripts
   beforeAll(async () => {
-    await global.writeEnvCreds(appDir)
-    await global.clearProcessEnv()
-    scripts = await CNAScripts(appDir)
+    // create test env
+    await global.setTestAppAndEnv(global.fakeEnvs.creds)
+    scripts = await CNAScripts()
   })
 
   test('Should call remote storage once and call tvm client zero times', async () => {

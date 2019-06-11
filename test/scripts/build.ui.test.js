@@ -21,11 +21,9 @@ beforeAll(async () => {
   // mockFS
   await global.mockFS()
   // create test app
-  const appDir = await global.createTestApp()
-  await global.writeEnvTVM(appDir)
-  await global.clearProcessEnv()
+  await global.setTestAppAndEnv(global.fakeEnvs.tvm)
 
-  scripts = await CNAScripts(appDir)
+  scripts = await CNAScripts()
   buildDir = scripts._config.web.distProd
 })
 

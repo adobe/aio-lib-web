@@ -27,7 +27,7 @@ class DeployUI extends CNAScript {
     if (!(await fs.exists(dist)) ||
       !(await fs.stat(dist)).isDirectory() ||
       !(await fs.readdir(dist)).length === 0) {
-      throw new Error(`missing files in ${this._relCwd(dist)}, maybe you forgot to build your UI ?`)
+      throw new Error(`missing files in ${this._relApp(dist)}, maybe you forgot to build your UI ?`)
     }
 
     const creds = this.config.s3.creds ||

@@ -64,13 +64,16 @@ global.resetFS = () => {
   mockfs.restore()
 }
 
-global.createTestApp = async () => {
-  // for now one app
+global.setTestAppAndEnv = async (env, except) => {
+  // create test app
   const inApp = path.join(projectDir, 'test', '__fixtures__', 'sample-app')
   // unique
   const appDir = path.normalize(`${inApp}-${(+new Date()).toString(36)}-${Math.random().toString(36)}`)
-
   await fs.copy(inApp, appDir)
+
+  await global.writeEnv(appDir, env, except)
+  global.clearProcessEnv()
+  process.chdir(appDir)
 
   return appDir
 }
@@ -93,7 +96,7 @@ global.fakeEnvs = {
   }
 }
 
-global.writeEnv = async (env, appDir, except = []) => {
+global.writeEnv = async (appDir, env, except = []) => {
   if (typeof except === 'string') except = [except]
   except = new Set(except)
   await fs.writeFile(path.join(appDir, '.env'),
@@ -103,8 +106,6 @@ global.writeEnv = async (env, appDir, except = []) => {
       .join('\n')
   )
 }
-global.writeEnvTVM = global.writeEnv.bind(null, global.fakeEnvs.tvm)
-global.writeEnvCreds = global.writeEnv.bind(null, global.fakeEnvs.creds)
 
 global.clearProcessEnv = () => {
   delete process.env.WHISK_APIHOST

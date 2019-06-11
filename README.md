@@ -30,9 +30,9 @@ cna-scripts undeploy.ui <appDir>
 ## Run from JS
 
 ```js
-const appDir = process.argv[2] || process.cwd()
+if (process.argv[2]) process.chdir(process.argv[2])
+
 const scripts = require('@adobe/io-cna-scripts')({
-  appDir: appDir,
   listeners: {
     onStart: taskName => console.log(`${taskName} ...`),
     onEnd: taskName => console.log(`${taskName} done!`),
