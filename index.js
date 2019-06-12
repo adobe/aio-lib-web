@@ -23,8 +23,7 @@ const UndeployUI = require('./scripts/undeploy.ui')
 const UndeployActions = require('./scripts/undeploy.actions')
 
 /**
- * @param  {object|string} [options] if string refers to options.appDir
- * @param {string} [options.appDir] The path to the app, defaults to cwd
+ * @param  {object} [options]
  * @param {object} [options.listeners]
  * @param {function} [options.listeners.onStart]
  * @param {function} [options.listeners.onEnd]
@@ -33,12 +32,11 @@ const UndeployActions = require('./scripts/undeploy.actions')
  * @param {function} [options.listeners.onWarning]
  * @returns {object} With all script functions
  */
-function exportScripts (options, listeners) {
-  if (typeof options === 'string') options = { appDir: options }
+function exportScripts (options) {
   options = options || {}
-  listeners = options.listeners || {}
+  const listeners = options.listeners || {}
 
-  const appConfig = loadConfig(options.appDir)
+  const appConfig = loadConfig()
 
   const instantiate = (ClassDesc) => {
     const instance = new ClassDesc(appConfig)

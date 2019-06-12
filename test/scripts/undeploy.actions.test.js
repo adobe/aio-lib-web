@@ -16,16 +16,16 @@ const utils = require('../../lib/utils')
 const path = require('path')
 
 utils.spawnAioRuntimeDeploy = jest.fn()
+const mockAIOConfig = require('@adobe/aio-cli-config')
+
 let scripts
-let appDir
 let manifest
 beforeAll(async () => {
   await global.mockFS()
   // create test app
-  appDir = await global.createTestApp()
-  await global.writeEnvTVM(appDir)
-  await global.clearProcessEnv()
-  scripts = await CNAScripts(appDir)
+  await global.setTestAppAndEnv()
+  mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
+  scripts = await CNAScripts()
   manifest = scripts._config.manifest.dist
 })
 
@@ -46,5 +46,5 @@ test('Undeploy actions should remove .manifest-dist.yml', async () => {
 
 test('Undeploy actions should fail if there is no deployment', async () => {
   // for now no deployment is simplified to no .dist-manifest.yml
-  expect(scripts.undeployActions.bind(this)).toThrowWithMessageContaining(['missing', path.relative(appDir, manifest)])
+  expect(scripts.undeployActions.bind(this)).toThrowWithMessageContaining(['missing', path.basename(manifest)])
 })

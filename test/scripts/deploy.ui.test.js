@@ -16,33 +16,32 @@ const fs = require('fs-extra')
 const CNAScripts = require('../..')
 const AbstractScript = require('../../lib/abstract-script')
 
+const mockAIOConfig = require('@adobe/aio-cli-config')
 jest.mock('../../lib/remote-storage')
 jest.mock('../../lib/tvm-client')
 TVMClient.prototype.getCredentials = jest.fn().mockReturnValue(global.fakeTVMResponse)
+
 beforeEach(() => {
   // clear stats on mocks
   RemoteStorage.mockClear()
   TVMClient.mockClear()
 })
 
-let appDir
 beforeAll(async () => {
   await global.mockFS()
-  // create test app
-  appDir = await global.createTestApp()
 })
 afterAll(async () => {
   await global.resetFS()
-  await fs.remove(appDir)
 })
 
 describe('Deploy static files with tvm', () => {
   let scripts
   let buildDir
   beforeAll(async () => {
-    await global.writeEnvTVM(appDir)
-    await global.clearProcessEnv()
-    scripts = await CNAScripts(appDir)
+    // create test app
+    await global.setTestAppAndEnv()
+    mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
+    scripts = await CNAScripts()
     buildDir = scripts._config.web.distProd
   })
   afterEach(async () => {
@@ -89,9 +88,10 @@ describe('Deploy static files with env credentials', () => {
   let scripts
   let buildDir
   beforeAll(async () => {
-    await global.writeEnvCreds(appDir)
-    await global.clearProcessEnv()
-    scripts = await CNAScripts(appDir)
+    // create test app
+    await global.setTestAppAndEnv()
+    mockAIOConfig.get.mockReturnValue(global.fakeConfig.creds)
+    scripts = await CNAScripts()
     buildDir = scripts._config.web.distProd
   })
   afterEach(async () => {

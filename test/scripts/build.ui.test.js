@@ -12,6 +12,7 @@ governing permissions and limitations under the License.
 
 const fs = require('fs-extra')
 const CNAScripts = require('../..')
+const mockAIOConfig = require('@adobe/aio-cli-config')
 
 jest.mock('parcel-bundler')
 
@@ -21,11 +22,10 @@ beforeAll(async () => {
   // mockFS
   await global.mockFS()
   // create test app
-  const appDir = await global.createTestApp()
-  await global.writeEnvTVM(appDir)
-  await global.clearProcessEnv()
+  await global.setTestAppAndEnv()
+  mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
 
-  scripts = await CNAScripts(appDir)
+  scripts = await CNAScripts()
   buildDir = scripts._config.web.distProd
 })
 

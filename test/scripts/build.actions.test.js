@@ -20,16 +20,16 @@ utils.installDeps = jest.fn()
 // we are mocking zipfolder because of mock-fs not working properly
 // with streams, this might change in future versions of mock-fs
 utils.zipFolder = jest.fn((dir, out) => fs.writeFile(out, 'mock content'))
+const mockAIOConfig = require('@adobe/aio-cli-config')
 
 let scripts
 let buildDir
 beforeAll(async () => {
   await global.mockFS()
-  // create test app
-  const appDir = await global.createTestApp()
-  await global.writeEnvTVM(appDir)
-  await global.clearProcessEnv()
-  scripts = await CNAScripts(appDir)
+  // create test app and switch cwd
+  await global.setTestAppAndEnv()
+  mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
+  scripts = await CNAScripts()
   buildDir = scripts._config.actions.dist
 })
 

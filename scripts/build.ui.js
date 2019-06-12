@@ -44,7 +44,7 @@ class BuildUI extends CNAScript {
 
     // 3. show built files
     const files = await fs.readdir(dist)
-    files.forEach(f => this.emit('progress', `${this._relCwd(path.join(dist, f))}`))
+    files.forEach(f => this.emit('progress', `${this._relApp(path.join(dist, f))}`))
 
     this.emit('end', taskName)
   }

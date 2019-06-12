@@ -64,56 +64,42 @@ global.resetFS = () => {
   mockfs.restore()
 }
 
-global.createTestApp = async () => {
-  // for now one app
+global.setTestAppAndEnv = async (env, except) => {
+  // create test app
   const inApp = path.join(projectDir, 'test', '__fixtures__', 'sample-app')
   // unique
   const appDir = path.normalize(`${inApp}-${(+new Date()).toString(36)}-${Math.random().toString(36)}`)
-
   await fs.copy(inApp, appDir)
+
+  process.chdir(appDir)
 
   return appDir
 }
 
 global.fakeS3Bucket = 'fake-bucket'
-global.fakeEnvs = {
+global.fakeConfig = {
   tvm: {
-    WHISK_APIHOST: 'https://example.com',
-    WHISK_NAMESPACE: 'fake_ns',
-    WHISK_AUTH: 'fake:auth',
-    TVM_URL: 'https://example.com/api/v1/web/fakens/tvm/get-s3-upload-token'
+    runtime: {
+      apihost: 'https://example.com',
+      namespace: 'fake_ns',
+      auth: 'fake:auth'
+    },
+    cna: {
+      tvmurl: 'https://example.com/api/v1/web/fakens/tvm/get-s3-upload-token'
+    }
   },
   creds: {
-    WHISK_APIHOST: 'https://example.com',
-    WHISK_NAMESPACE: 'fake_ns',
-    WHISK_AUTH: 'fake:auth',
-    S3_BUCKET: global.fakeS3Bucket,
-    AWS_ACCESS_KEY_ID: 'fakeAwsKeyId',
-    AWS_SECRET_ACCESS_KEY: 'fakeAwsSecretKey'
+    runtime: {
+      apihost: 'https://example.com',
+      namespace: 'fake_ns',
+      auth: 'fake:auth'
+    },
+    cna: {
+      s3bucket: global.fakeS3Bucket,
+      awsaccesskeyid: 'fakeAwsKeyId',
+      awssecretaccesskey: 'fakeAwsSecretKey'
+    }
   }
-}
-
-global.writeEnv = async (env, appDir, except = []) => {
-  if (typeof except === 'string') except = [except]
-  except = new Set(except)
-  await fs.writeFile(path.join(appDir, '.env'),
-    Object.keys(env)
-      .filter(k => !except.has(k))
-      .map(k => `${k}=${env[k]}`)
-      .join('\n')
-  )
-}
-global.writeEnvTVM = global.writeEnv.bind(null, global.fakeEnvs.tvm)
-global.writeEnvCreds = global.writeEnv.bind(null, global.fakeEnvs.creds)
-
-global.clearProcessEnv = () => {
-  delete process.env.WHISK_APIHOST
-  delete process.env.WHISK_NAMESPACE
-  delete process.env.WHISK_AUTH
-  delete process.env.TVM_URL
-  delete process.env.AWS_ACCESS_KEY_ID
-  delete process.env.AWS_SECRET_ACCESS_KEY
-  delete process.env.S3_BUCKET
 }
 
 // sync
@@ -166,9 +152,12 @@ expect.extend({
     } catch (e) {
       if (typeof args === 'string') args = [args]
       const message = e.message.toLowerCase()
-      args.forEach(a => {
-        expect(message).toEqual(expect.stringContaining(a.toLowerCase()))
-      })
+      for (let i = 0; i < args.length; ++i) {
+        let a = args[i].toLowerCase()
+        if (message.indexOf(a) < 0) {
+          return { message: () => `expected "${message}" to contain "${a}"`, pass: false }
+        }
+      }
       return { pass: true }
     }
     return { message: () => 'function should have thrown', pass: false }
