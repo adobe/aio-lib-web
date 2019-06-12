@@ -16,12 +16,15 @@ const utils = require('../../lib/utils')
 const path = require('path')
 
 utils.spawnAioRuntimeDeploy = jest.fn()
+const mockAIOConfig = require('@adobe/aio-cli-config')
+
 let scripts
 let manifest
 beforeAll(async () => {
   await global.mockFS()
   // create test app
-  await global.setTestAppAndEnv(global.fakeEnvs.tvm)
+  await global.setTestAppAndEnv()
+  mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
   scripts = await CNAScripts()
   manifest = scripts._config.manifest.dist
 })

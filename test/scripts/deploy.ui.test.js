@@ -16,9 +16,11 @@ const fs = require('fs-extra')
 const CNAScripts = require('../..')
 const AbstractScript = require('../../lib/abstract-script')
 
+const mockAIOConfig = require('@adobe/aio-cli-config')
 jest.mock('../../lib/remote-storage')
 jest.mock('../../lib/tvm-client')
 TVMClient.prototype.getCredentials = jest.fn().mockReturnValue(global.fakeTVMResponse)
+
 beforeEach(() => {
   // clear stats on mocks
   RemoteStorage.mockClear()
@@ -37,7 +39,8 @@ describe('Deploy static files with tvm', () => {
   let buildDir
   beforeAll(async () => {
     // create test app
-    await global.setTestAppAndEnv(global.fakeEnvs.tvm)
+    await global.setTestAppAndEnv()
+    mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
     scripts = await CNAScripts()
     buildDir = scripts._config.web.distProd
   })
@@ -86,7 +89,8 @@ describe('Deploy static files with env credentials', () => {
   let buildDir
   beforeAll(async () => {
     // create test app
-    await global.setTestAppAndEnv(global.fakeEnvs.creds)
+    await global.setTestAppAndEnv()
+    mockAIOConfig.get.mockReturnValue(global.fakeConfig.creds)
     scripts = await CNAScripts()
     buildDir = scripts._config.web.distProd
   })

@@ -24,12 +24,13 @@
   "scripts": {
     "lint": "eslint .",
     "beautify": "npm run lint -- --fix",
-    "test": "npm run lint && jest -c ./jest.config.js"
+    "test": "jest -c ./jest.config.js && npm run lint"
   },
   "bin": {
     "cna-scripts": "./bin/cna-scripts.js"
   },
   "dependencies": {
+    "@adobe/aio-cli-config": "^1.0.7",
     "archiver": "^3.0.0",
     "aws-sdk": "^2.454.0",
     "dotenv": "^8.0.0",
