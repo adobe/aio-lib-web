@@ -46,6 +46,17 @@ scripts.buildUI()
   .catch(e => { console.error(e); process.exit(1) })
 ```
 
+## Local Dev
+
+**Requires docker!**
+
+- run dev server, this will spin up a local OpenWhisk stack and run a small
+  express server for the UI
+
+```bash
+   cna-scripts dev
+```
+
 ## Contributing
 
 Contributions are welcomed! Read the [Contributing Guide](./.github/CONTRIBUTING.md) for more information.
