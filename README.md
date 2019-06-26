@@ -19,25 +19,23 @@ export PATH="$PATH":"$PWD"/node_modules/.bin
 Commands:
 
 ```bash
-cna-scripts build.actions <appDir>
-cna-scripts build.ui <appDir>
-cna-scripts deploy.actions <appDir>
-cna-scripts deploy.ui <appDir>
-cna-scripts undeploy.actions <appDir>
-cna-scripts undeploy.ui <appDir>
+cna-scripts build.actions
+cna-scripts build.ui
+cna-scripts deploy.actions
+cna-scripts deploy.ui
+cna-scripts undeploy.actions
+cna-scripts undeploy.ui
 ```
 
 ## Run from JS
 
 ```js
-if (process.argv[2]) process.chdir(process.argv[2])
-
 const scripts = require('@adobe/io-cna-scripts')({
   listeners: {
-    onStart: taskName => console.log(`${taskName} ...`),
-    onEnd: taskName => console.log(`${taskName} done!`),
-    onWarning: warning => console.warn(warning),
-    onProgress: item => console.log(`  > ${item}`)
+    onStart: taskName => console.error(`${taskName} ...`),
+    onEnd: (taskName, res) => { console.error(`${taskName} done!`); if (res) console.log(res) },
+    onWarning: warning => console.error(warning),
+    onProgress: item => console.error(`  > ${item}`)
   }
 })
 
@@ -45,7 +43,6 @@ scripts.buildUI()
   .then(scripts.buildActions)
   .then(scripts.deployActions)
   .then(scripts.deployUI)
-  .then(url => require('open')(url))
   .catch(e => { console.error(e); process.exit(1) })
 ```
 

@@ -46,8 +46,7 @@ class DeployUI extends CNAScript {
     await remoteStorage.uploadDir(dist, this.config.s3.folder, f => this.emit('progress', path.basename(f)))
 
     const url = `https://s3.amazonaws.com/${creds.params.Bucket}/${this.config.s3.folder}/index.html`
-    this.emit('resource', url) // a bit hacky
-    this.emit('end', taskName)
+    this.emit('end', taskName, url)
     return url
   }
 }
