@@ -26,6 +26,8 @@ const fs = require('fs-extra')
 const BuildActions = require('./build.actions')
 const DeployActions = require('./deploy.actions')
 
+const utils = require('../lib/utils')
+
 const OW_JAR_URL = 'https://github.com/chetanmeh/incubator-openwhisk/releases/download/v0.10/openwhisk-standalone.jar'
 const OW_JAR_FILE = 'openwhisk-standalone.jar'
 const OW_LOG_FILE = '.openwhisk-standalone.logs'
@@ -50,7 +52,7 @@ class ActionServer extends CNAScript {
     }
 
     // 2. start the local ow stack
-    this.emit('progress', `Starting local OpenWhisk stack..`)
+    this.emit('progress', `starting local OpenWhisk stack..`)
     const owStack = execa('java', ['-jar', OW_JAR_FILE])
     const logStream = fs.createWriteStream(OW_LOG_FILE) // todo formalize logs in config folder
     owStack.stdout.pipe(logStream) // todo not showing cleanup logs.. shuting down to early
@@ -65,13 +67,14 @@ class ActionServer extends CNAScript {
     this.emit('progress', 'set guest credentials in .env')
 
     // 4. build and deploy actions // todo support live reloading ? or just doc redeploy
+    this.emit('progress', `redeploying actions to local environment..`)
     const newConfig = require('../lib/config-loader')()
     await (new BuildActions(newConfig)).run()
     await (new DeployActions(newConfig)).run()
-    this.emit('progress', `Successfully redeployed actions to local environment`)
 
+    this.emit('progress', `setting up the static files bundler`)
     // 5. inject new action urls into UI
-    await this._injectWebConfig()
+    await utils.writeConfig(newConfig.web.injectedConfig, newConfig.actions.urls)
 
     // 6. start UI dev server
     const app = express()
