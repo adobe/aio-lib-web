@@ -51,10 +51,16 @@ scripts.buildUI()
 **Requires docker!**
 
 - run dev server, this will spin up a local OpenWhisk stack and run a small
-  express server for the UI
+  express server for the frontend
 
 ```bash
    cna-scripts dev
+```
+
+- only run frontend server, the frontend will point to remotely deployed actions
+
+```bash
+   REMOTE_ACTIONS=true cna-scripts dev
 ```
 
 ## Contributing
