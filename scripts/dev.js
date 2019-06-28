@@ -10,7 +10,7 @@ the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTA
 OF ANY KIND, either express or implied. See the License for the specific language
 governing permissions and limitations under the License.
 */
-
+/* eslint-disable no-template-curly-in-string */
 const CNAScript = require('../lib/abstract-script')
 
 const path = require('path')
@@ -34,6 +34,9 @@ const OW_JAR_URL = 'https://github.com/chetanmeh/incubator-openwhisk/releases/do
 const OW_JAR_FILE = 'openwhisk-standalone.jar'
 const OW_LOG_FILE = '.openwhisk-standalone.logs'
 const DOTENV_SAVE = '.env.cna.save'
+const WSK_DEBUG_PROPS = '.wskdebug.props.tmp'
+const CODE_DEBUG_SAVE = '.vscode/launch.json.save'
+const CODE_DEBUG = '.vscode/launch.json'
 
 class ActionServer extends CNAScript {
   async run (args) {
@@ -45,6 +48,7 @@ class ActionServer extends CNAScript {
     // dev env is needed to generate local actions
     // process.env['NODE_ENV'] = process.env['NODE_ENV'] || 'development'
     let owStack
+    let devConfig = this.config // if remote keep same config
     if (!this.config.actions.remote) {
       // 1. make sure we have the local binary
       if (!(await fs.exists(OW_JAR_FILE))) {
@@ -89,25 +93,23 @@ class ActionServer extends CNAScript {
       // this would need to save env vars set outside of .env
       Object.keys(process.env).forEach(k => { if (k.startsWith('AIO')) delete process.env[k] })
       dotenv.config() // reload new dotenv
-      const newConfig = require('../lib/config-loader')()
+      devConfig = require('../lib/config-loader')()
       // 4.2 do build and deploy to local ow stack
-      await (new BuildActions(newConfig)).run()
-      await (new DeployActions(newConfig)).run()
-
-      // 5. inject new action urls into UI
-      await utils.writeConfig(newConfig.web.injectedConfig, newConfig.actions.urls)
+      await (new BuildActions(devConfig)).run()
+      await (new DeployActions(devConfig)).run()
     } else {
       // todo deploy
       // todo live redeploy?
       this.emit('progress', `using remote actions`)
-      await utils.writeConfig(this.config.web.injectedConfig, this.config.actions.urls)
     }
 
+    // 5. inject backend urls into ui
+    this.emit('progress', `injecting backend urls into frontend config`)
+    await utils.writeConfig(devConfig.web.injectedConfig, this.config.actions.urls)
+    // 6. prepare UI dev server
     this.emit('progress', `setting up the static files bundler`)
-    // 6. start UI dev server
     const app = express()
     app.use(express.json())
-
     const bundler = new Bundler(path.join(this.config.web.src, 'index.html'), {
       cache: false,
       outDir: this.config.web.distDev,
@@ -118,6 +120,17 @@ class ActionServer extends CNAScript {
     })
     app.use(bundler.middleware())
 
+    this.emit('progress', 'setting up debug configurations')
+    // prepare wskprops for wskdebug
+    await fs.writeFile(WSK_DEBUG_PROPS, `NAMESPACE=${devConfig.ow.namespace}\nAUTH=${devConfig.ow.auth}\nAPIHOST=${devConfig.ow.apihost}`)
+    // generate needed vscode debug config
+    // todo don't enforce vscode to non vscode devs
+    await fs.ensureDir(path.dirname(CODE_DEBUG))
+    if (await fs.exists(CODE_DEBUG)) {
+      if (!(await fs.exists(CODE_DEBUG_SAVE))) await fs.move(CODE_DEBUG, CODE_DEBUG_SAVE)
+    }
+    await fs.writeFile(CODE_DEBUG, JSON.stringify(this.generateVSCodeDebugConfig(), null, 2))
+
     // start server
     const server = app.listen(port)
     this.emit('progress', `local server running at http://localhost:${port}`)
@@ -126,12 +139,20 @@ class ActionServer extends CNAScript {
     const cleanup = err => {
       if (err) console.error(err)
       if (!this.config.actions.remote) {
-        console.error('Resetting .env')
+        console.error('resetting .env')
         fs.removeSync('.env')
         fs.moveSync(DOTENV_SAVE, '.env')
-        console.error('Cleaning up resources')
+        console.error('cleaning up OpenWhisk standalone stack')
         owStack.kill()
       }
+
+      console.error('removing wskdebug props')
+      fs.remove(WSK_DEBUG_PROPS)
+      console.error('resetting vscode/launch.json')
+      fs.removeSync(CODE_DEBUG)
+      fs.moveSync(CODE_DEBUG_SAVE, CODE_DEBUG)
+
+      console.error('killing dev server')
       server.close()
       err ? process.exit(1) : process.exit(0)
     }
@@ -139,6 +160,51 @@ class ActionServer extends CNAScript {
     process.on('SIGINT', cleanup.bind(null))
 
     process.on('uncaughtException', cleanup.bind(null))
+  }
+
+  generateVSCodeDebugConfig () {
+    const manifestActions = this.config.manifest.package.actions
+    const packageName = this.config.ow.package
+
+    const actionConfigNames = []
+    const actionDebugConfig = Object.keys(manifestActions).map(an => {
+      const name = `Action-${packageName}/${an}`
+      actionConfigNames.push(name)
+      const action = manifestActions[an]
+      return {
+        type: 'node',
+        request: 'launch',
+        name: name,
+        runtimeExecutable: 'wskdebug',
+        env: { WSK_CONFIG_FILE: '${workspaceFolder}/' + WSK_DEBUG_PROPS },
+        args: [ `${packageName}/${an}`, '${workspaceFolder}/' + action.function, '-v' ], // todo add -l when live reload support, but needs one port per action
+        localRoot: '${workspaceFolder}/' + path.dirname(action.function),
+        remoteRoot: '/code',
+        outputCapture: 'std'
+      }
+    })
+    return {
+      configurations: actionDebugConfig.concat({
+        type: 'chrome',
+        request: 'launch',
+        name: 'Web',
+        url: 'http://localhost:9080',
+        webRoot: '${workspaceFolder}/we-src/src',
+        'sourceMapPathOverrides': {
+          'webpack:///src/*': '${webRoot}/*'
+        }
+      }),
+      compounds: [
+        {
+          name: 'WebAndActions',
+          configurations: ['Web'].concat(actionConfigNames)
+        },
+        {
+          name: 'Actions',
+          configurations: actionConfigNames
+        }
+      ]
+    }
   }
 }
 

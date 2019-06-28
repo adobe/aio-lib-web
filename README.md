@@ -63,6 +63,22 @@ scripts.buildUI()
    REMOTE_ACTIONS=true cna-scripts dev
 ```
 
+### Debugging with VS Code
+
+**Requires wskdebug, add instructions on how to install!**
+
+- Actions can be debugged in both with local dev and remote actions dev modes
+
+- Simply start the dev server `cna-scripts dev`, this will generate all needed
+  vscode debug configurations
+
+- Then start the vs code debugger from the configuration you want, i.e. choose
+  `WebAndActions` to debug all actions and UI simultaneously or choose separate
+  debuggers.
+
+- When you stop the dev server all vs code configurations are cleaned up and
+  restored.
+
 ## Contributing
 
 Contributions are welcomed! Read the [Contributing Guide](./.github/CONTRIBUTING.md) for more information.
