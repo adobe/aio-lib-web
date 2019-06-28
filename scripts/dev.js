@@ -20,6 +20,8 @@ const execa = require('execa')
 
 const Bundler = require('parcel-bundler')
 
+const dotenv = require('dotenv')
+
 const request = require('request-promise')
 const fs = require('fs-extra')
 
@@ -61,14 +63,33 @@ class ActionServer extends CNAScript {
 
     // 3. change the .env
     if (!(await fs.exists(DOTENV_SAVE))) { await fs.move('.env', DOTENV_SAVE) }
-    // todo don't harcode port (and guest auth?)
-    await fs.writeFile('.env', 'AIO_RUNTIME_APIHOST=http://localhost:3233\nAIO_RUNTIME_NAMESPACE=guest\nAIO_RUNTIME_AUTH=23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP\nAIO_CNA_TVMURL=https://fake.com')
+
+    // Only override needed env vars and preserve other vars in .env
+    const env = dotenv.parse(await fs.readFile(DOTENV_SAVE))
+    // todo don't harcode port
+    env['AIO_RUNTIME_APIHOST'] = 'http://localhost:3233'
+    env['AIO_RUNTIME_AUTH'] = '23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP'
+    env['AIO_RUNTIME_NAMESPACE'] = 'guest'
+    delete env['AIO__RUNTIME_AUTH']
+    delete env['AIO__RUNTIME_NAMESPACE']
+    delete env['AIO__RUNTIME_APIHOST']
+    const envContent = Object.keys(env).reduce((content, k) => content + `${k}=${env[k]}\n`, '')
+
+    await fs.writeFile('.env', envContent)
     this.emit('progress', `saved .env to ${DOTENV_SAVE}`)
     this.emit('progress', 'set guest credentials in .env')
 
     // 4. build and deploy actions // todo support live reloading ? or just doc redeploy
     this.emit('progress', `redeploying actions to local environment..`)
+    // 4.1 update config -- need to manually reload env vars
+    // hack we need to manually reload env vars, as dotenv is not reloaded
+    // see https://github.com/adobe/aio-cli-config/issues/2
+    // todo generalize this and move to config
+    // this would need to save env vars set outside of .env
+    Object.keys(process.env).forEach(k => { if (k.startsWith('AIO')) delete process.env[k] })
+    dotenv.config() // reload new dotenv
     const newConfig = require('../lib/config-loader')()
+    // 4.2 do build and deploy to local ow stack
     await (new BuildActions(newConfig)).run()
     await (new DeployActions(newConfig)).run()
 
@@ -86,21 +107,21 @@ class ActionServer extends CNAScript {
       contentHash: false,
       watch: true,
       minify: false,
-      logLevel: 0
+      logLevel: 1
     })
     app.use(bundler.middleware())
     const server = app.listen(port)
     this.emit('progress', `local server running at http://localhost:${port}`)
     // 7. cleanup on SIGINT
-    const cleanup = () => {
-      console.error()
+    const cleanup = err => {
+      if (err) console.error(err)
       console.error('Resetting .env')
       fs.removeSync('.env')
       fs.moveSync(DOTENV_SAVE, '.env')
       console.error('Cleaning up resources')
       server.close()
       owStack.kill()
-      process.exit(0)
+      err ? process.exit(1) : process.exit(0)
     }
     // todo cleanup on kill, exit, unhandled error as well
     process.on('SIGINT', cleanup.bind(null))
