@@ -105,7 +105,7 @@ class ActionServer extends CNAScript {
 
     // 5. inject backend urls into ui
     this.emit('progress', `injecting backend urls into frontend config`)
-    await utils.writeConfig(devConfig.web.injectedConfig, this.config.actions.urls)
+    await utils.writeConfig(devConfig.web.injectedConfig, devConfig.actions.urls)
     // 6. prepare UI dev server
     this.emit('progress', `setting up the static files bundler`)
     const app = express()
@@ -129,7 +129,7 @@ class ActionServer extends CNAScript {
     if (await fs.exists(CODE_DEBUG)) {
       if (!(await fs.exists(CODE_DEBUG_SAVE))) await fs.move(CODE_DEBUG, CODE_DEBUG_SAVE)
     }
-    await fs.writeFile(CODE_DEBUG, JSON.stringify(this.generateVSCodeDebugConfig(), null, 2))
+    await fs.writeFile(CODE_DEBUG, JSON.stringify(this.generateVSCodeDebugConfig(port), null, 2))
 
     // start server
     const server = app.listen(port)
@@ -149,7 +149,7 @@ class ActionServer extends CNAScript {
       console.error('removing wskdebug props')
       fs.remove(WSK_DEBUG_PROPS)
       if (fs.existsSync(CODE_DEBUG_SAVE)) {
-        console.error('resetting vscode/launch.json')
+        console.error('resetting .vscode/launch.json')
         fs.removeSync(CODE_DEBUG)
         fs.moveSync(CODE_DEBUG_SAVE, CODE_DEBUG)
       }
@@ -164,7 +164,7 @@ class ActionServer extends CNAScript {
     process.on('uncaughtException', cleanup.bind(null))
   }
 
-  generateVSCodeDebugConfig () {
+  generateVSCodeDebugConfig (port) {
     const manifestActions = this.config.manifest.package.actions
     const packageName = this.config.ow.package
 
@@ -190,7 +190,7 @@ class ActionServer extends CNAScript {
         type: 'chrome',
         request: 'launch',
         name: 'Web',
-        url: 'http://localhost:9080',
+        url: `http://localhost:${port}`,
         webRoot: '${workspaceFolder}/we-src/src',
         'sourceMapPathOverrides': {
           'webpack:///src/*': '${webRoot}/*'
