@@ -98,7 +98,7 @@ class ActionServer extends CNAScript {
       this.emit('progress', `using remote actions`)
     }
     // 4. build and deploy actions // todo support live reloading ? or just doc redeploy
-    this.emit('progress', `redeploying actions to local environment..`)
+    this.emit('progress', `redeploying actions..`)
     await (new BuildActions(devConfig)).run()
     await (new DeployActions(devConfig)).run()
 

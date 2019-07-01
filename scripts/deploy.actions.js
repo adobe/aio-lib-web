@@ -18,6 +18,8 @@ const fs = require('fs-extra')
 const path = require('path')
 const yaml = require('js-yaml')
 
+const cloneDeep = require('lodash.clonedeep')
+
 // This should eventually be fully covered by `aio runtime deploy`
 class DeployActions extends CNAScript {
   async run () {
@@ -32,7 +34,7 @@ class DeployActions extends CNAScript {
     }
 
     // 1. rewrite wskManifest config
-    const manifest = { ...this.config.manifest.full }
+    const manifest = cloneDeep(this.config.manifest.full)
     const manifestPackage = manifest.packages[this.config.manifest.packagePlaceholder]
     manifestPackage.version = this.config.app.version
     const relDist = this._relApp(this.config.actions.dist)
