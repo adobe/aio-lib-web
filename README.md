@@ -79,6 +79,10 @@ scripts.buildUI()
 - When you stop the dev server all vs code configurations are cleaned up and
   restored.
 
+### TODOES
+
+- !! run debugger on built code to include dependencies.
+
 ## Contributing
 
 Contributions are welcomed! Read the [Contributing Guide](./.github/CONTRIBUTING.md) for more information.
