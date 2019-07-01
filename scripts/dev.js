@@ -147,7 +147,7 @@ class ActionServer extends CNAScript {
       }
 
       console.error('removing wskdebug props')
-      fs.remove(WSK_DEBUG_PROPS)
+      fs.removeSync(WSK_DEBUG_PROPS)
       if (fs.existsSync(CODE_DEBUG_SAVE)) {
         console.error('resetting .vscode/launch.json')
         fs.removeSync(CODE_DEBUG)
