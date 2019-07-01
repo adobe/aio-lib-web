@@ -84,9 +84,7 @@ class ActionServer extends CNAScript {
       this.emit('progress', `saved .env to ${DOTENV_SAVE}`)
       this.emit('progress', 'set guest credentials in .env')
 
-      // 4. build and deploy actions // todo support live reloading ? or just doc redeploy
-      this.emit('progress', `redeploying actions to local environment..`)
-      // 4.1 update config -- need to manually reload env vars
+      // 4 update config to local for build and deploy -- need to manually reload env vars
       // hack we need to manually reload env vars, as dotenv is not reloaded
       // see https://github.com/adobe/aio-cli-config/issues/2
       // todo generalize this and move to config
@@ -94,14 +92,15 @@ class ActionServer extends CNAScript {
       Object.keys(process.env).forEach(k => { if (k.startsWith('AIO')) delete process.env[k] })
       dotenv.config() // reload new dotenv
       devConfig = require('../lib/config-loader')()
-      // 4.2 do build and deploy to local ow stack
-      await (new BuildActions(devConfig)).run()
-      await (new DeployActions(devConfig)).run()
     } else {
       // todo deploy
       // todo live redeploy?
       this.emit('progress', `using remote actions`)
     }
+    // 4. build and deploy actions // todo support live reloading ? or just doc redeploy
+    this.emit('progress', `redeploying actions to local environment..`)
+    await (new BuildActions(devConfig)).run()
+    await (new DeployActions(devConfig)).run()
 
     // 5. inject backend urls into ui
     this.emit('progress', `injecting backend urls into frontend config`)
@@ -179,7 +178,7 @@ class ActionServer extends CNAScript {
         name: name,
         runtimeExecutable: 'wskdebug',
         env: { WSK_CONFIG_FILE: '${workspaceFolder}/' + WSK_DEBUG_PROPS },
-        args: [ `${packageName}/${an}`, '${workspaceFolder}/' + action.function, '-v' ], // todo add -l when live reload support, but needs one port per action
+        args: [ `${packageName}/${an}`, '${workspaceFolder}/' + action.function, '-v' ],
         localRoot: '${workspaceFolder}/' + path.dirname(action.function),
         remoteRoot: '/code',
         outputCapture: 'std'
