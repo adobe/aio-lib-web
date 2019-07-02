@@ -79,11 +79,16 @@ scripts.buildUI()
 - When you stop the dev server all vs code configurations are cleaned up and
   restored.
 
-### TODOES
+### TODO
 
-- cleanup auto gen files put all in a subfolder
-- unit tests
-- check that zip actions work
+- from poc to dev cmd:
+  - code cleanup
+  - unit tests
+  - make sure dependencies are released (e.g `aio-cli-config`)
+  - better doc
+  - aio cna dev command
+  - auto download `wskdebug` (as dependencies) and `openwhisk-standalone.jar`
+- vscode plugin
 
 ## Contributing
 
