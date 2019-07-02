@@ -81,7 +81,9 @@ scripts.buildUI()
 
 ### TODOES
 
-- !! run debugger on built code to include dependencies.
+- cleanup auto gen files put all in a subfolder
+- unit tests
+- check that zip actions work
 
 ## Contributing
 

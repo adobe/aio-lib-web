@@ -14,20 +14,16 @@ governing permissions and limitations under the License.
 const CNAScript = require('../lib/abstract-script')
 
 const path = require('path')
-
 const express = require('express')
 const execa = require('execa')
-
 const Bundler = require('parcel-bundler')
-
 const dotenv = require('dotenv')
-
 const request = require('request-promise')
 const fs = require('fs-extra')
+const yaml = require('js-yaml')
 
 const BuildActions = require('./build.actions')
 const DeployActions = require('./deploy.actions')
-
 const utils = require('../lib/utils')
 
 const OW_JAR_URL = 'https://github.com/chetanmeh/incubator-openwhisk/releases/download/v0.10/openwhisk-standalone.jar'
@@ -100,7 +96,7 @@ class ActionServer extends CNAScript {
     // 4. build and deploy actions // todo support live reloading ? or just doc redeploy
     this.emit('progress', `redeploying actions..`)
     await (new BuildActions(devConfig)).run()
-    await (new DeployActions(devConfig)).run()
+    await (new DeployActions(devConfig)).run() // also generates manifest dist
 
     // 5. inject backend urls into ui
     this.emit('progress', `injecting backend urls into frontend config`)
@@ -128,7 +124,7 @@ class ActionServer extends CNAScript {
     if (await fs.exists(CODE_DEBUG)) {
       if (!(await fs.exists(CODE_DEBUG_SAVE))) await fs.move(CODE_DEBUG, CODE_DEBUG_SAVE)
     }
-    await fs.writeFile(CODE_DEBUG, JSON.stringify(this.generateVSCodeDebugConfig(port), null, 2))
+    await fs.writeFile(CODE_DEBUG, JSON.stringify(await this.generateVSCodeDebugConfig(devConfig, port), null, 2))
 
     // start server
     const server = app.listen(port)
@@ -163,15 +159,15 @@ class ActionServer extends CNAScript {
     process.on('uncaughtException', cleanup.bind(null))
   }
 
-  generateVSCodeDebugConfig (port) {
-    const manifestActions = this.config.manifest.package.actions
-    const packageName = this.config.ow.package
+  async generateVSCodeDebugConfig (devConfig, uiPort) {
+    const packageName = devConfig.ow.package
+    const distManifestActions = yaml.safeLoad(await fs.readFile(devConfig.manifest.dist, 'utf8')).packages[packageName].actions
 
     const actionConfigNames = []
-    const actionDebugConfig = Object.keys(manifestActions).map(an => {
-      const name = `Action-${packageName}/${an}`
+    const actionDebugConfig = Object.keys(distManifestActions).map(an => {
+      const name = `Action:${packageName}/${an}`
       actionConfigNames.push(name)
-      const action = manifestActions[an]
+      const action = distManifestActions[an]
       return {
         type: 'node',
         request: 'launch',
@@ -189,7 +185,7 @@ class ActionServer extends CNAScript {
         type: 'chrome',
         request: 'launch',
         name: 'Web',
-        url: `http://localhost:${port}`,
+        url: `http://localhost:${uiPort}`,
         webRoot: '${workspaceFolder}/we-src/src',
         'sourceMapPathOverrides': {
           'webpack:///src/*': '${webRoot}/*'
