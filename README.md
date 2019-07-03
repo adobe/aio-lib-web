@@ -88,7 +88,8 @@ scripts.buildUI()
   - better doc
   - aio cna dev command
   - auto download `wskdebug` (as dependencies) and `openwhisk-standalone.jar`
-  - actions-only support
+  - windows support (e.g sigint, standalone jar, wskdebug,...)
+  - make sure action dependencies are available while debugging from source file
 - vscode plugin
 
 ## Contributing

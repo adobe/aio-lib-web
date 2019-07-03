@@ -24,6 +24,8 @@ class BuildUI extends CNAScript {
     const taskName = 'Build static files'
     this.emit('start', taskName)
 
+    if (!this.config.app.hasFrontend) throw new Error('cannot build UI, app has no frontend')
+
     const dist = this.config.web.distProd
     const src = this.config.web.src
 
