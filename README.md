@@ -88,6 +88,7 @@ scripts.buildUI()
   - better doc
   - aio cna dev command
   - auto download `wskdebug` (as dependencies) and `openwhisk-standalone.jar`
+  - actions-only support
 - vscode plugin
 
 ## Contributing
