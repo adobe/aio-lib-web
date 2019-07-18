@@ -49,7 +49,7 @@ class ActionServer extends CNAScript {
     const resources = {}
     let devConfig = this.config // if remote keep same config
 
-    process.env.NODE_ENV = 'development'
+    // process.env.NODE_ENV = 'development'
 
     // setup cleanup
     const cleanup = err => {
