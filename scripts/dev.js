@@ -35,7 +35,8 @@ const CODE_DEBUG_SAVE = '.vscode/launch.json.save'
 const CODE_DEBUG = '.vscode/launch.json'
 
 class ActionServer extends CNAScript {
-  async run (args) {
+  async run (args = []) {
+
     const taskName = `Local Dev Server`
     this.emit('start', taskName)
 
