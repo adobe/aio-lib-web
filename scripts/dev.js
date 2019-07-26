@@ -26,9 +26,12 @@ const BuildActions = require('./build.actions')
 const DeployActions = require('./deploy.actions')
 const utils = require('../lib/utils')
 
+// TODO: this jar should become part of the distro, OR it should be pulled from bintray or similar.
 const OW_JAR_URL = 'https://github.com/chetanmeh/incubator-openwhisk/releases/download/v0.10/openwhisk-standalone.jar'
-const OW_JAR_FILE = 'openwhisk-standalone.jar'
-const OW_LOG_FILE = '.openwhisk-standalone.logs'
+
+// This path will be relative to this module, and not the cwd, so multiple projects can use it.
+const OW_JAR_FILE = path.resolve(__dirname, '../bin/openwhisk-standalone.jar')
+const OW_LOG_FILE = '.openwhisk-standalone.log'
 const DOTENV_SAVE = '.env.cna.save'
 const WSK_DEBUG_PROPS = '.wskdebug.props.tmp'
 const CODE_DEBUG_SAVE = '.vscode/launch.json.save'
@@ -36,7 +39,6 @@ const CODE_DEBUG = '.vscode/launch.json'
 
 class ActionServer extends CNAScript {
   async run (args = []) {
-
     const taskName = `Local Dev Server`
     this.emit('start', taskName)
 
@@ -87,10 +89,10 @@ class ActionServer extends CNAScript {
     try {
       if (isLocal) {
         // 1. make sure we have the local binary
-        if (!(await fs.exists(OW_JAR_FILE))) {
+        if (!fs.existsSync(OW_JAR_FILE)) {
           this.emit('progress', `could not find ${OW_JAR_FILE}, downloading it from ${OW_JAR_URL}, this might take a while ...`)
           const content = await request({ url: OW_JAR_URL, followAllRedirects: true, encoding: 'binary' })
-          await fs.writeFile(OW_JAR_FILE, content, 'binary')
+          fs.writeFileSync(OW_JAR_FILE, content, 'binary')
           this.emit('progress', `successfully downloaded ${OW_JAR_FILE}`)
         }
 
@@ -103,11 +105,14 @@ class ActionServer extends CNAScript {
         await waitFor(7000) // todo find out when ow is running instead of waiting for arbitrary time
 
         // 3. change the .env
-        if (!(await fs.exists(DOTENV_SAVE))) { await fs.move('.env', DOTENV_SAVE) }
+        if (!fs.existsSync(DOTENV_SAVE)) {
+          fs.moveSync('.env', DOTENV_SAVE)
+        }
 
         // Only override needed env vars and preserve other vars in .env
-        const env = dotenv.parse(await fs.readFile(DOTENV_SAVE))
-        // todo don't harcode port
+        const env = dotenv.parse(fs.readFileSync(DOTENV_SAVE))
+
+        // todo don't hardcode port
         env['AIO_RUNTIME_APIHOST'] = 'http://localhost:3233'
         env['AIO_RUNTIME_AUTH'] = '23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP'
         env['AIO_RUNTIME_NAMESPACE'] = 'guest'
@@ -116,7 +121,7 @@ class ActionServer extends CNAScript {
         delete env['AIO__RUNTIME_APIHOST']
         const envContent = Object.keys(env).reduce((content, k) => content + `${k}=${env[k]}\n`, '')
 
-        await fs.writeFile('.env', envContent)
+        fs.writeFileSync('.env', envContent)
         this.emit('progress', `saved .env to ${DOTENV_SAVE}`)
         this.emit('progress', 'set guest credentials in .env')
 
@@ -140,18 +145,24 @@ class ActionServer extends CNAScript {
 
       this.emit('progress', 'setting up debug configurations')
       // prepare wskprops for wskdebug
-      await fs.writeFile(WSK_DEBUG_PROPS, `NAMESPACE=${devConfig.ow.namespace}\nAUTH=${devConfig.ow.auth}\nAPIHOST=${devConfig.ow.apihost}`)
+      fs.writeFileSync(WSK_DEBUG_PROPS, `NAMESPACE=${devConfig.ow.namespace}\nAUTH=${devConfig.ow.auth}\nAPIHOST=${devConfig.ow.apihost}`)
+
       // generate needed vscode debug config
       // todo don't enforce vscode to non vscode devs
-      await fs.ensureDir(path.dirname(CODE_DEBUG))
-      if (await fs.exists(CODE_DEBUG)) {
-        if (!(await fs.exists(CODE_DEBUG_SAVE))) await fs.move(CODE_DEBUG, CODE_DEBUG_SAVE)
+      fs.ensureDirSync(path.dirname(CODE_DEBUG))
+      if (fs.existsSync(CODE_DEBUG)) {
+        if (!fs.existsSync(CODE_DEBUG_SAVE)) {
+          fs.moveSync(CODE_DEBUG, CODE_DEBUG_SAVE)
+        }
       }
-      await fs.writeFile(CODE_DEBUG, JSON.stringify(await this.generateVSCodeDebugConfig(devConfig, hasFrontend, port), null, 2))
+      fs.writeFileSync(CODE_DEBUG, JSON.stringify(await this.generateVSCodeDebugConfig(devConfig, hasFrontend, port), null, 2))
 
       if (hasFrontend) {
+        // todo: does it have to be index.html?
         const entryFile = path.join(this.config.web.src, 'index.html')
-        if (!await fs.exists(entryFile)) throw new Error(`missing ${this._relApp(entryFile)}`)
+        if (!fs.existsSync(entryFile)) {
+          throw new Error(`missing ${this._relApp(entryFile)}`)
+        }
         // inject backend urls into ui
         this.emit('progress', `injecting backend urls into frontend config`)
         await utils.writeConfig(devConfig.web.injectedConfig, devConfig.actions.urls)
