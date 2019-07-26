@@ -21,6 +21,7 @@ const DeployUI = require('./scripts/deploy.ui')
 const DeployActions = require('./scripts/deploy.actions')
 const UndeployUI = require('./scripts/undeploy.ui')
 const UndeployActions = require('./scripts/undeploy.actions')
+const RunDev = require('./scripts/dev')
 
 /**
  * @param  {object} [options]
@@ -57,7 +58,7 @@ function exportScripts (options) {
     deployActions: instantiate(DeployActions),
     undeployUI: instantiate(UndeployUI),
     undeployActions: instantiate(UndeployActions),
-
+    runDev: instantiate(RunDev),
     // for unit testing
     _config: appConfig
   }

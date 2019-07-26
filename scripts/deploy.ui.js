@@ -23,6 +23,8 @@ class DeployUI extends CNAScript {
     const taskName = `Deploy static files`
     this.emit('start', taskName)
 
+    if (!this.config.app.hasFrontend) throw new Error('cannot deploy UI, app has no frontend')
+
     const dist = this.config.web.distProd
     if (!(await fs.exists(dist)) ||
       !(await fs.stat(dist)).isDirectory() ||
@@ -40,7 +42,7 @@ class DeployUI extends CNAScript {
     const remoteStorage = new RemoteStorage(creds)
 
     if (await remoteStorage.folderExists(this.config.s3.folder)) {
-      this.emit('warning', `An already existing deployment for version ${this.config.app.version} will be overwritten`)
+      this.emit('warning', `an already existing deployment for version ${this.config.app.version} will be overwritten`)
       await remoteStorage.emptyFolder(this.config.s3.folder)
     }
     await remoteStorage.uploadDir(dist, this.config.s3.folder, f => this.emit('progress', path.basename(f)))
