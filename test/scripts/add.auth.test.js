@@ -18,26 +18,34 @@ const mockFs = require('fs-extra')
 jest.mock('fs-extra')
 
 let scripts
-beforeEach(async () => {
+beforeAll(async () => {
   // create test app and switch cwd
+  await global.mockFS()
+  await global.setTestAppAndEnv()
+  mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
+  scripts = await CNAScripts({})
+})
+
+beforeEach(async () => {
   mockFs.readFileSync.mockReturnValue(`
   packages:
     __CNA_PACKAGE__:
       license: Apache-2.0`)
-  await global.setTestAppAndEnv()
-  mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
-  scripts = await CNAScripts({})
 })
 
 afterEach(async () => {
   jest.resetAllMocks()
 })
 
+afterAll(async () => {
+  await global.resetFS()
+})
+
 test('auth_code', async () => {
   mockAIOConfig.get.mockReturnValue({ runtime: global.fakeConfig.tvm.runtime, cna: global.fakeConfig.tvm.cna, ims_auth_type: 'code', oauth: { persistence: 'yes' } })
   await scripts.addAuth()
   expect(mockFs.writeFile).toHaveBeenCalledTimes(1)
-  expect(mockFs.writeFile.mock.calls[0][0]).toContain('/manifest.yml')
+  expect(mockFs.writeFile.mock.calls[0][0]).toContain('manifest.yml')
   expect(mockFs.writeFile.mock.calls[0][1]).toEqual(`packages:
   __CNA_PACKAGE__:
     license: Apache-2.0
@@ -69,7 +77,7 @@ test('jwt', async () => {
   mockAIOConfig.get.mockReturnValue({ runtime: global.fakeConfig.tvm.runtime, cna: global.fakeConfig.tvm.cna, ims_auth_type: 'jwt', 'jwt-auth': { persistence: 'yes', jwt_payload: { 'http': true } } })
   await scripts.addAuth()
   expect(mockFs.writeFile).toHaveBeenCalledTimes(1)
-  expect(mockFs.writeFile.mock.calls[0][0]).toContain('/manifest.yml')
+  expect(mockFs.writeFile.mock.calls[0][0]).toContain('manifest.yml')
   expect(mockFs.writeFile.mock.calls[0][1]).toEqual(`packages:
   __CNA_PACKAGE__:
     license: Apache-2.0
