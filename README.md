@@ -2,20 +2,35 @@
 
 The module implementing the Adobe I/O CNA scripts
 
-## Setup
+## Include as a library in your nodejs project
 
 ```bash
-npm i @adobe/io-cna-scripts
+npm i --save @adobe/io-cna-scripts
 ```
 
-## Run from cmdline
+```js
+const cnaScripts = require('@adobe/io-cna-scripts')({
+  listeners: {
+    onStart: taskName => console.error(`${taskName} ...`),
+    onEnd: (taskName, res) => { console.error(`${taskName} done!`); if (res) console.log(res) },
+    onWarning: warning => console.error(warning),
+    onProgress: item => console.error(`  > ${item}`)
+  }
+})
 
-Add binary to path:
+cnaScripts.buildUI()
+  .then(cnaScripts.buildActions)
+  .then(cnaScripts.deployActions)
+  .then(cnaScripts.deployUI)
+  .catch(e => { console.error(e); process.exit(1) })
+```
+
+## Install globally to run directly
+_note this interface is experimental and may disappear in the future_
 
 ```bash
-export PATH="$PATH":"$PWD"/node_modules/.bin
+npm i -g @adobe/io-cna-scripts
 ```
-
 Commands:
 
 ```bash
@@ -27,28 +42,9 @@ cna-scripts undeploy.actions
 cna-scripts undeploy.ui
 ```
 
-## Run from JS
+## Using cna-scripts for local dev
 
-```js
-const scripts = require('@adobe/io-cna-scripts')({
-  listeners: {
-    onStart: taskName => console.error(`${taskName} ...`),
-    onEnd: (taskName, res) => { console.error(`${taskName} done!`); if (res) console.log(res) },
-    onWarning: warning => console.error(warning),
-    onProgress: item => console.error(`  > ${item}`)
-  }
-})
-
-scripts.buildUI()
-  .then(scripts.buildActions)
-  .then(scripts.deployActions)
-  .then(scripts.deployUI)
-  .catch(e => { console.error(e); process.exit(1) })
-```
-
-## Local Dev
-
-**Requires docker!**
+> **Requires docker!**
 
 - run dev server, this will spin up a local OpenWhisk stack and run a small
   express server for the frontend
@@ -65,7 +61,7 @@ scripts.buildUI()
 
 ### Debugging with VS Code
 
-**Requires wskdebug, add instructions on how to install!**
+> **Requires wskdebug which is not yet publicly available!**
 
 - Actions can be debugged in both with local dev and remote actions dev modes
 
@@ -78,19 +74,6 @@ scripts.buildUI()
 
 - When you stop the dev server all vs code configurations are cleaned up and
   restored.
-
-### TODO
-
-- from poc to dev cmd:
-  - code cleanup
-  - unit tests
-  - make sure dependencies are released (e.g `aio-cli-config`)
-  - better doc
-  - aio cna dev command
-  - auto download `wskdebug` (as dependencies) and `openwhisk-standalone.jar`
-  - windows support (e.g sigint, standalone jar, wskdebug,...)
-  - make sure action dependencies are available while debugging from source file
-- vscode plugin
 
 ## Contributing
 
