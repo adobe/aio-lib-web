@@ -27,9 +27,9 @@ class DeployActions extends CNAScript {
     this.emit('start', taskName)
 
     const dist = this.config.actions.dist
-    if (!(await fs.exists(dist)) ||
-        !(await fs.stat(dist)).isDirectory() ||
-        !(await fs.readdir(dist)).length === 0) {
+    if (!(fs.pathExistsSync(dist)) ||
+        !(fs.statSync(dist)).isDirectory() ||
+        !(fs.readdirSync(dist)).length === 0) {
       throw new Error(`missing files in ${this._relApp(dist)}, maybe you forgot to build your actions ?`)
     }
 
@@ -41,7 +41,7 @@ class DeployActions extends CNAScript {
     await Promise.all(Object.entries(manifestPackage.actions).map(async ([name, action]) => {
       const actionPath = this._absApp(action.function)
       // change path to built action
-      if ((await fs.stat(actionPath)).isDirectory()) {
+      if ((fs.statSync(actionPath)).isDirectory()) {
         action.function = path.join(relDist, name + '.zip')
       } else {
         action.function = path.join(relDist, name + '.js')
@@ -53,7 +53,7 @@ class DeployActions extends CNAScript {
       .replace(this.config.manifest.packagePlaceholder, this.config.ow.package)
     // write the new wskManifest yaml
     const distManifestFile = this.config.manifest.dist
-    await fs.writeFile(distManifestFile, manifestString)
+    fs.writeFileSync(distManifestFile, manifestString)
 
     // 2. invoke aio runtime deploy command
     await utils.spawnAioRuntimeDeploy(distManifestFile)
@@ -68,4 +68,4 @@ class DeployActions extends CNAScript {
   }
 }
 
-CNAScript.runOrExport(module, DeployActions)
+module.exports = DeployActions

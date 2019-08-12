@@ -18,7 +18,7 @@ const express = require('express')
 const execa = require('execa')
 const Bundler = require('parcel-bundler')
 const dotenv = require('dotenv')
-const request = require('request-promise')
+const request = require('request-promise') // todo: change to use fetch()
 const fs = require('fs-extra')
 // const yaml = require('js-yaml')
 
@@ -26,12 +26,14 @@ const BuildActions = require('./build.actions')
 const DeployActions = require('./deploy.actions')
 const utils = require('../lib/utils')
 
+const debug = require('debug')('cna-scripts:dev')
+
 // TODO: this jar should become part of the distro, OR it should be pulled from bintray or similar.
 const OW_JAR_URL = 'https://github.com/chetanmeh/incubator-openwhisk/releases/download/v0.10/openwhisk-standalone.jar'
 
 // This path will be relative to this module, and not the cwd, so multiple projects can use it.
 const OW_JAR_FILE = path.resolve(__dirname, '../bin/openwhisk-standalone.jar')
-const OW_LOG_FILE = '.openwhisk-standalone.log'
+// const OW_LOG_FILE = '.openwhisk-standalone.log'
 const DOTENV_SAVE = '.env.cna.save'
 const WSK_DEBUG_PROPS = '.wskdebug.props.tmp'
 const CODE_DEBUG_SAVE = '.vscode/launch.json.save'
@@ -88,6 +90,17 @@ class ActionServer extends CNAScript {
 
     try {
       if (isLocal) {
+        if (utils.hasDockerCLI()) {
+          debug('has docker cli returned true')
+        } else {
+          debug('has docker cli returned false')
+        }
+        if (utils.isDockerRunning()) {
+          console.log('isDockerRunning YES')
+        } else {
+          console.log('Docker is NOT running!!!')
+        }
+
         // 1. make sure we have the local binary
         if (!fs.existsSync(OW_JAR_FILE)) {
           this.emit('progress', `could not find ${OW_JAR_FILE}, downloading it from ${OW_JAR_URL}, this might take a while ...`)
@@ -98,11 +111,19 @@ class ActionServer extends CNAScript {
 
         // 2. start the local ow stack
         this.emit('progress', `starting local OpenWhisk stack..`)
-        resources.owStack = execa('java', ['-jar', '-Dwhisk.concurrency-limit.max=10', OW_JAR_FILE])
-        const logStream = fs.createWriteStream(OW_LOG_FILE) // todo formalize logs in config folder
-        resources.owStack.stdout.pipe(logStream) // todo not showing cleanup logs.. shuting down to early
-        resources.owStack.stderr.pipe(process.stderr) // todo error on stderr ?
-        await waitFor(7000) // todo find out when ow is running instead of waiting for arbitrary time
+        try {
+          resources.owStack = execa('java', ['-jar', '-Dwhisk.concurrency-limit.max=10', OW_JAR_FILE])
+
+          // const logStream = fs.createWriteStream(OW_LOG_FILE) // todo formalize logs in config folder
+          // resources.owStack.stdout.pipe(logStream) // todo not showing cleanup logs.. shuting down to early
+          resources.owStack.stdout.pipe(process.stdout)
+
+          resources.owStack.stderr.pipe(process.stderr) // todo error on stderr ?
+          await waitFor(7000) // todo find out when ow is running instead of waiting for arbitrary time
+        } catch (err) {
+          console.error('caught an error from Java .... ' + err)
+          throw err
+        }
 
         // 3. change the .env
         if (!fs.existsSync(DOTENV_SAVE)) {
@@ -247,4 +268,4 @@ function waitFor (t) {
   return new Promise(resolve => setTimeout(resolve, t))
 }
 
-CNAScript.runOrExport(module, ActionServer)
+module.exports = ActionServer

@@ -54,4 +54,4 @@ class BuildUI extends CNAScript {
   }
 }
 
-CNAScript.runOrExport(module, BuildUI)
+module.exports = BuildUI

@@ -40,4 +40,4 @@ class UndeployActions extends CNAScript {
   }
 }
 
-CNAScript.runOrExport(module, UndeployActions)
+module.exports = UndeployActions
