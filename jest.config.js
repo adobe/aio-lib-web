@@ -17,7 +17,14 @@ module.exports = {
   collectCoverage: true,
   collectCoverageFrom: [
     'index.js',
-    'scripts/*.js',
-    'lib/*.js'
-  ]
+    'lib/**/*.js',
+    'scripts/**/*.js'
+  ],
+  coverageThreshold: {
+    global: {
+      branches: 100,
+      lines: 100,
+      statements: 100
+    }
+  }
 }
