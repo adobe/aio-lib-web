@@ -24,7 +24,7 @@
   "scripts": {
     "lint": "eslint .",
     "beautify": "npm run lint -- --fix",
-    "test": "npm run lint && npm run unit-test",
+    "test": "npm run unit-test && npm run lint",
     "unit-test": "jest -c ./jest.config.js"
   },
   "bin": {
