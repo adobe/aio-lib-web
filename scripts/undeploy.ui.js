@@ -39,4 +39,4 @@ class UndeployUI extends CNAScript {
   }
 }
 
-CNAScript.runOrExport(module, UndeployUI)
+module.exports = UndeployUI

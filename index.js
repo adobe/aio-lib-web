@@ -12,6 +12,8 @@ governing permissions and limitations under the License.
 
 const loadConfig = require('./lib/config-loader')
 
+const debug = require('debug')('cna-scripts:index')
+
 // load here - no lazy loading, as it breaks unit tests (mockfs require)
 // Don't use lazy loading within scripts neither..
 // todo fix this
@@ -25,7 +27,7 @@ const RunDev = require('./scripts/dev')
 const AddAuth = require('./scripts/add.auth')
 
 /**
- * @param  {object} [options]
+ * @param {object} [options]
  * @param {object} [options.listeners]
  * @param {function} [options.listeners.onStart]
  * @param {function} [options.listeners.onEnd]
@@ -35,6 +37,8 @@ const AddAuth = require('./scripts/add.auth')
  * @returns {object} With all script functions
  */
 function exportScripts (options) {
+  debug('exportScripts')
+
   options = options || {}
   const listeners = options.listeners || {}
 
@@ -43,12 +47,22 @@ function exportScripts (options) {
   const instantiate = (ClassDesc) => {
     const instance = new ClassDesc(appConfig)
 
-    if (listeners.onStart) instance.on('start', listeners.onStart)
-    if (listeners.onEnd) instance.on('end', listeners.onEnd)
-    if (listeners.onProgress) instance.on('progress', listeners.onProgress)
-    if (listeners.onResource) instance.on('resource', listeners.onResource)
-    if (listeners.onWarning) instance.on('warning', listeners.onWarning)
-
+    if (listeners.onStart) {
+      instance.on('start', listeners.onStart)
+    }
+    if (listeners.onEnd) {
+      instance.on('end', listeners.onEnd)
+    }
+    if (listeners.onProgress) {
+      instance.on('progress', listeners.onProgress)
+    }
+    if (listeners.onResource) {
+      instance.on('resource', listeners.onResource)
+    }
+    if (listeners.onWarning) {
+      instance.on('warning', listeners.onWarning)
+    }
+    // todo: refactor this away
     return instance.run.bind(instance)
   }
   // interface

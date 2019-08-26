@@ -9,6 +9,8 @@ the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTA
 OF ANY KIND, either express or implied. See the License for the specific language
 governing permissions and limitations under the License.
 */
+let mockResult
+jest.mock('request-promise', () => jest.fn().mockImplementation(() => mockResult))
 
 const TVMClient = require('../../lib/tvm-client')
 const fs = require('fs-extra')
@@ -18,6 +20,7 @@ const maxDate = new Date(8640000000000000).toISOString()
 const minDate = new Date(-8640000000000000).toISOString()
 
 let fakeDir
+
 beforeAll(async () => {
   fakeDir = global.fakeFolder('someFolder')
 })
@@ -42,6 +45,25 @@ afterEach(async () => {
 test('constructor should throw an error on empty input', async () => {
   const instantiate = () => new TVMClient({})
   expect(instantiate.bind(this)).toThrowWithMessageContaining(['required'])
+})
+
+test('getCredentials with mock response', async () => {
+  // fake the request to the TVM
+  jest.spyOn(TVMClient.prototype, '_getCredentialsFromTVM').mockReturnValue(global.fakeTVMResponse)
+  delete fakeTVMInput.cacheCredsFile
+  const tvmClient = new TVMClient(fakeTVMInput)
+  const creds = await tvmClient.getCredentials()
+  expect(creds).toEqual(global.fakeTVMResponse)
+})
+
+test('getCredentials call through to _getCredentials with mock response', async () => {
+  // fake the request to the TVM
+  // jest.spyOn(TVMClient.prototype, '_getCredentialsFromTVM').mockReturnValue(global.fakeTVMResponse)
+  mockResult = global.fakeTVMResponse
+  delete fakeTVMInput.cacheCredsFile
+  const tvmClient = new TVMClient(fakeTVMInput)
+  const creds = await tvmClient.getCredentials()
+  expect(creds).toEqual(global.fakeTVMResponse)
 })
 
 test('getCredentials w/o caching should return the tvm response', async () => {

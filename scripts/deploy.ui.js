@@ -26,9 +26,9 @@ class DeployUI extends CNAScript {
     if (!this.config.app.hasFrontend) throw new Error('cannot deploy UI, app has no frontend')
 
     const dist = this.config.web.distProd
-    if (!(await fs.exists(dist)) ||
-      !(await fs.stat(dist)).isDirectory() ||
-      !(await fs.readdir(dist)).length === 0) {
+    if (!(fs.existsSync(dist)) ||
+        !(fs.statSync(dist)).isDirectory() ||
+        !(fs.readdirSync(dist)).length === 0) {
       throw new Error(`missing files in ${this._relApp(dist)}, maybe you forgot to build your UI ?`)
     }
 
@@ -53,4 +53,4 @@ class DeployUI extends CNAScript {
   }
 }
 
-CNAScript.runOrExport(module, DeployUI)
+module.exports = DeployUI

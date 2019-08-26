@@ -14,6 +14,11 @@ const path = require('path')
 const fs = require('fs-extra')
 const mockfs = require('mock-fs')
 const os = require('os')
+const { stdout, stderr } = require('stdout-stderr')
+
+// trap console log
+beforeEach(() => { stdout.start(); stderr.start() })
+afterEach(() => { stdout.stop(); stderr.stop() })
 
 process.on('unhandledRejection', error => {
   throw error

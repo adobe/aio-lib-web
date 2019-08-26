@@ -10,21 +10,11 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-module.exports = {
-  testEnvironment: 'node',
-  verbose: true,
-  setupFilesAfterEnv: ['./test/jest.setup.js'],
-  collectCoverage: true,
-  collectCoverageFrom: [
-    'index.js',
-    'lib/**/*.js',
-    'scripts/**/*.js'
-  ],
-  coverageThreshold: {
-    global: {
-      branches: 100,
-      lines: 100,
-      statements: 100
-    }
+module.exports = () => {
+  return {
+    pipe: jest.fn(),
+    on: jest.fn(),
+    directory: jest.fn(),
+    finalize: jest.fn()
   }
 }
