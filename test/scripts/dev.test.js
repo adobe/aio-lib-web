@@ -56,6 +56,8 @@ describe('dev command is exported', () => {
 // isLocal -> no whisk jar, no network, should fail
 // isLocal - should backup .env file
 // isLocal -> should write devConfig to .env
+// isLocal -> should wait for whisk jar startup
+// isLocal -> should fail if whisk jar startup timeouts
 
 // should BuildActions with devConfig
 // should DeployActions with devConfig

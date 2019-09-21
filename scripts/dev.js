@@ -119,7 +119,7 @@ class ActionServer extends CNAScript {
           resources.owStack.stdout.pipe(process.stdout)
 
           resources.owStack.stderr.pipe(process.stderr) // todo error on stderr ?
-          await waitFor(7000) // todo find out when ow is running instead of waiting for arbitrary time
+          await waitForOpenWhiskReadiness('http://localhost:3233', 4000, 500, 20000)
         } catch (err) {
           console.error('caught an error from Java .... ' + err)
           throw err
@@ -264,8 +264,28 @@ class ActionServer extends CNAScript {
   }
 }
 
-function waitFor (t) {
-  return new Promise(resolve => setTimeout(resolve, t))
+async function waitForOpenWhiskReadiness (host, initialWait, period, timeout) {
+  const endTime = new Date()
+  endTime.setMilliseconds(endTime.getMilliseconds + timeout)
+
+  await waitFor(initialWait)
+
+  await _waitForOpenWhiskReadiness(host, endTime)
+
+  async function _waitForOpenWhiskReadiness (host, endTime) {
+    if (new Date().getTime() > endTime.getTime()) {
+      throw new Error(`local openwhisk stack startup timeout: ${timeout}ms`)
+    }
+    try {
+      await request({ uri: host + '/api/v1' })
+    } catch (e) {
+      await waitFor(period)
+      return _waitForOpenWhiskReadiness(host, endTime)
+    }
+  }
+  function waitFor (t) {
+    return new Promise(resolve => setTimeout(resolve, t))
+  }
 }
 
 module.exports = ActionServer
