@@ -266,7 +266,7 @@ class ActionServer extends CNAScript {
 
 async function waitForOpenWhiskReadiness (host, initialWait, period, timeout) {
   const endTime = new Date()
-  endTime.setMilliseconds(endTime.getMilliseconds + timeout)
+  endTime.setMilliseconds(endTime.getMilliseconds() + timeout)
 
   await waitFor(initialWait)
 
