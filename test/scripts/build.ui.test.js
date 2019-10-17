@@ -12,7 +12,7 @@ governing permissions and limitations under the License.
 
 const fs = require('fs-extra')
 const CNAScripts = require('../..')
-const mockAIOConfig = require('@adobe/aio-cli-config')
+const mockAIOConfig = require('@adobe/aio-lib-core-config')
 
 jest.mock('parcel-bundler')
 

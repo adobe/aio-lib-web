@@ -16,7 +16,7 @@ const fs = require('fs-extra')
 const CNAScripts = require('../..')
 const AbstractScript = require('../../lib/abstract-script')
 
-const mockAIOConfig = require('@adobe/aio-cli-config')
+const mockAIOConfig = require('@adobe/aio-lib-core-config')
 jest.mock('../../lib/remote-storage')
 jest.mock('../../lib/tvm-client')
 TVMClient.prototype.getCredentials = jest.fn().mockReturnValue(global.fakeTVMResponse)

@@ -2,7 +2,7 @@
 const CNAScript = require('../lib/abstract-script')
 const fs = require('fs-extra')
 const yaml = require('js-yaml')
-const aioConfig = require('@adobe/aio-cli-config')
+const aioConfig = require('@adobe/aio-lib-core-config')
 
 class AddAuth extends CNAScript {
   async run () {

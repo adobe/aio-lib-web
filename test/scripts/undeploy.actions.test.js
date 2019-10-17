@@ -16,7 +16,7 @@ const utils = require('../../lib/utils')
 const path = require('path')
 
 utils.spawnAioRuntimeDeploy = jest.fn()
-const mockAIOConfig = require('@adobe/aio-cli-config')
+const mockAIOConfig = require('@adobe/aio-lib-core-config')
 
 let scripts
 let manifest

@@ -17,7 +17,7 @@ const CNAScripts = require('../..')
 jest.mock('../../lib/remote-storage')
 jest.mock('../../lib/tvm-client')
 TVMClient.prototype.getCredentials = jest.fn().mockReturnValue(global.fakeTVMResponse)
-const mockAIOConfig = require('@adobe/aio-cli-config')
+const mockAIOConfig = require('@adobe/aio-lib-core-config')
 
 beforeEach(() => {
   // clear stats on mocks

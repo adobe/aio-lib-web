@@ -14,7 +14,7 @@ const fs = require('fs-extra')
 const path = require('path')
 // import exposed module
 const CNAScripts = require('../')
-const mockAIOConfig = require('@adobe/aio-cli-config')
+const mockAIOConfig = require('@adobe/aio-lib-core-config')
 
 beforeAll(async () => {
   await global.mockFS()

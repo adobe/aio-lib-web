@@ -13,7 +13,7 @@ governing permissions and limitations under the License.
 const CNAScripts = require('../..')
 
 // mocks
-const mockAIOConfig = require('@adobe/aio-cli-config')
+const mockAIOConfig = require('@adobe/aio-lib-core-config')
 const mockFs = require('fs-extra')
 jest.mock('fs-extra')
 

@@ -15,7 +15,7 @@ const CNAScripts = require('../..')
 const utils = require('../../lib/utils')
 const yaml = require('js-yaml')
 
-const mockAIOConfig = require('@adobe/aio-cli-config')
+const mockAIOConfig = require('@adobe/aio-lib-core-config')
 utils.spawnAioRuntimeDeploy = jest.fn()
 
 let scripts
