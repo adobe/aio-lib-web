@@ -59,7 +59,7 @@ const inMemoryFs = {
     'convert-source-map': readDirIntoObjectSync(path.join(projectDir, 'node_modules', 'convert-source-map')),
     'write-file-atomic': readDirIntoObjectSync(path.join(projectDir, 'node_modules', 'write-file-atomic')),
     'safe-buffer': readDirIntoObjectSync(path.join(projectDir, 'node_modules', 'safe-buffer')),
-    'imurmurhash': readDirIntoObjectSync(path.join(projectDir, 'node_modules', 'imurmurhash')),
+    imurmurhash: readDirIntoObjectSync(path.join(projectDir, 'node_modules', 'imurmurhash')),
     'signal-exit': readDirIntoObjectSync(path.join(projectDir, 'node_modules', 'signal-exit'))
   }
 }
@@ -158,7 +158,7 @@ expect.extend({
       if (typeof args === 'string') args = [args]
       const message = e.message.toLowerCase()
       for (let i = 0; i < args.length; ++i) {
-        let a = args[i].toLowerCase()
+        const a = args[i].toLowerCase()
         if (message.indexOf(a) < 0) {
           return { message: () => `expected "${message}" to contain "${a}"`, pass: false }
         }

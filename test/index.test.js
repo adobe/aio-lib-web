@@ -52,7 +52,7 @@ afterEach(async () => {
 
 describe('CNAScripts has expected interface ', () => {
   test('Load CNAScripts without listener', async () => {
-    let scripts = CNAScripts()
+    const scripts = CNAScripts()
     expect(scripts).toBeDefined()
     // buildUI
     expect(scripts.buildUI).toBeDefined()
@@ -81,7 +81,7 @@ describe('CNAScripts has expected interface ', () => {
   })
 
   test('Load CNAScripts with listener', async () => {
-    let scripts = CNAScripts({ listeners: mockListener })
+    const scripts = CNAScripts({ listeners: mockListener })
 
     expect(scripts).toBeDefined()
     // buildUI

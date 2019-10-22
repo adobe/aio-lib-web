@@ -23,7 +23,7 @@ const cloneDeep = require('lodash.clonedeep')
 // This should eventually be fully covered by `aio runtime deploy`
 class DeployActions extends CNAScript {
   async run () {
-    const taskName = `Deploy actions`
+    const taskName = 'Deploy actions'
     this.emit('start', taskName)
 
     const dist = this.config.actions.dist

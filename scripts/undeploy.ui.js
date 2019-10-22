@@ -17,7 +17,7 @@ const RemoteStorage = require('../lib/remote-storage')
 
 class UndeployUI extends CNAScript {
   async run () {
-    const taskName = `Undeploy static files`
+    const taskName = 'Undeploy static files'
     this.emit('start', taskName)
 
     const creds = this.config.s3.creds ||

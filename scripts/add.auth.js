@@ -6,7 +6,7 @@ const aioConfig = require('@adobe/aio-lib-core-config')
 
 class AddAuth extends CNAScript {
   async run () {
-    const taskName = `Add Auth`
+    const taskName = 'Add Auth'
     this.emit('start', taskName)
     this.aioConfig = aioConfig.get() || {}
 
@@ -18,19 +18,20 @@ class AddAuth extends CNAScript {
         await this.addJWTAuth(this.config.manifest.src)
         break
       default:
-        throw new Error(`Invalid value for property ims_auth_type. Allowed values are code and jwt.`)
+        throw new Error('Invalid value for property ims_auth_type. Allowed values are code and jwt.')
     }
 
     this.emit('end', taskName)
   }
+
   async addAuth (manifestFile) {
-    let manifest = yaml.safeLoad(fs.readFileSync(manifestFile, 'utf8'))
-    let self = this
+    const manifest = yaml.safeLoad(fs.readFileSync(manifestFile, 'utf8'))
+    const self = this
     return new Promise(function (resolve, reject) {
-      let runtimeParams = self._getCustomConfig('runtime') || { namespace: 'change-me' }
-      let namespace = runtimeParams.namespace
-      let shared_namespace = self._getCustomConfig('shared_namespace', 'adobeio')
-      let {
+      const runtimeParams = self._getCustomConfig('runtime') || { namespace: 'change-me' }
+      const namespace = runtimeParams.namespace
+      const shared_namespace = self._getCustomConfig('shared_namespace', 'adobeio')
+      const {
         client_id = 'change-me',
         client_secret = 'change-me',
         scopes = 'openid,AdobeID',
@@ -42,7 +43,7 @@ class AddAuth extends CNAScript {
         my_cache_package = 'mycachep-shared',
         my_auth_seq_package = 'myauthp'
       } = self._getCustomConfig('oauth', {})
-      let persistenceBool = persistence && (persistence.toString().toLowerCase() === 'true' || persistence.toString().toLowerCase() === 'yes')
+      const persistenceBool = persistence && (persistence.toString().toLowerCase() === 'true' || persistence.toString().toLowerCase() === 'yes')
       if (persistenceBool) {
         // TODO : Get accessKeyId and secretAccessKey
       }
@@ -93,13 +94,13 @@ class AddAuth extends CNAScript {
   }
 
   async addJWTAuth (manifestFile) {
-    let manifest = yaml.safeLoad(fs.readFileSync(manifestFile, 'utf8'))
-    let self = this
+    const manifest = yaml.safeLoad(fs.readFileSync(manifestFile, 'utf8'))
+    const self = this
     return new Promise(function (resolve, reject) {
-      let runtime = self._getCustomConfig('runtime') || { namespace: 'change-me' }
-      let namespace = runtime.namespace
-      let shared_namespace = self._getCustomConfig('shared_namespace', 'adobeio')
-      let {
+      const runtime = self._getCustomConfig('runtime') || { namespace: 'change-me' }
+      const namespace = runtime.namespace
+      const shared_namespace = self._getCustomConfig('shared_namespace', 'adobeio')
+      const {
         client_id = 'change-me',
         client_secret = 'change-me',
         jwt_payload = {},
@@ -109,10 +110,10 @@ class AddAuth extends CNAScript {
         my_cache_package = 'myjwtcachep-shared',
         my_auth_seq_package = 'myjwtauthp'
       } = self._getCustomConfig('jwt-auth', {})
-      let technical_account_id = jwt_payload.sub || 'change-me'
-      let org_id = jwt_payload.iss || 'change-me'
-      let meta_scopes = Object.keys(jwt_payload).filter(key => key.startsWith('http') && jwt_payload[key] === true) || []
-      let persistenceBool = persistence && (persistence.toString().toLowerCase() === 'true' || persistence.toString().toLowerCase() === 'yes')
+      const technical_account_id = jwt_payload.sub || 'change-me'
+      const org_id = jwt_payload.iss || 'change-me'
+      const meta_scopes = Object.keys(jwt_payload).filter(key => key.startsWith('http') && jwt_payload[key] === true) || []
+      const persistenceBool = persistence && (persistence.toString().toLowerCase() === 'true' || persistence.toString().toLowerCase() === 'yes')
       if (persistenceBool) {
         // TODO : Get accessKeyId and secretAccessKey
       }

@@ -30,21 +30,21 @@ describe('abstract-script', () => {
 
 describe('run method is abstract', () => {
   test('Throws not implemented error', async () => {
-    let absScript = new AbstractScript({})
+    const absScript = new AbstractScript({})
     expect(absScript.run()).rejects.toThrow(/Not implemented/)
   })
 })
 
 describe('_relApp method', () => {
   test('returns relative path', async () => {
-    let absScript = new AbstractScript({ root: 'hello' })
+    const absScript = new AbstractScript({ root: 'hello' })
     expect(absScript._relApp('goodbye')).toBe(path.join('..', 'goodbye'))
   })
 })
 
 describe('_absApp method', () => {
   test('returns absolute path', async () => {
-    let absScript = new AbstractScript({ root: 'hello' })
+    const absScript = new AbstractScript({ root: 'hello' })
     expect(absScript._absApp('goodbye')).toBe(path.join('hello', 'goodbye'))
   })
 })

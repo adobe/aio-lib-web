@@ -90,7 +90,7 @@ describe('lib/utils', () => {
     mockResult = () => {
       return { stdout: 'wskdebug version 8.132.3' }
     }
-    let hasWskDbg = await utils.hasWskDebugInstalled()
+    const hasWskDbg = await utils.hasWskDebugInstalled()
     expect(hasWskDbg).toBe(true)
   })
 
@@ -98,7 +98,7 @@ describe('lib/utils', () => {
     mockResult = () => {
       throw Error('fake exception')
     }
-    let hasWskDbg = await utils.hasWskDebugInstalled()
+    const hasWskDbg = await utils.hasWskDebugInstalled()
     expect(hasWskDbg).toBe(false)
   })
 
@@ -106,7 +106,7 @@ describe('lib/utils', () => {
     mockResult = () => {
       return { stdout: 'docker version 8.132.3' }
     }
-    let hasDocker = await utils.hasDockerCLI()
+    const hasDocker = await utils.hasDockerCLI()
     expect(hasDocker).toBe(true)
   })
 
@@ -114,7 +114,7 @@ describe('lib/utils', () => {
     mockResult = () => {
       throw Error('fake exception')
     }
-    let hasDocker = await utils.hasDockerCLI()
+    const hasDocker = await utils.hasDockerCLI()
     expect(hasDocker).toBe(false)
   })
 
@@ -122,7 +122,7 @@ describe('lib/utils', () => {
     mockResult = () => {
       return { stdout: '""' }
     }
-    let isRunning = await utils.isDockerRunning()
+    const isRunning = await utils.isDockerRunning()
     expect(isRunning).toBe(true)
   })
 
@@ -130,7 +130,7 @@ describe('lib/utils', () => {
     mockResult = () => {
       throw Error('fake exception')
     }
-    let isRunning = await utils.isDockerRunning()
+    const isRunning = await utils.isDockerRunning()
     expect(isRunning).toBe(false)
   })
 })

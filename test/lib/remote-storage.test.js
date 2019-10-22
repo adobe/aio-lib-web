@@ -105,7 +105,7 @@ test('uploadFile should call S3#upload with the correct parameters', async () =>
   const rs = new RemoteStorage(global.fakeTVMResponse)
   await rs.uploadFile(fakeFile, 'fakeprefix')
   const body = Buffer.from('fake content', 'utf8')
-  expect(uploadMock).toHaveBeenCalledWith(expect.objectContaining({ Key: `fakeprefix/index.js`, Body: body }))
+  expect(uploadMock).toHaveBeenCalledWith(expect.objectContaining({ Key: 'fakeprefix/index.js', Body: body }))
 })
 
 test('uploadDir should call S3#upload one time per file', async () => {

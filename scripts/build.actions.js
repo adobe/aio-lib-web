@@ -54,7 +54,7 @@ class BuildActions extends CNAScript {
     }
 
     // build all sequentially
-    for (let [name, action] of Object.entries(this.config.manifest.package.actions)) {
+    for (const [name, action] of Object.entries(this.config.manifest.package.actions)) {
       const out = await build(name, action)
       this.emit('progress', `${this._relApp(out)}`)
     }

@@ -74,7 +74,7 @@ test('auth_code', async () => {
 })
 
 test('jwt', async () => {
-  mockAIOConfig.get.mockReturnValue({ runtime: global.fakeConfig.tvm.runtime, cna: global.fakeConfig.tvm.cna, ims_auth_type: 'jwt', 'jwt-auth': { persistence: 'yes', jwt_payload: { 'http': true } } })
+  mockAIOConfig.get.mockReturnValue({ runtime: global.fakeConfig.tvm.runtime, cna: global.fakeConfig.tvm.cna, ims_auth_type: 'jwt', 'jwt-auth': { persistence: 'yes', jwt_payload: { http: true } } })
   await scripts.addAuth()
   expect(mockFs.writeFile).toHaveBeenCalledTimes(1)
   expect(mockFs.writeFile.mock.calls[0][0]).toContain('manifest.yml')

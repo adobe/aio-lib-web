@@ -20,7 +20,7 @@ const path = require('path')
 
 class DeployUI extends CNAScript {
   async run () {
-    const taskName = `Deploy static files`
+    const taskName = 'Deploy static files'
     this.emit('start', taskName)
 
     if (!this.config.app.hasFrontend) throw new Error('cannot deploy UI, app has no frontend')

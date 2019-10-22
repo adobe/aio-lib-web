@@ -41,7 +41,7 @@ const CODE_DEBUG = '.vscode/launch.json'
 
 class ActionServer extends CNAScript {
   async run (args = []) {
-    const taskName = `Local Dev Server`
+    const taskName = 'Local Dev Server'
     this.emit('start', taskName)
 
     // control variables
@@ -110,7 +110,7 @@ class ActionServer extends CNAScript {
         }
 
         // 2. start the local ow stack
-        this.emit('progress', `starting local OpenWhisk stack..`)
+        this.emit('progress', 'starting local OpenWhisk stack..')
         try {
           resources.owStack = execa('java', ['-jar', '-Dwhisk.concurrency-limit.max=10', OW_JAR_FILE])
 
@@ -134,12 +134,12 @@ class ActionServer extends CNAScript {
         const env = dotenv.parse(fs.readFileSync(DOTENV_SAVE))
 
         // todo don't hardcode port
-        env['AIO_RUNTIME_APIHOST'] = 'http://localhost:3233'
-        env['AIO_RUNTIME_AUTH'] = '23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP'
-        env['AIO_RUNTIME_NAMESPACE'] = 'guest'
-        delete env['AIO__RUNTIME_AUTH']
-        delete env['AIO__RUNTIME_NAMESPACE']
-        delete env['AIO__RUNTIME_APIHOST']
+        env.AIO_RUNTIME_APIHOST = 'http://localhost:3233'
+        env.AIO_RUNTIME_AUTH = '23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP'
+        env.AIO_RUNTIME_NAMESPACE = 'guest'
+        delete env.AIO__RUNTIME_AUTH
+        delete env.AIO__RUNTIME_NAMESPACE
+        delete env.AIO__RUNTIME_APIHOST
         const envContent = Object.keys(env).reduce((content, k) => content + `${k}=${env[k]}\n`, '')
 
         fs.writeFileSync('.env', envContent)
@@ -157,10 +157,10 @@ class ActionServer extends CNAScript {
       } else {
         // todo deploy
         // todo live redeploy?
-        this.emit('progress', `using remote actions`)
+        this.emit('progress', 'using remote actions')
       }
       // 4. build and deploy actions // todo support live reloading ? or just doc redeploy
-      this.emit('progress', `redeploying actions..`)
+      this.emit('progress', 'redeploying actions..')
       await (new BuildActions(devConfig)).run()
       await (new DeployActions(devConfig)).run() // also generates manifest dist
 
@@ -185,10 +185,10 @@ class ActionServer extends CNAScript {
           throw new Error(`missing ${this._relApp(entryFile)}`)
         }
         // inject backend urls into ui
-        this.emit('progress', `injecting backend urls into frontend config`)
+        this.emit('progress', 'injecting backend urls into frontend config')
         await utils.writeConfig(devConfig.web.injectedConfig, devConfig.actions.urls)
         // prepare UI dev server
-        this.emit('progress', `setting up the static files bundler`)
+        this.emit('progress', 'setting up the static files bundler')
         const app = express()
         app.use(express.json())
         const bundler = new Bundler(entryFile, {
@@ -205,7 +205,7 @@ class ActionServer extends CNAScript {
         resources.server = app.listen(port)
         this.emit('progress', `local frontened server running at http://localhost:${port}`)
       }
-      this.emit('progress', `press CTRL+C to terminate dev environment`)
+      this.emit('progress', 'press CTRL+C to terminate dev environment')
       if (!isLocal && !hasFrontend) {
         // not local + ow is not running => need to explicitely wait for CTRL+C
         // trick to avoid termination
@@ -231,7 +231,7 @@ class ActionServer extends CNAScript {
         name: name,
         runtimeExecutable: 'wskdebug',
         env: { WSK_CONFIG_FILE: '${workspaceFolder}/' + WSK_DEBUG_PROPS },
-        args: [ `${packageName}/${an}`, '${workspaceFolder}/' + action.function, '-v' ],
+        args: [`${packageName}/${an}`, '${workspaceFolder}/' + action.function, '-v'],
         localRoot: '${workspaceFolder}/' + path.dirname(action.function),
         remoteRoot: '/code',
         outputCapture: 'std'
@@ -251,7 +251,7 @@ class ActionServer extends CNAScript {
         name: 'Web',
         url: `http://localhost:${uiPort}`,
         webRoot: '${workspaceFolder}/we-src/src',
-        'sourceMapPathOverrides': {
+        sourceMapPathOverrides: {
           'webpack:///src/*': '${webRoot}/*'
         }
       })

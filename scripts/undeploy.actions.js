@@ -19,7 +19,7 @@ const fs = require('fs-extra')
 // This should eventually be fully covered by `aio runtime deploy`
 class UndeployActions extends CNAScript {
   async run () {
-    const taskName = `Undeploy actions`
+    const taskName = 'Undeploy actions'
     this.emit('start', taskName)
 
     const distManifest = this.config.manifest.dist

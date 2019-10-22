@@ -117,7 +117,7 @@ test('getCredentials with a previous cache for another cacheKey should append to
   const spy = jest.spyOn(TVMClient.prototype, '_getCredentialsFromTVM').mockReturnValue(global.fakeTVMResponse)
 
   // add pre-exisiting cache
-  const previousCacheKey = `fakeKey`
+  const previousCacheKey = 'fakeKey'
   const cacheContent = { [previousCacheKey]: { expiration: maxDate, fake: 'fake' } }
   await fs.writeFile(fakeTVMInput.cacheCredsFile, JSON.stringify(cacheContent))
 
