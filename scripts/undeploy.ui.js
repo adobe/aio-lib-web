@@ -12,7 +12,7 @@ governing permissions and limitations under the License.
 */
 
 const CNAScript = require('../lib/abstract-script')
-const TVMClient = require('../lib/tvm-client')
+const TvmClient = require('@adobe/aio-lib-core-tvm')
 const RemoteStorage = require('../lib/remote-storage')
 
 class UndeployUI extends CNAScript {
@@ -21,12 +21,14 @@ class UndeployUI extends CNAScript {
     this.emit('start', taskName)
 
     const creds = this.config.s3.creds ||
-        (await new TVMClient({
-          tvmUrl: this.config.s3.tvmUrl,
-          owNamespace: this.config.ow.namespace,
-          owAuth: this.config.ow.auth,
-          cacheCredsFile: this.config.s3.credsCacheFile
-        }).getCredentials())
+        await (await TvmClient.init({
+          ow: {
+            namespace: this.config.ow.namespace,
+            auth: this.config.ow.auth
+          },
+          apiUrl: this.config.s3.tvmUrl,
+          cacheFile: this.config.s3.credsCacheFile
+        })).getAwsS3Credentials()
     const remoteStorage = new RemoteStorage(creds)
 
     if (!(await remoteStorage.folderExists(this.config.s3.folder))) {

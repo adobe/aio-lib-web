@@ -9,11 +9,9 @@ the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTA
 OF ANY KIND, either express or implied. See the License for the specific language
 governing permissions and limitations under the License.
 */
-
 const loadConfig = require('./lib/config-loader')
 
 const debug = require('debug')('cna-scripts:index')
-
 // load here - no lazy loading, as it breaks unit tests (mockfs require)
 // Don't use lazy loading within scripts neither..
 // todo fix this

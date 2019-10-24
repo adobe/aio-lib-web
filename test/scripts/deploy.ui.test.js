@@ -1,7 +1,7 @@
 /*
 Copyright 2019 Adobe. All rights reserved.
 This file is licensed to you under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License. You may obtain a copy
+you may not use scripts _file except in compliance with the License. You may obtain a copy
 of the License at http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software distributed under
@@ -12,19 +12,25 @@ governing permissions and limitations under the License.
 const { vol } = global.mockFs()
 
 const RemoteStorage = require('../../lib/remote-storage')
-const TVMClient = require('../../lib/tvm-client')
 const CNAScripts = require('../..')
 const AbstractScript = require('../../lib/abstract-script')
 
+const TvmClient = require('@adobe/aio-lib-core-tvm')
+jest.mock('@adobe/aio-lib-core-tvm')
+const tvmRequestMock = jest.fn()
 const mockAIOConfig = require('@adobe/aio-lib-core-config')
 jest.mock('../../lib/remote-storage')
-jest.mock('../../lib/tvm-client')
-TVMClient.prototype.getCredentials = jest.fn().mockReturnValue(global.fakeTVMResponse)
 
 beforeEach(() => {
   // clear stats on mocks
   RemoteStorage.mockClear()
-  TVMClient.mockClear()
+  tvmRequestMock.mockReset()
+  TvmClient.init.mockReset()
+
+  tvmRequestMock.mockResolvedValue(global.fakeTVMResponse)
+  TvmClient.init.mockResolvedValue({
+    getAwsS3Credentials: tvmRequestMock
+  })
 })
 
 afterEach(() => global.cleanFs(vol))
@@ -44,7 +50,15 @@ describe('Deploy static files with tvm', () => {
     await global.addFakeFiles(vol, buildDir, ['index.html'])
     await scripts.deployUI()
     expect(RemoteStorage).toHaveBeenCalledTimes(1)
-    expect(TVMClient).toHaveBeenCalledTimes(1)
+    expect(TvmClient.init).toHaveBeenCalledWith(expect.objectContaining({
+      ow: {
+        namespace: scripts._config.ow.namespace,
+        auth: scripts._config.ow.auth
+      },
+      apiUrl: scripts._config.s3.tvmUrl,
+      cacheFile: scripts._config.s3.credsCacheFile
+    }))
+    expect(tvmRequestMock).toHaveBeenCalledTimes(1)
   })
 
   test('Should call remote storage with TVM like credentials', async () => {
@@ -72,7 +86,7 @@ describe('Deploy static files with tvm', () => {
   })
 
   test('Should fail if no build files', async () => {
-    expect(scripts.deployUI.bind(this)).toThrowWithMessageContaining(['build', 'missing'])
+    expect(scripts.deployUI.bind(scripts)).toThrowWithMessageContaining(['build', 'missing'])
   })
 })
 
@@ -91,7 +105,7 @@ describe('Deploy static files with env credentials', () => {
     await global.addFakeFiles(vol, buildDir, ['index.html'])
     await scripts.deployUI()
     expect(RemoteStorage).toHaveBeenCalledTimes(1)
-    expect(TVMClient).toHaveBeenCalledTimes(0)
+    expect(TvmClient.init).toHaveBeenCalledTimes(0)
   })
 
   test('Should call remote storage with ENV like credentials', async () => {
