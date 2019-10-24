@@ -9,33 +9,19 @@ the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTA
 OF ANY KIND, either express or implied. See the License for the specific language
 governing permissions and limitations under the License.
 */
-
-const fs = require('fs-extra')
+const { vol } = global.mockFs()
 const CNAScripts = require('../..')
 const mockAIOConfig = require('@adobe/aio-lib-core-config')
 
 let scripts
-let buildDir
-
-beforeAll(async () => {
-  // mockFS
-  await global.mockFS()
-  // create test app
-  await global.setTestAppAndEnv()
+beforeEach(async () => {
+  // create test app and switch cwd
+  global.loadFs(vol, 'sample-app')
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
-
-  scripts = await CNAScripts()
-  buildDir = scripts._config.web.distProd
+  scripts = await CNAScripts({})
 })
 
-afterAll(async () => {
-  await global.resetFS()
-})
-
-afterEach(async () => {
-  // cleanup build files
-  await fs.remove(buildDir)
-})
+afterEach(() => global.cleanFs(vol))
 
 describe('dev command is exported', () => {
   test('cna-scripts.runDev', () => {

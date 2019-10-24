@@ -6,6 +6,7 @@ class MockBundler {
     this.infile = infile
     this.outDir = options.outDir
   }
+
   async bundle () {
     await fs.copy(this.infile, path.join(this.outDir, path.basename(this.infile)))
   }

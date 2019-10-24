@@ -9,41 +9,27 @@ the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTA
 OF ANY KIND, either express or implied. See the License for the specific language
 governing permissions and limitations under the License.
 */
+const { vol, fs } = global.mockFs()
 
-const fs = require('fs-extra')
 const CNAScripts = require('../..')
 const utils = require('../../lib/utils')
 
 // mocks
 jest.mock('parcel-bundler')
 utils.installDeps = jest.fn()
-// we are mocking zipfolder because of mock-fs not working properly
-// with streams, this might change in future versions of mock-fs
-utils.zipFolder = jest.fn((dir, out) => fs.writeFile(out, 'mock content'))
+// todo mock zip dependency instead of full utility for 100% coverage
+utils.zipFolder = jest.fn((filePath, out) => fs.writeFileSync(out, 'mock content'))
+
 const mockAIOConfig = require('@adobe/aio-lib-core-config')
 
-let scripts
-let buildDir
-beforeAll(async () => {
-  await global.mockFS()
-  // create test app and switch cwd
-  await global.setTestAppAndEnv()
-  mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
-  scripts = await CNAScripts()
-  buildDir = scripts._config.actions.dist
-})
-
-afterAll(async () => {
-  await global.resetFS()
-})
-
-afterEach(async () => {
-  // cleanup build files
-  await fs.remove(buildDir)
-})
-
+afterEach(() => global.cleanFs(vol))
 test('Build actions: 1 zip and 1 js', async () => {
+  global.loadFs(vol, 'sample-app')
+  mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
+  const scripts = await CNAScripts()
+  const buildDir = scripts._config.actions.dist
+
   await scripts.buildActions()
-  const buildFiles = await fs.readdir(buildDir)
+  const buildFiles = fs.readdirSync(buildDir)
   expect(buildFiles.sort()).toEqual(['action-zip.zip', 'action.js'].sort())
 })

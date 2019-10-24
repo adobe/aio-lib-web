@@ -9,6 +9,7 @@ the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTA
 OF ANY KIND, either express or implied. See the License for the specific language
 governing permissions and limitations under the License.
 */
+const { vol } = global.mockFs()
 
 const RemoteStorage = require('../../lib/remote-storage')
 const TVMClient = require('../../lib/tvm-client')
@@ -25,19 +26,13 @@ beforeEach(() => {
   TVMClient.mockClear()
 })
 
-beforeAll(async () => {
-  await global.mockFS()
-})
-
-afterAll(async () => {
-  await global.resetFS()
-})
+afterEach(() => global.cleanFs(vol))
 
 describe('Undeploy static files with tvm', () => {
   let scripts
   beforeAll(async () => {
     // create test app
-    await global.setTestAppAndEnv()
+    global.loadFs(vol, 'sample-app')
     mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
     scripts = await CNAScripts()
   })
@@ -69,7 +64,7 @@ describe('Undeploy static files with env credentials', () => {
   let scripts
   beforeAll(async () => {
     // create test app
-    await global.setTestAppAndEnv()
+    global.loadFs(vol, 'sample-app')
     mockAIOConfig.get.mockReturnValue(global.fakeConfig.creds)
     scripts = await CNAScripts()
   })
