@@ -9,44 +9,30 @@ the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTA
 OF ANY KIND, either express or implied. See the License for the specific language
 governing permissions and limitations under the License.
 */
+const { vol, fs } = global.mockFs()
 
-const fs = require('fs-extra')
 const CNAScripts = require('../..')
 const mockAIOConfig = require('@adobe/aio-lib-core-config')
 
 jest.mock('parcel-bundler')
-
-let scripts
-let buildDir
-beforeAll(async () => {
-  // mockFS
-  await global.mockFS()
-  // create test app
-  await global.setTestAppAndEnv()
-  mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
-
-  scripts = await CNAScripts()
-  buildDir = scripts._config.web.distProd
-})
-
-afterAll(async () => {
-  await global.resetFS()
-})
-
-afterEach(async () => {
-  // cleanup build files
-  await fs.remove(buildDir)
-})
+afterEach(() => global.cleanFs(vol))
 
 test('Build static files index.html', async () => {
+  global.loadFs(vol, 'sample-app')
+  mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
+
+  const scripts = await CNAScripts()
+  const buildDir = scripts._config.web.distProd
+
   await scripts.buildUI()
+
   // make sure action and sequence urls are available to the UI
-  const uiConfig = JSON.parse((await fs.readFile(scripts._config.web.injectedConfig)).toString())
+  const uiConfig = JSON.parse((fs.readFileSync(scripts._config.web.injectedConfig)).toString())
   expect(uiConfig).toEqual(expect.objectContaining({
     action: expect.any(String),
     'action-zip': expect.any(String),
     'action-sequence': expect.any(String)
   }))
-  const buildFiles = await fs.readdir(buildDir)
+  const buildFiles = fs.readdirSync(buildDir)
   expect(buildFiles.sort()).toEqual(['index.html'])
 })

@@ -10,10 +10,10 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
+const { vol } = global.mockFs()
+
 const RemoteStorage = require('../../lib/remote-storage')
 const aws = require('aws-sdk')
-const fs = require('fs-extra')
-const path = require('path')
 
 function spyS3 (funcs) {
   const newFuncs = {}
@@ -26,15 +26,10 @@ function spyS3 (funcs) {
   })
 }
 
-let fakeDir
-beforeAll(async () => {
-  fakeDir = global.fakeFolder('someFolder')
-})
-
-afterEach(async () => {
+beforeEach(() => {
   // restores all spies
-  await jest.restoreAllMocks()
-  await fs.emptyDir(fakeDir)
+  jest.restoreAllMocks()
+  global.cleanFs(vol)
 })
 
 test('Constructor should throw when missing credentials', async () => {
@@ -96,37 +91,36 @@ test('emptyFolder should call S3#deleteObjects with correct parameters with mult
 })
 
 test('uploadFile should call S3#upload with the correct parameters', async () => {
-  const fakeFile = path.join(fakeDir, 'index.js')
-  await fs.writeFile(fakeFile, 'fake content')
+  global.addFakeFiles(vol, 'fakeDir', ['index.js'])
   const uploadMock = jest.fn()
   spyS3({
     upload: uploadMock
   })
   const rs = new RemoteStorage(global.fakeTVMResponse)
-  await rs.uploadFile(fakeFile, 'fakeprefix')
+  await rs.uploadFile('fakeDir/index.js', 'fakeprefix')
   const body = Buffer.from('fake content', 'utf8')
   expect(uploadMock).toHaveBeenCalledWith(expect.objectContaining({ Key: 'fakeprefix/index.js', Body: body }))
 })
 
 test('uploadDir should call S3#upload one time per file', async () => {
-  await global.fakeFiles(fakeDir, ['index.js', 'index.css', 'index.html'])
+  await global.addFakeFiles(vol, 'fakeDir', ['index.js', 'index.css', 'index.html'])
   const uploadMock = jest.fn()
   spyS3({
     upload: uploadMock
   })
   const rs = new RemoteStorage(global.fakeTVMResponse)
-  await rs.uploadDir(fakeDir, 'fakeprefix')
+  await rs.uploadDir('fakeDir', 'fakeprefix')
   expect(uploadMock).toHaveBeenCalledTimes(3)
 })
 
 test('uploadDir should call a callback once per uploaded file', async () => {
-  await global.fakeFiles(fakeDir, ['index.js', 'index.css', 'index.html'])
+  await global.addFakeFiles(vol, 'fakeDir', ['index.js', 'index.css', 'index.html'])
   const uploadMock = jest.fn()
   spyS3({
     upload: uploadMock
   })
   const cbMock = jest.fn()
   const rs = new RemoteStorage(global.fakeTVMResponse)
-  await rs.uploadDir(fakeDir, 'fakeprefix', cbMock)
+  await rs.uploadDir('fakeDir', 'fakeprefix', cbMock)
   expect(cbMock).toHaveBeenCalledTimes(3)
 })

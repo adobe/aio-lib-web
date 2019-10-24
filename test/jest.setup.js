@@ -11,74 +11,87 @@ governing permissions and limitations under the License.
 */
 
 const path = require('path')
-const fs = require('fs-extra')
-const mockfs = require('mock-fs')
-const os = require('os')
-const { stdout, stderr } = require('stdout-stderr')
+// const { stdout, stderr } = require('stdout-stderr')
 
 // trap console log
-beforeEach(() => { stdout.start(); stderr.start() })
-afterEach(() => { stdout.stop(); stderr.stop() })
+// beforeEach(() => { stdout.start(); stderr.start() })
+// afterEach(() => { stdout.stop(); stderr.stop() })
+
+jest.setTimeout(30000)
 
 process.on('unhandledRejection', error => {
   throw error
 })
 
-/* Fake FS */
-function readDirIntoObjectSync (dir) {
-  const res = {}
-  const files = fs.readdirSync(dir)
-  files.map(f => {
-    const fullPath = path.join(dir, f)
-    const stat = fs.statSync(fullPath)
-    if (stat.isFile()) {
-      res[f] = fs.readFileSync(fullPath).toString()
-    } else if (stat.isDirectory()) {
-      res[f] = readDirIntoObjectSync(fullPath)
+const fixturePath = path.join(__dirname, '__fixtures__')
+
+/**
+ * reads a dir or a file to a json
+ * if filePath is a dir at /a/b/c/ and contains d/e.txt f/g/h.txt and toDir is /adir/ will return a json:
+ * ```
+ * {
+ *  "/adir/d/e.txt": "<content>",
+ *  "/adir/f/g/h.txt": "<content>"
+ * }
+ * ```
+ *
+ * @param {string} filePath
+ * @param {string} toDir
+ * @returns {object}
+ */
+function readFilesIntoObjectSync (filePath, toDir) {
+  const fsReal = require.requireActual('fs')
+  const flatObj = {}
+
+  function _readFilesIntoObjectSync (_filePathRec, _toDirRec, first = false) {
+    const stat = fsReal.statSync(_filePathRec)
+    if (!stat.isFile() && !stat.isDirectory()) {
+      throw new Error(_filePathRec + ' is not a valid file, cannot be addded to mockfs')
     }
-  })
-  return res
-}
-
-const projectDir = path.resolve(__dirname, '..')
-const inMemoryFs = {
-  // mockfs cannot read dependencies from the real file system, so we need to mock those
-  [path.join(projectDir, 'test', '__fixtures__')]: readDirIntoObjectSync(path.join(projectDir, 'test', '__fixtures__')),
-  // [path.join(projectDir, 'test', '__mocks__')]: readDirIntoObjectSync(path.join(projectDir, 'test', '__mocks__')),
-  // [path.join(projectDir, 'lib')]: readDirIntoObjectSync(path.join(projectDir, 'lib')),
-  // [path.join(projectDir, 'scripts')]: readDirIntoObjectSync(path.join(projectDir, 'scripts')),
-
-  // here we load the modules that are loaded lazily during test execution.
-  // We don't want to load all modules as this would slow down tests. It is a known
-  // problem for mockfs that we cannot read the real fs while running in the
-  // mock fs
-  // https://github.com/tschaub/mock-fs/issues/62
-  // https://github.com/tschaub/mock-fs/issues/239
-  [path.join(projectDir, 'node_modules')]: // readDirIntoObjectSync(path.join(projectDir, 'node_modules'))
-  {
-    'convert-source-map': readDirIntoObjectSync(path.join(projectDir, 'node_modules', 'convert-source-map')),
-    'write-file-atomic': readDirIntoObjectSync(path.join(projectDir, 'node_modules', 'write-file-atomic')),
-    'safe-buffer': readDirIntoObjectSync(path.join(projectDir, 'node_modules', 'safe-buffer')),
-    imurmurhash: readDirIntoObjectSync(path.join(projectDir, 'node_modules', 'imurmurhash')),
-    'signal-exit': readDirIntoObjectSync(path.join(projectDir, 'node_modules', 'signal-exit'))
+    if (stat.isFile()) {
+      flatObj[path.join(_toDirRec, path.basename(_filePathRec))] = fsReal.readFileSync(_filePathRec).toString()
+      return
+    }
+    // is dir
+    const files = fsReal.readdirSync(_filePathRec)
+    files.map(f => {
+      const fullPath = path.join(_filePathRec, f)
+      // skip first dir from path
+      _readFilesIntoObjectSync(fullPath, first ? _toDirRec : path.join(_toDirRec, path.basename(_filePathRec)))
+    })
   }
-}
-global.mockFS = () => mockfs(inMemoryFs)
-
-global.resetFS = () => {
-  mockfs.restore()
+  _readFilesIntoObjectSync(filePath, toDir, true)
+  return flatObj
 }
 
-global.setTestAppAndEnv = async (env, except) => {
-  // create test app
-  const inApp = path.join(projectDir, 'test', '__fixtures__', 'sample-app')
-  // unique
-  const appDir = path.normalize(`${inApp}-${(+new Date()).toString(36)}-${Math.random().toString(36)}`)
-  await fs.copy(inApp, appDir)
+global.mockFs = () => {
+  const memfs = require('memfs')
+  const vol = memfs.vol
+  const mockFs = memfs.fs
+  jest.mock('fs', () => mockFs)
+  return { vol, fs: mockFs }
+}
 
-  process.chdir(appDir)
+global.loadFs = (vol, fixtures) => {
+  if (typeof fixtures === 'string') fixtures = [fixtures]
+  const jsonFs = fixtures
+    .map(f => readFilesIntoObjectSync(path.join(fixturePath, f), '/')) // => [{}, {}, ..]
+    .reduce((aggregate, currObj) => ({ ...aggregate, ...currObj }), {}) // => {}
+  // For now we can only store files on / as chdir does not recognize mock fs files and we rely on cwd to set the root
+  // path of the project
+  // todo have an option to pass rootDir as arg instead of cwd
+  vol.fromJSON(jsonFs, '/', { reset: true })
+  process.chdir('/')
+}
 
-  return appDir
+global.cleanFs = vol => vol.reset()
+
+global.addFakeFiles = async (vol, dir, files) => {
+  if (typeof files === 'string') files = [files]
+  vol.mkdirpSync(dir)
+  files.forEach(f => {
+    vol.writeFileSync(path.join(dir, f), 'fake content')
+  })
 }
 
 global.fakeS3Bucket = 'fake-bucket'
@@ -107,18 +120,6 @@ global.fakeConfig = {
   }
 }
 
-// sync
-global.fakeFolder = (dir) => {
-  const fakePath = path.join(os.tmpdir(), dir)
-  fs.ensureDirSync(fakePath)
-  return fakePath
-}
-
-global.fakeFiles = async (dir, files) => {
-  await fs.ensureDir(dir)
-  await Promise.all(files.map(async f => fs.writeFile(path.join(dir, f), 'fake content')))
-}
-
 global.fakeTVMResponse = {
   sessionToken: 'fake',
   expiration: '1970-01-01T00:00:00.000Z',
@@ -128,6 +129,8 @@ global.fakeTVMResponse = {
 }
 
 global.expectedScripts = expect.objectContaining({
+  runDev: expect.any(Function),
+  addAuth: expect.any(Function),
   buildUI: expect.any(Function),
   buildActions: expect.any(Function),
   deployUI: expect.any(Function),

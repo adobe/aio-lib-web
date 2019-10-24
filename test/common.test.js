@@ -10,24 +10,20 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-const fs = require('fs-extra')
+const { vol, fs } = global.mockFs()
+
 const path = require('path')
 // import exposed module
 const CNAScripts = require('../')
 const mockAIOConfig = require('@adobe/aio-lib-core-config')
 
-beforeAll(async () => {
-  await global.mockFS()
-})
-
-afterAll(async () => {
-  await global.resetFS()
-})
-
 beforeEach(async () => {
-  await global.setTestAppAndEnv()
+  // create test app and switch cwd
+  global.loadFs(vol, 'sample-app')
   mockAIOConfig.get.mockReset()
 })
+
+afterEach(() => global.cleanFs(vol))
 
 function withoutKey (object, topKey, key) {
   // deep copy
@@ -54,13 +50,13 @@ test('Fail load CNAScripts with missing config', async () => {
 
 test('Fail load CNAScripts with missing manifest.yml', async () => {
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
-  await fs.remove(path.join(process.cwd(), 'manifest.yml'))
+  fs.unlinkSync(path.join(process.cwd(), 'manifest.yml'))
   expect(CNAScripts.bind(this)).toThrowWithMessageContaining(['missing', 'manifest'])
 })
 
 test('Fail load CNAScripts with missing package.json', async () => {
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
-  await fs.remove(path.join(process.cwd(), 'package.json'))
+  fs.unlinkSync(path.join(process.cwd(), 'package.json'))
   expect(CNAScripts.bind(this)).toThrowWithMessageContaining(['missing', 'package.json'])
 })
 

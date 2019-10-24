@@ -9,10 +9,10 @@ the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTA
 OF ANY KIND, either express or implied. See the License for the specific language
 governing permissions and limitations under the License.
 */
+const { vol } = global.mockFs()
 
 const RemoteStorage = require('../../lib/remote-storage')
 const TVMClient = require('../../lib/tvm-client')
-const fs = require('fs-extra')
 const CNAScripts = require('../..')
 const AbstractScript = require('../../lib/abstract-script')
 
@@ -27,36 +27,28 @@ beforeEach(() => {
   TVMClient.mockClear()
 })
 
-beforeAll(async () => {
-  await global.mockFS()
-})
-afterAll(async () => {
-  await global.resetFS()
-})
+afterEach(() => global.cleanFs(vol))
 
 describe('Deploy static files with tvm', () => {
   let scripts
   let buildDir
-  beforeAll(async () => {
+  beforeEach(async () => {
     // create test app
-    await global.setTestAppAndEnv()
+    global.loadFs(vol, 'sample-app')
     mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
     scripts = await CNAScripts()
     buildDir = scripts._config.web.distProd
   })
-  afterEach(async () => {
-    await fs.remove(buildDir)
-  })
 
-  test('Should call tvm client and remote storage  once', async () => {
-    await global.fakeFiles(buildDir, ['index.html'])
+  test('Should call tvm client and remote storage once', async () => {
+    await global.addFakeFiles(vol, buildDir, ['index.html'])
     await scripts.deployUI()
     expect(RemoteStorage).toHaveBeenCalledTimes(1)
     expect(TVMClient).toHaveBeenCalledTimes(1)
   })
 
   test('Should call remote storage with TVM like credentials', async () => {
-    await global.fakeFiles(buildDir, ['index.html'])
+    await global.addFakeFiles(vol, buildDir, ['index.html'])
     await scripts.deployUI()
     expect(RemoteStorage).toHaveBeenCalledWith(global.expectedS3TVMCreds)
   })
@@ -65,7 +57,7 @@ describe('Deploy static files with tvm', () => {
     // spies can be restored
     const spy = jest.spyOn(RemoteStorage.prototype, 'folderExists').mockReturnValue(true)
     const spyEvent = jest.spyOn(AbstractScript.prototype, 'emit')
-    await global.fakeFiles(buildDir, ['index.html'])
+    await global.addFakeFiles(vol, buildDir, ['index.html'])
     await scripts.deployUI()
     expect(spyEvent).toHaveBeenCalledWith('warning', expect.any(String))
     spy.mockRestore()
@@ -74,7 +66,7 @@ describe('Deploy static files with tvm', () => {
 
   test('Should return with the correct URL', async () => {
     // spies can be restored
-    await global.fakeFiles(buildDir, ['index.html'])
+    await global.addFakeFiles(vol, buildDir, ['index.html'])
     const url = await scripts.deployUI()
     expect(url).toBe(`https://s3.amazonaws.com/${global.fakeS3Bucket}/${scripts._config.s3.folder}/index.html`)
   })
@@ -89,24 +81,21 @@ describe('Deploy static files with env credentials', () => {
   let buildDir
   beforeAll(async () => {
     // create test app
-    await global.setTestAppAndEnv()
+    global.loadFs(vol, 'sample-app')
     mockAIOConfig.get.mockReturnValue(global.fakeConfig.creds)
     scripts = await CNAScripts()
     buildDir = scripts._config.web.distProd
   })
-  afterEach(async () => {
-    await fs.remove(buildDir)
-  })
 
   test('Should call remote storage once and call tvm client zero times', async () => {
-    await global.fakeFiles(buildDir, ['index.html'])
+    await global.addFakeFiles(vol, buildDir, ['index.html'])
     await scripts.deployUI()
     expect(RemoteStorage).toHaveBeenCalledTimes(1)
     expect(TVMClient).toHaveBeenCalledTimes(0)
   })
 
   test('Should call remote storage with ENV like credentials', async () => {
-    await global.fakeFiles(buildDir, ['index.html'])
+    await global.addFakeFiles(vol, buildDir, ['index.html'])
     await scripts.deployUI()
     expect(RemoteStorage).toHaveBeenCalledWith(global.expectedS3ENVCreds)
   })

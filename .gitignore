@@ -31,3 +31,6 @@ coverage
 
 #custom
 playground
+
+# no package lock for libs
+package-lock.json

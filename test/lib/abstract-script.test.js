@@ -31,7 +31,7 @@ describe('abstract-script', () => {
 describe('run method is abstract', () => {
   test('Throws not implemented error', async () => {
     const absScript = new AbstractScript({})
-    expect(absScript.run()).rejects.toThrow(/Not implemented/)
+    await expect(absScript.run()).rejects.toThrow(/Not implemented/)
   })
 })
 

@@ -9,8 +9,8 @@ the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTA
 OF ANY KIND, either express or implied. See the License for the specific language
 governing permissions and limitations under the License.
 */
+const { vol, fs } = global.mockFs()
 
-const fs = require('fs-extra')
 const CNAScripts = require('../..')
 const utils = require('../../lib/utils')
 const path = require('path')
@@ -20,28 +20,20 @@ const mockAIOConfig = require('@adobe/aio-lib-core-config')
 
 let scripts
 let manifest
-beforeAll(async () => {
-  await global.mockFS()
+beforeEach(async () => {
   // create test app
-  await global.setTestAppAndEnv()
+  global.loadFs(vol, 'sample-app')
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
   scripts = await CNAScripts()
   manifest = scripts._config.manifest.dist
 })
 
-afterAll(async () => {
-  await global.resetFS()
-})
-
-afterEach(async () => {
-  // clean build files
-  await fs.remove(scripts._config.manifest.dist)
-})
+afterEach(() => global.cleanFs(vol))
 
 test('Undeploy actions should remove .manifest-dist.yml', async () => {
-  await global.fakeFiles('', [manifest])
+  await global.addFakeFiles(vol, '', [manifest])
   await scripts.undeployActions()
-  expect(await fs.exists(manifest)).toBe(false)
+  expect(fs.existsSync(manifest)).toBe(false)
 })
 
 test('Undeploy actions should fail if there is no deployment', async () => {
