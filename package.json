@@ -31,6 +31,7 @@
     "aio-app-scripts": "./bin/cna-scripts.js"
   },
   "dependencies": {
+    "@adobe/aio-cli-plugin-runtime": "^1.1.0",
     "@adobe/aio-lib-core-config": "^1.0.15",
     "@adobe/aio-lib-core-tvm": "^1.0.1",
     "@hapi/joi": "^16.1.7",
@@ -45,6 +46,7 @@
     "lodash.clonedeep": "^4.5.0",
     "mime-types": "^2.1.24",
     "open": "^7.0.0",
+    "openwhisk": "^3.20.0",
     "parcel-bundler": "^1.12.4",
     "request-promise": "^4.2.4"
   },
