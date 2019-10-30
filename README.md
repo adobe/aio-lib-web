@@ -10,25 +10,25 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 -->
 
-[![Version](https://img.shields.io/npm/v/@adobe/io-cna-scripts.svg)](https://npmjs.org/package/@adobe/io-cna-scripts)
-[![Downloads/week](https://img.shields.io/npm/dw/@adobe/io-cna-scripts.svg)](https://npmjs.org/package/@adobe/io-cna-scripts)
-[![Build Status](https://travis-ci.com/adobe/adobeio-cna-scripts.svg?branch=master)](https://travis-ci.com/adobe/adobeio-cna-scripts)
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![Greenkeeper badge](https://badges.greenkeeper.io/adobe/adobeio-cna-scripts.svg)](https://greenkeeper.io/)
-[![Codecov Coverage](https://img.shields.io/codecov/c/github/adobe/adobeio-cna-scripts/master.svg?style=flat-square)](https://codecov.io/gh/adobe/adobeio-cna-scripts/)
+[![Version](https://img.shields.io/npm/v/@adobe/aio-app-scripts.svg)](https://npmjs.org/package/@adobe/aio-app-scripts)
+[![Downloads/week](https://img.shields.io/npm/dw/@adobe/aio-app-scripts.svg)](https://npmjs.org/package/@adobe/aio-app-scripts)
+[![Build Status](https://travis-ci.com/adobe/aio-app-scripts.svg?branch=master)](https://travis-ci.com/adobe/aio-app-scripts)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![Greenkeeper badge](https://badges.greenkeeper.io/adobe/aio-app-scripts.svg)](https://greenkeeper.io/)
+[![Codecov Coverage](https://img.shields.io/codecov/c/github/adobe/aio-app-scripts/master.svg?style=flat-square)](https://codecov.io/gh/adobe/aio-app-scripts/)
 
 
-# CNA Scripts
+# AIO App Scripts
 
-The module implementing the Adobe I/O CNA scripts
+Utility tooling scripts to build, deploy and run Adobe I/O Apps
 
 ## Include as a library in your nodejs project
 
 ```bash
-npm i --save @adobe/io-cna-scripts
+npm i --save @adobe/aio-app-scripts
 ```
 
 ```js
-const cnaScripts = require('@adobe/io-cna-scripts')({
+const appScripts = require('@adobe/aio-app-scripts')({
   listeners: {
     onStart: taskName => console.error(`${taskName} ...`),
     onEnd: (taskName, res) => { console.error(`${taskName} done!`); if (res) console.log(res) },
@@ -37,10 +37,10 @@ const cnaScripts = require('@adobe/io-cna-scripts')({
   }
 })
 
-cnaScripts.buildUI()
-  .then(cnaScripts.buildActions)
-  .then(cnaScripts.deployActions)
-  .then(cnaScripts.deployUI)
+appScripts.buildUI()
+  .then(appScripts.buildActions)
+  .then(appScripts.deployActions)
+  .then(appScripts.deployUI)
   .catch(e => { console.error(e); process.exit(1) })
 ```
 
@@ -48,20 +48,20 @@ cnaScripts.buildUI()
 _note this interface is experimental and may disappear in the future_
 
 ```bash
-npm i -g @adobe/io-cna-scripts
+npm i -g @adobe/aio-app-scripts
 ```
 Commands:
 
 ```bash
-cna-scripts build.actions
-cna-scripts build.ui
-cna-scripts deploy.actions
-cna-scripts deploy.ui
-cna-scripts undeploy.actions
-cna-scripts undeploy.ui
+aio-app-scripts build.actions
+aio-app-scripts build.ui
+aio-app-scripts deploy.actions
+aio-app-scripts deploy.ui
+aio-app-scripts undeploy.actions
+aio-app-scripts undeploy.ui
 ```
 
-## Using cna-scripts for local dev
+## Using aio-app-scripts for local dev
 
 > **Requires docker!**
 
@@ -69,13 +69,13 @@ cna-scripts undeploy.ui
   express server for the frontend
 
 ```bash
-   cna-scripts dev
+   aio-app-scripts dev
 ```
 
 - only run frontend server, the frontend will point to remotely deployed actions
 
 ```bash
-   REMOTE_ACTIONS=true cna-scripts dev
+   REMOTE_ACTIONS=true aio-app-scripts dev
 ```
 
 ### Debugging with VS Code
@@ -84,7 +84,7 @@ cna-scripts undeploy.ui
 
 - Actions can be debugged in both with local dev and remote actions dev modes
 
-- Simply start the dev server `cna-scripts dev`, this will generate all needed
+- Simply start the dev server `aio-app-scripts dev`, this will generate all needed
   vscode debug configurations
 
 - Then start the vs code debugger from the configuration you want, i.e. choose

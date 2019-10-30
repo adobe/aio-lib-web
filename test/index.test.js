@@ -12,7 +12,7 @@ governing permissions and limitations under the License.
 
 const { vol } = global.mockFs()
 
-const CNAScripts = require('../index')
+const AppScripts = require('../index')
 const utils = require('../lib/utils')
 
 const mockAIOConfig = require('@adobe/aio-lib-core-config')
@@ -34,15 +34,15 @@ beforeEach(async () => {
 
 afterEach(() => global.cleanFs(vol))
 
-describe('CNAScripts has expected interface ', () => {
-  test('Load CNAScripts without listener', async () => {
-    const scripts = CNAScripts()
+describe('AppScripts has expected interface ', () => {
+  test('Load AppScripts without listener', async () => {
+    const scripts = AppScripts()
     expect(scripts).toBeDefined()
     expect(scripts).toEqual(global.expectedScripts)
   })
 
-  test('Load CNAScripts with listener', async () => {
-    const scripts = CNAScripts({ listeners: mockListener })
+  test('Load AppScripts with listener', async () => {
+    const scripts = AppScripts({ listeners: mockListener })
 
     expect(scripts).toBeDefined()
     expect(scripts).toEqual(global.expectedScripts)

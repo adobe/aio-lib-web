@@ -11,7 +11,7 @@ governing permissions and limitations under the License.
 */
 const { vol, fs } = global.mockFs()
 
-const CNAScripts = require('../..')
+const AppScripts = require('../..')
 const utils = require('../../lib/utils')
 const path = require('path')
 
@@ -24,7 +24,7 @@ beforeEach(async () => {
   // create test app
   global.loadFs(vol, 'sample-app')
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
-  scripts = await CNAScripts()
+  scripts = await AppScripts()
   manifest = scripts._config.manifest.dist
 })
 

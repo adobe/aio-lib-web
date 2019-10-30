@@ -11,13 +11,13 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-const CNAScript = require('../lib/abstract-script')
+const BaseScript = require('../lib/abstract-script')
 const utils = require('../lib/utils')
 
 const fs = require('fs-extra')
 
 // This should eventually be fully covered by `aio runtime deploy`
-class UndeployActions extends CNAScript {
+class UndeployActions extends BaseScript {
   async run () {
     const taskName = 'Undeploy actions'
     this.emit('start', taskName)

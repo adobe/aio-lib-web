@@ -12,7 +12,7 @@ governing permissions and limitations under the License.
 
 const { vol, fs } = global.mockFs()
 
-const CNAScripts = require('../..')
+const AppScripts = require('../..')
 const utils = require('../../lib/utils')
 const yaml = require('js-yaml')
 
@@ -27,7 +27,7 @@ test('Deploy actions should generate a valid .manifest-dist.yml for 1 zip and 1 
   global.loadFs(vol, 'sample-app')
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
 
-  const scripts = await CNAScripts()
+  const scripts = await AppScripts()
   const buildDir = scripts._config.actions.dist
   // fake a previous build
   await global.addFakeFiles(vol, buildDir, ['action.js', 'action-zip.zip'])
@@ -44,6 +44,6 @@ test('Deploy actions should fail if there are no build files', async () => {
   global.loadFs(vol, 'sample-app')
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
 
-  const scripts = await CNAScripts()
+  const scripts = await AppScripts()
   expect(scripts.deployActions.bind(this)).toThrowWithMessageContaining(['build', 'missing'])
 })

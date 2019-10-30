@@ -1,7 +1,7 @@
 {
-  "name": "@adobe/io-cna-scripts",
+  "name": "@adobe/aio-app-scripts",
   "version": "0.4.0-dev",
-  "description": "A module holding scripts to build, deploy and run an Adobe I/O CNA",
+  "description": "Utility tooling scripts to build, deploy and run an Adobe I/O App",
   "main": "index.js",
   "directories": {
     "lib": "lib",
@@ -12,8 +12,8 @@
   "engines": {
     "node": ">=8.0.0"
   },
-  "repository": "adobe/io-cna-scripts",
-  "homepage": "https://github.com/adobe/adobeio-cna-scripts",
+  "repository": "adobe/aio-app-scripts",
+  "homepage": "https://github.com/adobe/aio-app-scripts",
   "keywords": [
     "scripts",
     "openwhisk",
@@ -28,7 +28,7 @@
     "unit-test": "jest -c ./jest.config.js"
   },
   "bin": {
-    "cna-scripts": "./bin/cna-scripts.js"
+    "aio-app-scripts": "./bin/cna-scripts.js"
   },
   "dependencies": {
     "@adobe/aio-lib-core-config": "^1.0.15",

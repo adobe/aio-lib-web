@@ -11,7 +11,7 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 /* eslint-disable no-template-curly-in-string */
-const CNAScript = require('../lib/abstract-script')
+const BaseScript = require('../lib/abstract-script')
 
 const path = require('path')
 const express = require('express')
@@ -26,7 +26,7 @@ const BuildActions = require('./build.actions')
 const DeployActions = require('./deploy.actions')
 const utils = require('../lib/utils')
 
-const debug = require('debug')('cna-scripts:dev')
+const debug = require('debug')('aio-app-scripts:dev')
 
 // TODO: this jar should become part of the distro, OR it should be pulled from bintray or similar.
 const OW_JAR_URL = 'https://github.com/chetanmeh/incubator-openwhisk/releases/download/v0.10/openwhisk-standalone.jar'
@@ -39,7 +39,7 @@ const WSK_DEBUG_PROPS = '.wskdebug.props.tmp'
 const CODE_DEBUG_SAVE = '.vscode/launch.json.save'
 const CODE_DEBUG = '.vscode/launch.json'
 
-class ActionServer extends CNAScript {
+class ActionServer extends BaseScript {
   async run (args = []) {
     const taskName = 'Local Dev Server'
     this.emit('start', taskName)

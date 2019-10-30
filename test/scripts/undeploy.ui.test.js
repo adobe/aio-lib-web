@@ -11,7 +11,7 @@ governing permissions and limitations under the License.
 */
 const { vol } = global.mockFs()
 
-const CNAScripts = require('../..')
+const AppScripts = require('../..')
 
 const RemoteStorage = require('../../lib/remote-storage')
 jest.mock('../../lib/remote-storage')
@@ -40,7 +40,7 @@ describe('Undeploy static files with tvm', () => {
     // create test app
     global.loadFs(vol, 'sample-app')
     mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
-    scripts = await CNAScripts()
+    scripts = await AppScripts()
   })
 
   test('Should call tvm client and remote storage', async () => {
@@ -80,7 +80,7 @@ describe('Undeploy static files with env credentials', () => {
     // create test app
     global.loadFs(vol, 'sample-app')
     mockAIOConfig.get.mockReturnValue(global.fakeConfig.creds)
-    scripts = await CNAScripts()
+    scripts = await AppScripts()
   })
 
   test('Should call remote storage once and call tvm client zero times', async () => {
