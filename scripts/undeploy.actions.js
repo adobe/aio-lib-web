@@ -30,30 +30,14 @@ class UndeployActions extends BaseScript {
     const manifestPackage = manifest.packages[this.config.ow.package]
     manifestPackage.version = this.config.app.version
 
-    // 2. make sure there is an existing deployment already
+    // 2. undeploy
     const owClient = OpenWhisk({
       apihost: this.config.ow.apihost,
       apiversion: this.config.ow.apiversion,
       api_key: this.config.ow.auth,
       namespace: this.config.ow.namespace
     })
-    let deployedPackage
-    try {
-      deployedPackage = await owClient.packages.get(this.config.ow.package)
-    } catch (e) {
-      if (e.statusCode === 404) throw new Error(`cannot undeploy actions for package ${this.config.ow.package}, as it was not deployed.`)
-      throw e
-    }
-
-    // 3. delete wskdebug actions
-    await Promise.all(
-      deployedPackage.actions
-        .filter(a => a.name.includes('wskdebug'))
-        .map(a => owClient.actions.delete(this.config.ow.package + '/' + a.name))
-    )
-
-    // 4. undeploy
-    await utils.undeployManifest(manifest, owClient, this.emit.bind(this, 'progress'))
+    await utils.undeployWskManifest(this.config.ow.package, manifest, owClient, this.emit.bind(this, 'progress'))
 
     this.emit('end', taskName)
   }
