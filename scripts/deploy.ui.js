@@ -11,14 +11,14 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-const CNAScript = require('../lib/abstract-script')
+const BaseScript = require('../lib/abstract-script')
 const TvmClient = require('@adobe/aio-lib-core-tvm')
 const RemoteStorage = require('../lib/remote-storage')
 
 const fs = require('fs-extra')
 const path = require('path')
 
-class DeployUI extends CNAScript {
+class DeployUI extends BaseScript {
   async run () {
     const taskName = 'Deploy static files'
     this.emit('start', taskName)

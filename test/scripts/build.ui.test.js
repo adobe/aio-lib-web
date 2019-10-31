@@ -11,7 +11,7 @@ governing permissions and limitations under the License.
 */
 const { vol, fs } = global.mockFs()
 
-const CNAScripts = require('../..')
+const AppScripts = require('../..')
 const mockAIOConfig = require('@adobe/aio-lib-core-config')
 
 jest.mock('parcel-bundler')
@@ -21,7 +21,7 @@ test('Build static files index.html', async () => {
   global.loadFs(vol, 'sample-app')
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
 
-  const scripts = await CNAScripts()
+  const scripts = await AppScripts()
   const buildDir = scripts._config.web.distProd
 
   await scripts.buildUI()

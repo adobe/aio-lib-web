@@ -12,7 +12,7 @@ governing permissions and limitations under the License.
 const { vol } = global.mockFs()
 
 const RemoteStorage = require('../../lib/remote-storage')
-const CNAScripts = require('../..')
+const AppScripts = require('../..')
 const AbstractScript = require('../../lib/abstract-script')
 
 const TvmClient = require('@adobe/aio-lib-core-tvm')
@@ -42,7 +42,7 @@ describe('Deploy static files with tvm', () => {
     // create test app
     global.loadFs(vol, 'sample-app')
     mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
-    scripts = await CNAScripts()
+    scripts = await AppScripts()
     buildDir = scripts._config.web.distProd
   })
 
@@ -97,7 +97,7 @@ describe('Deploy static files with env credentials', () => {
     // create test app
     global.loadFs(vol, 'sample-app')
     mockAIOConfig.get.mockReturnValue(global.fakeConfig.creds)
-    scripts = await CNAScripts()
+    scripts = await AppScripts()
     buildDir = scripts._config.web.distProd
   })
 

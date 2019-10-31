@@ -11,7 +11,7 @@ governing permissions and limitations under the License.
 */
 const loadConfig = require('./lib/config-loader')
 
-const debug = require('debug')('cna-scripts:index')
+const debug = require('debug')('aio-app-scripts:index')
 // load here - no lazy loading, as it breaks unit tests (mockfs require)
 // Don't use lazy loading within scripts neither..
 // todo fix this

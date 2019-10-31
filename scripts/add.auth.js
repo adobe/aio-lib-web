@@ -1,10 +1,10 @@
 /* eslint camelcase: ["error", {properties: "never", allow: ["shared_namespace", "my_auth_package", "my_auth_seq_package", "base_url", "org_id", "technical_account_id", "meta_scopes" ]}] */
-const CNAScript = require('../lib/abstract-script')
+const BaseScript = require('../lib/abstract-script')
 const fs = require('fs-extra')
 const yaml = require('js-yaml')
 const aioConfig = require('@adobe/aio-lib-core-config')
 
-class AddAuth extends CNAScript {
+class AddAuth extends BaseScript {
   async run () {
     const taskName = 'Add Auth'
     this.emit('start', taskName)

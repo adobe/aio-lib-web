@@ -10,7 +10,7 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 const { vol } = global.mockFs()
-const CNAScripts = require('../..')
+const AppScripts = require('../..')
 const mockAIOConfig = require('@adobe/aio-lib-core-config')
 
 let scripts
@@ -18,7 +18,7 @@ beforeEach(async () => {
   // create test app and switch cwd
   global.loadFs(vol, 'sample-app')
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
-  scripts = await CNAScripts({})
+  scripts = await AppScripts({})
 })
 
 afterEach(() => global.cleanFs(vol))

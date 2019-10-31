@@ -13,7 +13,7 @@ governing permissions and limitations under the License.
 
 const path = require('path')
 const fs = require('fs')
-const debug = require('debug')('cna-scripts:bin')
+const debug = require('debug')('aio-app-scripts:bin')
 
 const args = process.argv.slice(2)
 
@@ -25,7 +25,7 @@ process.on('unhandledRejection', e => {
 })
 
 if (!args[0]) {
-  throw new Error('Missing script name, usage cna-scripts <script-name> <script-args>')
+  throw new Error('Missing script name, usage aio-app-scripts <script-name> <script-args>')
 }
 
 const scriptDir = path.join(__dirname, '..', 'scripts')
@@ -50,7 +50,7 @@ switch (scriptName) {
 
       debug('loaded config')
 
-      const ScriptClass = require(scriptPath) // new CNAScriptDeclaration(config)
+      const ScriptClass = require(scriptPath)
       const script = new ScriptClass(config)
       script.on('start', taskName => console.error(`${taskName}...`))
       script.on('progress', item => console.error(`  > ${item}`))

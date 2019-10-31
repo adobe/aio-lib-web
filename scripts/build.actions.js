@@ -11,14 +11,14 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-const CNAScript = require('../lib/abstract-script')
+const BaseScript = require('../lib/abstract-script')
 const utils = require('../lib/utils')
 
 const fs = require('fs-extra')
 const path = require('path')
 const Bundler = require('parcel-bundler')
 
-class BuildActions extends CNAScript {
+class BuildActions extends BaseScript {
   async run () {
     const taskName = 'Build actions'
     this.emit('start', taskName)

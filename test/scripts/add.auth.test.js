@@ -11,7 +11,7 @@ governing permissions and limitations under the License.
 */
 const { vol, fs } = global.mockFs()
 
-const CNAScripts = require('../..')
+const AppScripts = require('../..')
 const yaml = require('js-yaml')
 
 // mocks
@@ -22,7 +22,7 @@ beforeEach(async () => {
   // create test app and switch cwd
   global.loadFs(vol, 'sample-app')
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
-  scripts = await CNAScripts({})
+  scripts = await AppScripts({})
 })
 
 afterEach(() => global.cleanFs(vol))

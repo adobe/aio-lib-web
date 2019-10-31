@@ -11,7 +11,7 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-const CNAScript = require('../lib/abstract-script')
+const BaseScript = require('../lib/abstract-script')
 
 const fs = require('fs-extra')
 const path = require('path')
@@ -19,7 +19,7 @@ const Bundler = require('parcel-bundler')
 
 const utils = require('../lib/utils')
 
-class BuildUI extends CNAScript {
+class BuildUI extends BaseScript {
   async run () {
     const taskName = 'Build static files'
     this.emit('start', taskName)
