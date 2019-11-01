@@ -60,7 +60,7 @@ class DeployActions extends BaseScript {
       api_key: this.config.ow.auth,
       namespace: this.config.ow.namespace
     })
-    await utils.deployWskManifest(this.config.ow.package, this.config.manifest.src, manifest, owClient, this.emit.bind(this, 'progress'))
+    await utils.deployWsk(this.config.ow.package, this.config.manifest.src, manifest, owClient, this.emit.bind(this, 'progress'))
     this.emit('end', taskName)
   }
 }

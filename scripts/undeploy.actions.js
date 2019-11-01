@@ -37,7 +37,7 @@ class UndeployActions extends BaseScript {
       api_key: this.config.ow.auth,
       namespace: this.config.ow.namespace
     })
-    await utils.undeployWskManifest(this.config.ow.package, manifest, owClient, this.emit.bind(this, 'progress'))
+    await utils.undeployWsk(this.config.ow.package, manifest, owClient, this.emit.bind(this, 'progress'))
 
     this.emit('end', taskName)
   }
