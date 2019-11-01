@@ -108,8 +108,3 @@ test('Undeploy 1 zip and 1 js actions + apis', async () => {
   returnedEntities.apis = [{ name: 'fake', basepath: '/fake', relpath: '/path/to/endpoint' }]
   expect(ioruntime.undeployPackage).toHaveBeenCalledWith(returnedEntities, owMock, expect.anything())
 })
-
-// test('Undeploy actions should fail if there is no deployment', async () => {
-//   // for now no deployment is simplified to no .dist-manifest.yml
-//   expect(scripts.undeployActions.bind(this)).toThrowWithMessageContaining(['missing', path.basename(manifest)])
-// })
