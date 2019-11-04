@@ -9,27 +9,52 @@ the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTA
 OF ANY KIND, either express or implied. See the License for the specific language
 governing permissions and limitations under the License.
 */
-const { vol, fs } = global.mockFs()
+const { vol } = global.mockFs()
 
 const AppScripts = require('../..')
 const utils = require('../../lib/utils')
 
 // mocks
-jest.mock('parcel-bundler')
+jest.mock('webpack')
+const webpack = require('webpack')
+const webpackMock = {
+  run: jest.fn()
+}
+webpack.mockReturnValue(webpackMock)
+
 utils.installDeps = jest.fn()
 // todo mock zip dependency instead of full utility for 100% coverage
-utils.zipFolder = jest.fn((filePath, out) => fs.writeFileSync(out, 'mock content'))
+utils.zipFolder = jest.fn()
 
 const mockAIOConfig = require('@adobe/aio-lib-core-config')
 
-afterEach(() => global.cleanFs(vol))
+beforeEach(() => {
+  global.cleanFs(vol)
+
+  utils.zipFolder.mockReset()
+  utils.installDeps.mockReset()
+
+  webpack.mockClear()
+  webpackMock.run.mockReset()
+
+  webpackMock.run.mockImplementation(cb => cb(null, {}))
+})
 test('Build actions: 1 zip and 1 js', async () => {
   global.loadFs(vol, 'sample-app')
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
   const scripts = await AppScripts()
-  const buildDir = scripts._config.actions.dist
 
   await scripts.buildActions()
-  const buildFiles = fs.readdirSync(buildDir)
-  expect(buildFiles.sort()).toEqual(['action-zip.zip', 'action.js'].sort())
+
+  expect(utils.zipFolder).toHaveBeenCalledWith('/actions/action-zip', '/dist/actions/action-zip.zip')
+  expect(utils.installDeps).toHaveBeenCalledWith('/actions/action-zip')
+
+  expect(webpack).toHaveBeenCalledWith(expect.objectContaining({
+    entry: ['/actions/action.js'],
+    output: expect.objectContaining({
+      path: '/dist/actions',
+      filename: 'action.js'
+    })
+  }))
+  expect(webpackMock.run).toHaveBeenCalledTimes(1)
 })

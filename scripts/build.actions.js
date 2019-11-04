@@ -16,7 +16,9 @@ const utils = require('../lib/utils')
 
 const fs = require('fs-extra')
 const path = require('path')
-const Bundler = require('parcel-bundler')
+
+const webpack = require('webpack')
+// const Bundler = require('parcel-bundler')
 
 class BuildActions extends BaseScript {
   async run () {
@@ -36,19 +38,36 @@ class BuildActions extends BaseScript {
       } else {
         // if not directory => package and minify to single file
         const outFile = `${name}.js`
-        const bundler = new Bundler(actionPath, {
-          outDir: this.config.actions.dist,
-          outFile: outFile,
-          cache: false,
-          watch: false,
+
+        const compiler = webpack({
+          entry: [
+            actionPath
+          ],
+          output: {
+            path: this.config.actions.dist,
+            filename: outFile,
+            library: name,
+            libraryTarget: 'commonjs2'
+          },
+          mode: 'production',
           target: 'node',
-          contentHash: false,
-          minify: true,
-          sourceMaps: false,
-          bundleNodeModules: true,
-          logLevel: 0 // 4
+          optimization: {
+            // error on minification for some libraries
+            minimize: false
+          },
+          // the following lines are used to require es6 module, e.g.node-fetch which is used by azure sdk
+          resolve: {
+            extensions: ['.js'],
+            mainFields: ['main']
+          },
+          // sourcemaps are needed for debugging
+          // todo don't source map on prod
+          devtool: 'source-map'
         })
-        await bundler.bundle()
+        await new Promise((resolve, reject) => compiler.run((err, stats) => {
+          if (err) reject(err)
+          return resolve(stats)
+        }))
         return path.join(this.config.actions.dist, outFile)
       }
     }
