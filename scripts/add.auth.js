@@ -43,22 +43,19 @@ class AddAuth extends BaseScript {
       my_auth_seq_package = 'myauthp'
     } = self._getCustomConfig('oauth', {})
     const persistenceBool = persistence && (persistence.toString().toLowerCase() === 'true' || persistence.toString().toLowerCase() === 'yes')
-    if (persistenceBool) {
-      // TODO : Get accessKeyId and secretAccessKey
-    }
 
     // Adding sequence
     manifest.packages[my_auth_seq_package] = {
       sequences: {
         authenticate: {
           actions: persistenceBool
-            ? my_auth_package + '/login,/' +
-                                                              shared_namespace + '/cache/encrypt,/' +
-                                                              shared_namespace + '/cache/persist,' +
+            ? my_auth_package + '/login,' +
+                                                            my_cache_package + '/encrypt,' +
+                                                            my_cache_package + '/persist,' +
                                                               my_auth_package + '/success'
 
-            : my_auth_package + '/login,/' +
-                                                              shared_namespace + '/cache/encrypt,' +
+            : my_auth_package + '/login,' +
+                                                            my_cache_package + '/encrypt,' +
                                                               my_auth_package + '/success',
           web: 'yes'
         }
@@ -82,6 +79,10 @@ class AddAuth extends BaseScript {
         cache_package: my_cache_package
       }
     }
+    manifest.packages[my_auth_seq_package].dependencies[my_cache_package] = {
+      location: '/' + shared_namespace + '/cache'
+    }
+
     await fs.writeFile(manifestFile, yaml.safeDump(manifest))
   }
 
@@ -105,15 +106,12 @@ class AddAuth extends BaseScript {
     const org_id = jwt_payload.iss || 'change-me'
     const meta_scopes = Object.keys(jwt_payload).filter(key => key.startsWith('http') && jwt_payload[key] === true) || []
     const persistenceBool = persistence && (persistence.toString().toLowerCase() === 'true' || persistence.toString().toLowerCase() === 'yes')
-    if (persistenceBool) {
-      // TODO : Get accessKeyId and secretAccessKey
-    }
 
     // Adding sequence
     manifest.packages[my_auth_seq_package] = {
       sequences: {
         authenticate: {
-          actions: (persistenceBool ? my_auth_package + '/jwtauth,/adobeio/cache/persist'
+          actions: (persistenceBool ? my_auth_package + '/jwtauth,' + my_cache_package + '/persist'
             : my_auth_package + '/jwtauth'),
           web: 'yes'
         }
@@ -134,6 +132,9 @@ class AddAuth extends BaseScript {
         cache_namespace: namespace,
         cache_package: my_cache_package
       }
+    }
+    manifest.packages[my_auth_seq_package].dependencies[my_cache_package] = {
+      location: '/' + shared_namespace + '/cache'
     }
     // TODO: Need to move this to Utils
     await fs.writeFile(manifestFile, yaml.safeDump(manifest))
