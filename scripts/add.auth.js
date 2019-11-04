@@ -3,6 +3,7 @@ const BaseScript = require('../lib/abstract-script')
 const fs = require('fs-extra')
 const yaml = require('js-yaml')
 const aioConfig = require('@adobe/aio-lib-core-config')
+const utils = require('../lib/utils')
 
 class AddAuth extends BaseScript {
   async run () {
@@ -10,7 +11,7 @@ class AddAuth extends BaseScript {
     this.emit('start', taskName)
     this.aioConfig = aioConfig.get() || {}
 
-    switch (this._getCustomConfig('ims_auth_type', 'code')) {
+    switch (utils.getCustomConfig(this.aioConfig, 'ims_auth_type', 'code')) {
       case 'code':
         await this.addAuth(this.config.manifest.src)
         break
@@ -26,10 +27,9 @@ class AddAuth extends BaseScript {
 
   async addAuth (manifestFile) {
     const manifest = yaml.safeLoad(fs.readFileSync(manifestFile, 'utf8'))
-    const self = this
-    const runtimeParams = self._getCustomConfig('runtime') || { namespace: 'change-me' }
+    const runtimeParams = utils.getCustomConfig(this.aioConfig, 'runtime') || { namespace: 'change-me' }
     const namespace = runtimeParams.namespace
-    const shared_namespace = self._getCustomConfig('shared_namespace', 'adobeio')
+    const shared_namespace = utils.getCustomConfig(this.aioConfig, 'shared_namespace', 'adobeio')
     const {
       client_id = 'change-me',
       client_secret = 'change-me',
@@ -41,7 +41,7 @@ class AddAuth extends BaseScript {
       my_auth_package = 'myauthp-shared',
       my_cache_package = 'mycachep-shared',
       my_auth_seq_package = 'myauthp'
-    } = self._getCustomConfig('oauth', {})
+    } = utils.getCustomConfig(this.aioConfig, 'oauth', {})
     const persistenceBool = persistence && (persistence.toString().toLowerCase() === 'true' || persistence.toString().toLowerCase() === 'yes')
 
     // Adding sequence
@@ -88,10 +88,9 @@ class AddAuth extends BaseScript {
 
   async addJWTAuth (manifestFile) {
     const manifest = yaml.safeLoad(fs.readFileSync(manifestFile, 'utf8'))
-    const self = this
-    const runtime = self._getCustomConfig('runtime') || { namespace: 'change-me' }
+    const runtime = utils.getCustomConfig(this.aioConfig, 'runtime') || { namespace: 'change-me' }
     const namespace = runtime.namespace
-    const shared_namespace = self._getCustomConfig('shared_namespace', 'adobeio')
+    const shared_namespace = utils.getCustomConfig(this.aioConfig, 'shared_namespace', 'adobeio')
     const {
       client_id = 'change-me',
       client_secret = 'change-me',
@@ -101,7 +100,7 @@ class AddAuth extends BaseScript {
       my_auth_package = 'myjwtauthp-shared',
       my_cache_package = 'myjwtcachep-shared',
       my_auth_seq_package = 'myjwtauthp'
-    } = self._getCustomConfig('jwt-auth', {})
+    } = utils.getCustomConfig(this.aioConfig, 'jwt-auth', {})
     const technical_account_id = jwt_payload.sub || 'change-me'
     const org_id = jwt_payload.iss || 'change-me'
     const meta_scopes = Object.keys(jwt_payload).filter(key => key.startsWith('http') && jwt_payload[key] === true) || []
@@ -136,13 +135,8 @@ class AddAuth extends BaseScript {
     manifest.packages[my_auth_seq_package].dependencies[my_cache_package] = {
       location: '/' + shared_namespace + '/cache'
     }
-    // TODO: Need to move this to Utils
-    await fs.writeFile(manifestFile, yaml.safeDump(manifest))
-  }
 
-  // TODO: Could move this to Utils
-  _getCustomConfig (key, defaultValue) {
-    return typeof (this.aioConfig[key]) !== 'undefined' ? this.aioConfig[key] : defaultValue
+    await fs.writeFile(manifestFile, yaml.safeDump(manifest))
   }
 }
 
