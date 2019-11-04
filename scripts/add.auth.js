@@ -3,6 +3,7 @@ const BaseScript = require('../lib/abstract-script')
 const fs = require('fs-extra')
 const yaml = require('js-yaml')
 const aioConfig = require('@adobe/aio-lib-core-config')
+const logger = require('@adobe/aio-lib-core-logging')('scripts-add-auth', { level: process.env.LOG_LEVEL })
 const utils = require('../lib/utils')
 
 class AddAuth extends BaseScript {
@@ -19,6 +20,7 @@ class AddAuth extends BaseScript {
         await this.addJWTAuth(this.config.manifest.src)
         break
       default:
+        logger.error('Invalid value for property ims_auth_type. Allowed values are code and jwt.')
         throw new Error('Invalid value for property ims_auth_type. Allowed values are code and jwt.')
     }
 
@@ -26,6 +28,7 @@ class AddAuth extends BaseScript {
   }
 
   async addAuth (manifestFile) {
+    logger.debug('Adding Auth to manifest')
     const manifest = yaml.safeLoad(fs.readFileSync(manifestFile, 'utf8'))
     const runtimeParams = utils.getCustomConfig(this.aioConfig, 'runtime') || { namespace: 'change-me' }
     const namespace = runtimeParams.namespace
@@ -87,6 +90,7 @@ class AddAuth extends BaseScript {
   }
 
   async addJWTAuth (manifestFile) {
+    logger.debug('Adding JWT Auth to manifest')
     const manifest = yaml.safeLoad(fs.readFileSync(manifestFile, 'utf8'))
     const runtime = utils.getCustomConfig(this.aioConfig, 'runtime') || { namespace: 'change-me' }
     const namespace = runtime.namespace
