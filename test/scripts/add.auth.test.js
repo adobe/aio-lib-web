@@ -37,7 +37,7 @@ test('Should add config into manifest for ims_auth_type=code', async () => {
     myauthp: {
       sequences: {
         authenticate: {
-          actions: 'myauthp-shared/login,/adobeio/cache/encrypt,/adobeio/cache/persist,myauthp-shared/success',
+          actions: 'myauthp-shared/login,mycachep-shared/encrypt,mycachep-shared/persist,myauthp-shared/success',
           web: 'yes'
         }
       },
@@ -57,6 +57,9 @@ test('Should add config into manifest for ims_auth_type=code', async () => {
             cache_namespace: 'fake_ns',
             cache_package: 'mycachep-shared'
           }
+        },
+        'mycachep-shared': {
+          'location': '/adobeio/cache'
         }
       }
     }
@@ -73,7 +76,7 @@ test('jwt', async () => {
     myjwtauthp: {
       sequences: {
         authenticate: {
-          actions: 'myjwtauthp-shared/jwtauth,/adobeio/cache/persist',
+          actions: 'myjwtauthp-shared/jwtauth,myjwtcachep-shared/persist',
           web: 'yes'
         }
       },
@@ -91,6 +94,9 @@ test('jwt', async () => {
             cache_namespace: 'fake_ns',
             cache_package: 'myjwtcachep-shared'
           }
+        },
+        'myjwtcachep-shared': {
+          'location': '/adobeio/cache'
         }
       }
     }

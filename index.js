@@ -12,9 +12,6 @@ governing permissions and limitations under the License.
 const loadConfig = require('./lib/config-loader')
 
 const debug = require('debug')('aio-app-scripts:index')
-// load here - no lazy loading, as it breaks unit tests (mockfs require)
-// Don't use lazy loading within scripts neither..
-// todo fix this
 const BuildUI = require('./scripts/build.ui')
 const BuildActions = require('./scripts/build.actions')
 const DeployUI = require('./scripts/deploy.ui')
@@ -25,6 +22,27 @@ const RunDev = require('./scripts/dev')
 const AddAuth = require('./scripts/add.auth')
 
 /**
+ * Adobe I/O application scripts
+ * @module adobe/aio-app-scripts
+ */
+
+/**
+ * @typedef AppScripts
+ * @type {object}
+ * @property {function(object):Promise<undefined>} buildUI - bundles the application's static files
+ * @property {function(object):Promise<undefined>} buildActions - zips and/or bundles the application's serverless functions
+ * @property {function(object):Promise<string>} deployUI - deploys the static files to a CDN, returns the URL
+ * @property {function(object):Promise<undefined>} deployActions - deploys the serverless functions to OpenWhisk
+ * @property {function(object):Promise<undefined>} undeployUI - removes the deployed static files
+ * @property {function(object):Promise<undefined>} undeployActions - deletes the deployed OpenWhisk actions
+ * @property {function(object):Promise<undefined>} runDev - runs the app in a local development server, set env
+ * REMOTE_ACTIONS=true to use remotely deployed actions
+ * @property {function(object):Promise<undefined>} addAuth - adds auth capabilities to the application
+ */
+
+/**
+ * Returns application scripts functions
+ * @function
  * @param {object} [options]
  * @param {object} [options.listeners]
  * @param {function} [options.listeners.onStart]
@@ -32,9 +50,9 @@ const AddAuth = require('./scripts/add.auth')
  * @param {function} [options.listeners.onProgress]
  * @param {function} [options.listeners.onResource]
  * @param {function} [options.listeners.onWarning]
- * @returns {object} With all script functions
+ * @returns {AppScripts} With all script functions
  */
-function exportScripts (options) {
+module.exports = function (options) {
   debug('exportScripts')
 
   options = options || {}
@@ -77,5 +95,3 @@ function exportScripts (options) {
     _config: appConfig
   }
 }
-
-module.exports = exportScripts

@@ -94,6 +94,10 @@ aio-app-scripts undeploy.ui
 - When you stop the dev server all vs code configurations are cleaned up and
   restored.
 
+## Explore
+
+- `goto` [API](doc/api.md)
+
 ## Contributing
 
 Contributions are welcomed! Read the [Contributing Guide](./.github/CONTRIBUTING.md) for more information.
