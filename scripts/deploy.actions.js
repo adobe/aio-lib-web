@@ -16,9 +16,10 @@ const utils = require('../lib/utils')
 
 const fs = require('fs-extra')
 const path = require('path')
-const yaml = require('js-yaml')
 
 const cloneDeep = require('lodash.clonedeep')
+
+const OpenWhisk = require('openwhisk')
 
 // This should eventually be fully covered by `aio runtime deploy`
 class DeployActions extends BaseScript {
@@ -49,21 +50,17 @@ class DeployActions extends BaseScript {
       }
     }))
     // replace package name
-    const manifestString = yaml.safeDump(manifest)
-      .replace(this.config.manifest.packagePlaceholder, this.config.ow.package)
-    // write the new wskManifest yaml
-    const distManifestFile = this.config.manifest.dist
-    fs.writeFileSync(distManifestFile, manifestString)
+    manifest.packages[this.config.ow.package] = manifest.packages[this.config.manifest.packagePlaceholder]
+    delete manifest.packages[this.config.manifest.packagePlaceholder]
 
-    // 2. invoke aio runtime deploy command
-    await utils.spawnAioRuntimeDeploy(distManifestFile)
-
-    // 3. show list of deployed actions
-    Object.keys(this.config.actions.urls).forEach(an => {
-      // emulates progress
-      this.emit('progress', this.config.actions.urls[an])
+    // 2. deploy manifest
+    const owClient = OpenWhisk({
+      apihost: this.config.ow.apihost,
+      apiversion: this.config.ow.apiversion,
+      api_key: this.config.ow.auth,
+      namespace: this.config.ow.namespace
     })
-
+    await utils.deployWsk(this.config.ow.package, this.config.manifest.src, manifest, owClient, this.emit.bind(this, 'progress'))
     this.emit('end', taskName)
   }
 }
