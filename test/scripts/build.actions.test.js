@@ -15,6 +15,9 @@ const AppScripts = require('../..')
 const utils = require('../../lib/utils')
 
 // mocks
+const fsExtra = require('fs-extra')
+fsExtra.moveSync = jest.fn() // even tho we mock the fs let's mock the move of map file
+
 jest.mock('webpack')
 const webpack = require('webpack')
 const webpackMock = {
@@ -24,18 +27,19 @@ webpack.mockReturnValue(webpackMock)
 
 utils.installDeps = jest.fn()
 // todo mock zip dependency instead of full utility for 100% coverage
-utils.zipFolder = jest.fn()
+utils.zip = jest.fn()
 
 const mockAIOConfig = require('@adobe/aio-lib-core-config')
 
 beforeEach(() => {
   global.cleanFs(vol)
 
-  utils.zipFolder.mockReset()
+  utils.zip.mockReset()
   utils.installDeps.mockReset()
 
   webpack.mockClear()
   webpackMock.run.mockReset()
+  fsExtra.moveSync.mockReset()
 
   webpackMock.run.mockImplementation(cb => cb(null, {}))
 })
@@ -46,13 +50,16 @@ test('Build actions: 1 zip and 1 js', async () => {
 
   await scripts.buildActions()
 
-  expect(utils.zipFolder).toHaveBeenCalledWith('/actions/action-zip', '/dist/actions/action-zip.zip')
+  expect(utils.zip).toHaveBeenCalledWith('/actions/action-zip', '/dist/actions/action-zip.zip')
+  expect(utils.zip).toHaveBeenCalledWith('/dist/actions/debug-action/action.js', '/dist/actions/action.zip', 'index.js')
   expect(utils.installDeps).toHaveBeenCalledWith('/actions/action-zip')
+
+  expect(fsExtra.moveSync).toHaveBeenCalledWith('/dist/actions/debug-action/action.js.map', '/actions/action.js.map', { overwrite: true })
 
   expect(webpack).toHaveBeenCalledWith(expect.objectContaining({
     entry: ['/actions/action.js'],
     output: expect.objectContaining({
-      path: '/dist/actions',
+      path: '/dist/actions/debug-action',
       filename: 'action.js'
     })
   }))
