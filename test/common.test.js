@@ -10,24 +10,20 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-const fs = require('fs-extra')
+const { vol, fs } = global.mockFs()
+
 const path = require('path')
 // import exposed module
-const CNAScripts = require('../')
-const mockAIOConfig = require('@adobe/aio-cli-config')
-
-beforeAll(async () => {
-  await global.mockFS()
-})
-
-afterAll(async () => {
-  await global.resetFS()
-})
+const AppScripts = require('../')
+const mockAIOConfig = require('@adobe/aio-lib-core-config')
 
 beforeEach(async () => {
-  await global.setTestAppAndEnv()
+  // create test app and switch cwd
+  global.loadFs(vol, 'sample-app')
   mockAIOConfig.get.mockReset()
 })
+
+afterEach(() => global.cleanFs(vol))
 
 function withoutKey (object, topKey, key) {
   // deep copy
@@ -36,67 +32,67 @@ function withoutKey (object, topKey, key) {
   return copy
 }
 
-test('Load CNAScripts for valid app in tvm mode', async () => {
+test('Load AppScripts for valid app in tvm mode', async () => {
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
-  expect(CNAScripts()).toEqual(global.expectedScripts)
+  expect(AppScripts()).toEqual(global.expectedScripts)
 })
 
-test('Load CNAScripts for valid app in creds mode, and should store them in internal config', async () => {
+test('Load AppScripts for valid app in creds mode, and should store them in internal config', async () => {
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.creds)
-  const scripts = CNAScripts()
+  const scripts = AppScripts()
   expect(scripts).toEqual(global.expectedScripts)
   expect(scripts._config.s3.creds).toEqual(global.expectedS3ENVCreds)
 })
 
-test('Fail load CNAScripts with missing config', async () => {
-  expect(CNAScripts.bind(this)).toThrowWithMessageContaining(['missing'])
+test('Fail load AppScripts with missing config', async () => {
+  expect(AppScripts.bind(this)).toThrowWithMessageContaining(['missing'])
 })
 
-test('Fail load CNAScripts with missing manifest.yml', async () => {
+test('Fail load AppScripts with missing manifest.yml', async () => {
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
-  await fs.remove(path.join(process.cwd(), 'manifest.yml'))
-  expect(CNAScripts.bind(this)).toThrowWithMessageContaining(['missing', 'manifest'])
+  fs.unlinkSync(path.join(process.cwd(), 'manifest.yml'))
+  expect(AppScripts.bind(this)).toThrowWithMessageContaining(['missing', 'manifest'])
 })
 
-test('Fail load CNAScripts with missing package.json', async () => {
+test('Fail load AppScripts with missing package.json', async () => {
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
-  await fs.remove(path.join(process.cwd(), 'package.json'))
-  expect(CNAScripts.bind(this)).toThrowWithMessageContaining(['missing', 'package.json'])
+  fs.unlinkSync(path.join(process.cwd(), 'package.json'))
+  expect(AppScripts.bind(this)).toThrowWithMessageContaining(['missing', 'package.json'])
 })
 
-test('Fail load CNAScripts with missing namespace config', async () => {
+test('Fail load AppScripts with missing namespace config', async () => {
   const missing = 'namespace'
   mockAIOConfig.get.mockReturnValue(withoutKey(global.fakeConfig.tvm, 'runtime', missing))
-  expect(CNAScripts.bind(this)).toThrowWithMessageContaining(['missing', missing])
+  expect(AppScripts.bind(this)).toThrowWithMessageContaining(['missing', missing])
 })
 
-test('Fail load CNAScripts with missing auth config', async () => {
+test('Fail load AppScripts with missing auth config', async () => {
   const missing = 'auth'
   mockAIOConfig.get.mockReturnValue(withoutKey(global.fakeConfig.tvm, 'runtime', missing))
-  expect(CNAScripts.bind(this)).toThrowWithMessageContaining(['missing', missing])
+  expect(AppScripts.bind(this)).toThrowWithMessageContaining(['missing', missing])
 })
-test('Fail load CNAScripts with missing apihost env', async () => {
+test('Fail load AppScripts with missing apihost env', async () => {
   const missing = 'apihost'
   mockAIOConfig.get.mockReturnValue(withoutKey(global.fakeConfig.tvm, 'runtime', missing))
-  expect(CNAScripts.bind(this)).toThrowWithMessageContaining(['missing', missing])
+  expect(AppScripts.bind(this)).toThrowWithMessageContaining(['missing', missing])
 })
 
-test('Fail load CNAScripts with missing tvmurl config in tvm mode', async () => {
+test('Fail load AppScripts with missing tvmurl config in tvm mode', async () => {
   const missing = 'tvmurl'
   mockAIOConfig.get.mockReturnValue(withoutKey(global.fakeConfig.tvm, 'cna', missing))
-  expect(CNAScripts.bind(this)).toThrowWithMessageContaining(['missing', missing])
+  expect(AppScripts.bind(this)).toThrowWithMessageContaining(['missing', missing])
 })
 
-test('Fail load CNAScripts with missing s3bucket config in creds mode', async () => {
+test('Fail load AppScripts with missing s3bucket config in creds mode', async () => {
   mockAIOConfig.get.mockReturnValue(withoutKey(global.fakeConfig.creds, 'cna', 's3bucket'))
-  expect(CNAScripts.bind(this)).toThrowWithMessageContaining(['missing'])
+  expect(AppScripts.bind(this)).toThrowWithMessageContaining(['missing'])
 })
 
-test('Fail load CNAScripts with missing awsaccesskeyid config in creds mode', async () => {
+test('Fail load AppScripts with missing awsaccesskeyid config in creds mode', async () => {
   mockAIOConfig.get.mockReturnValue(withoutKey(global.fakeConfig.creds, 'cna', 'awsaccesskeyid'))
-  expect(CNAScripts.bind(this)).toThrowWithMessageContaining(['missing'])
+  expect(AppScripts.bind(this)).toThrowWithMessageContaining(['missing'])
 })
-test('Fail load CNAScripts with missing awssecretaccesskey config in creds mode', async () => {
+test('Fail load AppScripts with missing awssecretaccesskey config in creds mode', async () => {
   mockAIOConfig.get.mockReturnValue(withoutKey(global.fakeConfig.creds, 'cna', 'awssecretaccesskey'))
-  expect(CNAScripts.bind(this)).toThrowWithMessageContaining(['missing'])
+  expect(AppScripts.bind(this)).toThrowWithMessageContaining(['missing'])
 })

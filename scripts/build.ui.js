@@ -11,16 +11,20 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-const CNAScript = require('../lib/abstract-script')
+const BaseScript = require('../lib/abstract-script')
 
 const fs = require('fs-extra')
 const path = require('path')
 const Bundler = require('parcel-bundler')
 
-class BuildUI extends CNAScript {
+const utils = require('../lib/utils')
+
+class BuildUI extends BaseScript {
   async run () {
     const taskName = 'Build static files'
     this.emit('start', taskName)
+
+    if (!this.config.app.hasFrontend) throw new Error('cannot build UI, app has no frontend')
 
     const dist = this.config.web.distProd
     const src = this.config.web.src
@@ -28,8 +32,8 @@ class BuildUI extends CNAScript {
     // clean/create needed dirs
     await fs.emptyDir(dist)
 
-    // 1. generate config
-    await this._injectWebConfig()
+    // 1. inject web config
+    await utils.writeConfig(this.config.web.injectedConfig, this.config.actions.urls)
 
     // 2. build UI files
     const bundler = new Bundler(path.join(src, 'index.html'), {
@@ -50,4 +54,4 @@ class BuildUI extends CNAScript {
   }
 }
 
-CNAScript.runOrExport(module, BuildUI)
+module.exports = BuildUI

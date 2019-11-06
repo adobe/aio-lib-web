@@ -11,35 +11,38 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-const CNAScript = require('../lib/abstract-script')
+const BaseScript = require('../lib/abstract-script')
 const utils = require('../lib/utils')
 
 const fs = require('fs-extra')
 const path = require('path')
-const yaml = require('js-yaml')
+
+const cloneDeep = require('lodash.clonedeep')
+
+const OpenWhisk = require('openwhisk')
 
 // This should eventually be fully covered by `aio runtime deploy`
-class DeployActions extends CNAScript {
+class DeployActions extends BaseScript {
   async run () {
-    const taskName = `Deploy actions`
+    const taskName = 'Deploy actions'
     this.emit('start', taskName)
 
     const dist = this.config.actions.dist
-    if (!(await fs.exists(dist)) ||
-        !(await fs.stat(dist)).isDirectory() ||
-        !(await fs.readdir(dist)).length === 0) {
+    if (!(fs.pathExistsSync(dist)) ||
+        !(fs.statSync(dist)).isDirectory() ||
+        !(fs.readdirSync(dist)).length === 0) {
       throw new Error(`missing files in ${this._relApp(dist)}, maybe you forgot to build your actions ?`)
     }
 
     // 1. rewrite wskManifest config
-    const manifest = { ...this.config.manifest.full }
+    const manifest = cloneDeep(this.config.manifest.full)
     const manifestPackage = manifest.packages[this.config.manifest.packagePlaceholder]
     manifestPackage.version = this.config.app.version
     const relDist = this._relApp(this.config.actions.dist)
     await Promise.all(Object.entries(manifestPackage.actions).map(async ([name, action]) => {
       const actionPath = this._absApp(action.function)
       // change path to built action
-      if ((await fs.stat(actionPath)).isDirectory()) {
+      if ((fs.statSync(actionPath)).isDirectory()) {
         action.function = path.join(relDist, name + '.zip')
       } else {
         action.function = path.join(relDist, name + '.js')
@@ -47,23 +50,19 @@ class DeployActions extends CNAScript {
       }
     }))
     // replace package name
-    const manifestString = yaml.safeDump(manifest)
-      .replace(this.config.manifest.packagePlaceholder, this.config.ow.package)
-    // write the new wskManifest yaml
-    const distManifestFile = this.config.manifest.dist
-    await fs.writeFile(distManifestFile, manifestString)
+    manifest.packages[this.config.ow.package] = manifest.packages[this.config.manifest.packagePlaceholder]
+    delete manifest.packages[this.config.manifest.packagePlaceholder]
 
-    // 2. invoke aio runtime deploy command
-    await utils.spawnAioRuntimeDeploy(distManifestFile)
-
-    // 3. show list of deployed actions
-    Object.keys(this.config.actions.urls).forEach(an => {
-      // emulates progress
-      this.emit('progress', this.config.actions.urls[an])
+    // 2. deploy manifest
+    const owClient = OpenWhisk({
+      apihost: this.config.ow.apihost,
+      apiversion: this.config.ow.apiversion,
+      api_key: this.config.ow.auth,
+      namespace: this.config.ow.namespace
     })
-
+    await utils.deployWsk(this.config.ow.package, this.config.manifest.src, manifest, owClient, this.emit.bind(this, 'progress'))
     this.emit('end', taskName)
   }
 }
 
-CNAScript.runOrExport(module, DeployActions)
+module.exports = DeployActions

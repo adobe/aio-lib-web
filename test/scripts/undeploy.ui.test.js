@@ -9,45 +9,54 @@ the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTA
 OF ANY KIND, either express or implied. See the License for the specific language
 governing permissions and limitations under the License.
 */
+const { vol } = global.mockFs()
+
+const AppScripts = require('../..')
 
 const RemoteStorage = require('../../lib/remote-storage')
-const TVMClient = require('../../lib/tvm-client')
-const CNAScripts = require('../..')
-
 jest.mock('../../lib/remote-storage')
-jest.mock('../../lib/tvm-client')
-TVMClient.prototype.getCredentials = jest.fn().mockReturnValue(global.fakeTVMResponse)
-const mockAIOConfig = require('@adobe/aio-cli-config')
+const TvmClient = require('@adobe/aio-lib-core-tvm')
+jest.mock('@adobe/aio-lib-core-tvm')
+const tvmRequestMock = jest.fn()
+const mockAIOConfig = require('@adobe/aio-lib-core-config')
 
 beforeEach(() => {
   // clear stats on mocks
   RemoteStorage.mockClear()
-  TVMClient.mockClear()
+  tvmRequestMock.mockReset()
+  TvmClient.init.mockReset()
+
+  tvmRequestMock.mockResolvedValue(global.fakeTVMResponse)
+  TvmClient.init.mockResolvedValue({
+    getAwsS3Credentials: tvmRequestMock
+  })
 })
 
-beforeAll(async () => {
-  await global.mockFS()
-})
-
-afterAll(async () => {
-  await global.resetFS()
-})
+afterEach(() => global.cleanFs(vol))
 
 describe('Undeploy static files with tvm', () => {
   let scripts
   beforeAll(async () => {
     // create test app
-    await global.setTestAppAndEnv()
+    global.loadFs(vol, 'sample-app')
     mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
-    scripts = await CNAScripts()
+    scripts = await AppScripts()
   })
 
-  test('Should call tvm client and remote storage mocks once', async () => {
+  test('Should call tvm client and remote storage', async () => {
     const spy = jest.spyOn(RemoteStorage.prototype, 'folderExists').mockReturnValue(true)
     await scripts.undeployUI()
     spy.mockRestore()
     expect(RemoteStorage).toHaveBeenCalledTimes(1)
-    expect(TVMClient).toHaveBeenCalledTimes(1)
+    expect(TvmClient.init).toHaveBeenCalledWith(expect.objectContaining({
+      ow: {
+        namespace: scripts._config.ow.namespace,
+        auth: scripts._config.ow.auth
+      },
+      apiUrl: scripts._config.s3.tvmUrl,
+      cacheFile: scripts._config.s3.credsCacheFile
+    }))
+    expect(tvmRequestMock).toHaveBeenCalledTimes(1)
   })
 
   test('Should call remote storage with TVM like credentials', async () => {
@@ -69,9 +78,9 @@ describe('Undeploy static files with env credentials', () => {
   let scripts
   beforeAll(async () => {
     // create test app
-    await global.setTestAppAndEnv()
+    global.loadFs(vol, 'sample-app')
     mockAIOConfig.get.mockReturnValue(global.fakeConfig.creds)
-    scripts = await CNAScripts()
+    scripts = await AppScripts()
   })
 
   test('Should call remote storage once and call tvm client zero times', async () => {
@@ -79,7 +88,7 @@ describe('Undeploy static files with env credentials', () => {
     await scripts.undeployUI()
     spy.mockRestore()
     expect(RemoteStorage).toHaveBeenCalledTimes(1)
-    expect(TVMClient).toHaveBeenCalledTimes(0)
+    expect(TvmClient.init).toHaveBeenCalledTimes(0)
   })
 
   test('Should call remote storage with ENV like credentials', async () => {

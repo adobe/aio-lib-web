@@ -2,12 +2,17 @@
 node_modules
 jspm_packages
 
+bin/openwhisk-standalone.jar
+
 # Serverless directories
 .serverless
 
 # build
 dist
 .manifest-dist.yml
+
+# test
+test/__fixtures__/sample-app-*
 
 # Config
 config.json
@@ -26,3 +31,6 @@ coverage
 
 #custom
 playground
+
+# no package lock for libs
+package-lock.json

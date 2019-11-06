@@ -10,45 +10,78 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-const fs = require('fs-extra')
-const CNAScripts = require('../..')
-const utils = require('../../lib/utils')
-const yaml = require('js-yaml')
+const { vol } = global.mockFs()
 
-const mockAIOConfig = require('@adobe/aio-cli-config')
-utils.spawnAioRuntimeDeploy = jest.fn()
+const AppScripts = require('../..')
 
-let scripts
-let buildDir
-beforeAll(async () => {
-  await global.mockFS()
-  // create test app
-  await global.setTestAppAndEnv()
+const mockAIOConfig = require('@adobe/aio-lib-core-config')
+
+const ioruntime = require('@adobe/aio-cli-plugin-runtime')
+jest.mock('@adobe/aio-cli-plugin-runtime')
+
+const openwhisk = require('openwhisk')
+jest.mock('openwhisk')
+
+afterEach(() => global.cleanFs(vol))
+
+beforeEach(() => {
+  mockAIOConfig.get.mockReset()
+  ioruntime.processPackage.mockReset()
+  ioruntime.deployPackage.mockReset()
+})
+
+test('Deploy 1 zip and 1 js action', async () => {
+  global.loadFs(vol, 'sample-app')
+
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
+  ioruntime.processPackage.mockReturnValue({ fake: 'entities' })
+  openwhisk.mockReturnValue({ fake: 'ow' })
 
-  scripts = await CNAScripts()
-  buildDir = scripts._config.actions.dist
-})
+  const scripts = await AppScripts()
+  const buildDir = scripts._config.actions.dist
+  // fake a previous build
+  await global.addFakeFiles(vol, buildDir, ['action.js', 'action-zip.zip'])
 
-afterAll(async () => {
-  await global.resetFS()
-})
-
-afterEach(async () => {
-  // clean build files
-  await fs.remove(buildDir)
-})
-
-test('Deploy actions should generate a valid .manifest-dist.yml for 1 zip and 1 js action', async () => {
-  await global.fakeFiles(buildDir, ['action.js', 'action-zip.zip'])
   await scripts.deployActions()
 
-  const manifest = yaml.safeLoad(fs.readFileSync(scripts._config.manifest.dist, 'utf8'))
-  // todo don't copy these fixture names
-  expect(manifest.packages[scripts._config.ow.package]).toHaveProperty('actions.action')
-  expect(manifest.packages[scripts._config.ow.package]).toHaveProperty('actions.action-zip')
+  const expectedDistManifest = {
+    packages: {
+      'sample-app-1.0.0': {
+        license: 'Apache-2.0',
+        version: '1.0.0',
+        actions: {
+          action: {
+            function:
+            'dist/actions/action.js',
+            main: 'module.exports.main',
+            runtime: 'nodejs:10',
+            web: 'yes'
+          },
+          'action-zip': {
+            function: 'dist/actions/action-zip.zip',
+            runtime: 'nodejs:10',
+            web: 'yes'
+          }
+        },
+        sequences: {
+          'action-sequence': {
+            actions: 'action, action-zip'
+          }
+        }
+      }
+    }
+  }
+  expect(ioruntime.processPackage).toHaveBeenCalledTimes(1)
+  expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedDistManifest.packages, {}, {}, {})
+
+  expect(ioruntime.syncProject).toHaveBeenCalledTimes(1)
+  expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', '/manifest.yml', expectedDistManifest, { fake: 'entities' }, { fake: 'ow' }, expect.anything())
 })
 
 test('Deploy actions should fail if there are no build files', async () => {
+  global.loadFs(vol, 'sample-app')
+  mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
+
+  const scripts = await AppScripts()
   expect(scripts.deployActions.bind(this)).toThrowWithMessageContaining(['build', 'missing'])
 })

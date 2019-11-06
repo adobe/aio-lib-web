@@ -11,23 +11,23 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-const CNAScript = require('../lib/abstract-script')
+const BaseScript = require('../lib/abstract-script')
 const utils = require('../lib/utils')
 
 const fs = require('fs-extra')
 const path = require('path')
 const Bundler = require('parcel-bundler')
 
-class BuildActions extends CNAScript {
+class BuildActions extends BaseScript {
   async run () {
     const taskName = 'Build actions'
     this.emit('start', taskName)
 
-    await fs.emptyDir(this.config.actions.dist)
+    fs.emptyDirSync(this.config.actions.dist)
 
     const build = async (name, action) => {
       const actionPath = this._absApp(action.function)
-      if ((await fs.stat(actionPath)).isDirectory()) {
+      if ((fs.statSync(actionPath)).isDirectory()) {
         // if directory install dependencies and zip it
         await utils.installDeps(actionPath)
         const outFile = path.join(this.config.actions.dist, `${name}.zip`)
@@ -54,7 +54,7 @@ class BuildActions extends CNAScript {
     }
 
     // build all sequentially
-    for (let [name, action] of Object.entries(this.config.manifest.package.actions)) {
+    for (const [name, action] of Object.entries(this.config.manifest.package.actions)) {
       const out = await build(name, action)
       this.emit('progress', `${this._relApp(out)}`)
     }
@@ -62,4 +62,4 @@ class BuildActions extends CNAScript {
   }
 }
 
-CNAScript.runOrExport(module, BuildActions)
+module.exports = BuildActions

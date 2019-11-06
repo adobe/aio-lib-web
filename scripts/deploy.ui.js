@@ -11,45 +11,48 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-const CNAScript = require('../lib/abstract-script')
-const TVMClient = require('../lib/tvm-client')
+const BaseScript = require('../lib/abstract-script')
+const TvmClient = require('@adobe/aio-lib-core-tvm')
 const RemoteStorage = require('../lib/remote-storage')
 
 const fs = require('fs-extra')
 const path = require('path')
 
-class DeployUI extends CNAScript {
+class DeployUI extends BaseScript {
   async run () {
-    const taskName = `Deploy static files`
+    const taskName = 'Deploy static files'
     this.emit('start', taskName)
 
+    if (!this.config.app.hasFrontend) throw new Error('cannot deploy UI, app has no frontend')
+
     const dist = this.config.web.distProd
-    if (!(await fs.exists(dist)) ||
-      !(await fs.stat(dist)).isDirectory() ||
-      !(await fs.readdir(dist)).length === 0) {
+    if (!(fs.existsSync(dist)) ||
+        !(fs.statSync(dist)).isDirectory() ||
+        !(fs.readdirSync(dist)).length === 0) {
       throw new Error(`missing files in ${this._relApp(dist)}, maybe you forgot to build your UI ?`)
     }
 
     const creds = this.config.s3.creds ||
-        (await new TVMClient({
-          tvmUrl: this.config.s3.tvmUrl,
-          owNamespace: this.config.ow.namespace,
-          owAuth: this.config.ow.auth,
-          cacheCredsFile: this.config.s3.credsCacheFile
-        }).getCredentials())
+        await (await TvmClient.init({
+          ow: {
+            namespace: this.config.ow.namespace,
+            auth: this.config.ow.auth
+          },
+          apiUrl: this.config.s3.tvmUrl,
+          cacheFile: this.config.s3.credsCacheFile
+        })).getAwsS3Credentials()
     const remoteStorage = new RemoteStorage(creds)
 
     if (await remoteStorage.folderExists(this.config.s3.folder)) {
-      this.emit('warning', `An already existing deployment for version ${this.config.app.version} will be overwritten`)
+      this.emit('warning', `an already existing deployment for version ${this.config.app.version} will be overwritten`)
       await remoteStorage.emptyFolder(this.config.s3.folder)
     }
     await remoteStorage.uploadDir(dist, this.config.s3.folder, f => this.emit('progress', path.basename(f)))
 
     const url = `https://s3.amazonaws.com/${creds.params.Bucket}/${this.config.s3.folder}/index.html`
-    this.emit('resource', url) // a bit hacky
-    this.emit('end', taskName)
+    this.emit('end', taskName, url)
     return url
   }
 }
 
-CNAScript.runOrExport(module, DeployUI)
+module.exports = DeployUI
