@@ -229,6 +229,7 @@ class ActionServer extends BaseScript {
         type: 'node',
         request: 'launch',
         name: name,
+        // expect wskdebug to be installed locally
         runtimeExecutable: '${workspaceFolder}/node_modules/.bin/wskdebug',
         env: { WSK_CONFIG_FILE: '${workspaceFolder}/' + WSK_DEBUG_PROPS },
         timeout: 30000,
