@@ -29,26 +29,25 @@ class BuildActions extends BaseScript {
 
     const build = async (name, action) => {
       const actionPath = this._absApp(action.function)
+      const outFile = path.join(this.config.actions.dist, `${name}.zip`)
       if ((fs.statSync(actionPath)).isDirectory()) {
-        // if directory install dependencies and zip it
+        // if directory install dependencies
         await utils.installDeps(actionPath)
-        const outFile = path.join(this.config.actions.dist, `${name}.zip`)
-        await utils.zipFolder(actionPath, outFile)
-        return outFile
+        await utils.zip(actionPath, outFile)
       } else {
+        const buildDir = path.join(this.config.actions.dist, `debug-${name}`)
+        const buildFilename = path.basename(action.function)
         // if not directory => package and minify to single file
-        const outFile = `${name}.js`
-
         const compiler = webpack({
           entry: [
             actionPath
           ],
           output: {
-            path: this.config.actions.dist,
-            filename: outFile,
-            library: name,
+            path: buildDir,
+            filename: buildFilename,
             libraryTarget: 'commonjs2'
           },
+          // see https://webpack.js.org/configuration/mode/
           mode: 'production',
           target: 'node',
           optimization: {
@@ -61,18 +60,31 @@ class BuildActions extends BaseScript {
             mainFields: ['main']
           },
           // sourcemaps are needed for debugging
-          // todo don't source map on prod
+          // 'source-map' => generates a separate file good for prod
+          // 'eval-source-map' => embeds source maps in the out files
           devtool: 'source-map'
+
+          // remove packages from bundled file that are available in runtime (on top of those add their dep as well)
+          // disabled for now as we need to consider versions as well
+          // ,externals: ['express', 'request', 'request-promise', 'body-parser', 'openwhisk']
         })
         await new Promise((resolve, reject) => compiler.run((err, stats) => {
           if (err) reject(err)
           return resolve(stats)
         }))
-        return path.join(this.config.actions.dist, outFile)
+
+        // move the source maps close to the debugged src
+        fs.moveSync(path.join(buildDir, `${buildFilename}.map`), path.join(path.dirname(actionPath), `${buildFilename}.map`), { overwrite: true })
+
+        // zip the bundled file (no source maps)
+        // the path in zip must be renamed to index.js even if buildFilename is not index.js
+        await utils.zip(path.join(buildDir, buildFilename), outFile, 'index.js')
       }
+
+      return outFile
     }
 
-    // build all sequentially
+    // build all sequentially (todo make bundler execution parallel)
     for (const [name, action] of Object.entries(this.config.manifest.package.actions)) {
       const out = await build(name, action)
       this.emit('progress', `${this._relApp(out)}`)

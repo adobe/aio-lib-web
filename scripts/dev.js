@@ -155,11 +155,9 @@ class ActionServer extends BaseScript {
         dotenv.config() // reload new dotenv
         devConfig = require('../lib/config-loader')()
       } else {
-        // todo deploy
-        // todo live redeploy?
         this.emit('progress', 'using remote actions')
       }
-      // 4. build and deploy actions // todo support live reloading ? or just doc redeploy
+      // 4. build and deploy actions // todo support live reloading ?
       this.emit('progress', 'redeploying actions..')
       await (new BuildActions(devConfig)).run()
       await (new DeployActions(devConfig)).run() // also generates manifest dist
@@ -225,17 +223,53 @@ class ActionServer extends BaseScript {
       const name = `Action:${packageName}/${an}`
       actionConfigNames.push(name)
       const action = manifestActions[an]
-      return {
+      const isBundled = fs.statSync(this._absApp(action.function)).isFile()
+
+      const config = {
         type: 'node',
         request: 'launch',
         name: name,
-        runtimeExecutable: 'wskdebug',
+        runtimeExecutable: '${workspaceFolder}/node_modules/.bin/wskdebug',
         env: { WSK_CONFIG_FILE: '${workspaceFolder}/' + WSK_DEBUG_PROPS },
-        args: [`${packageName}/${an}`, '${workspaceFolder}/' + action.function, '-v'],
-        localRoot: '${workspaceFolder}/' + path.dirname(action.function),
+        timeout: 30000,
         remoteRoot: '/code',
         outputCapture: 'std'
       }
+
+      if (isBundled) {
+        // replaces remoteRoot with localRoot to get src files
+        config.localRoot = '${workspaceFolder}/' + path.dirname(action.function)
+        // set wskdebug arg w/ custom build command
+        config.runtimeArgs = [
+          `${packageName}/${an}`,
+          '${workspaceFolder}/' + action.function,
+          // build actions on changes
+          // todo do not expose global dependency on aio app cli from aio-scripts!
+          // todo2 do not live reload from wskdebug but from run command ?
+          // todo3 build single action instead of all
+          '--on-build',
+          '"aio app deploy -ba"',
+          '--build-path',
+          path.join(this.config.actions.dist, `debug-${an}/${path.basename(action.function)}`),
+          '-v'
+        ]
+        config.envFile = '${workspaceFolder}/.env' // make sure .env is available for building
+        config.cwd = '${workspaceFolder}/' // to make sure we build from root
+        config.sourceMaps = true
+        config.smartStep = true // makes sure debugging steps do not include bundled code that does not map to sources (like webpack_require)
+      } else {
+        // replaces remoteRoot with localRoot to get src files
+        config.localRoot = '${workspaceFolder}/' + action.function
+        // todo throw on build if no package.json + main
+        const zipMain = (fs.existsSync(path.join(action.function, 'package.json')) && fs.readJsonSync(path.join(action.function, 'package.json')).main) || 'index.js'
+        config.runtimeArgs = [
+        `${packageName}/${an}`,
+        '${workspaceFolder}/' + path.join(action.function, zipMain),
+        '-v'
+        ]
+      }
+
+      return config
     })
     const debugConfig = {
       configurations: actionConfigs,
@@ -250,7 +284,7 @@ class ActionServer extends BaseScript {
         request: 'launch',
         name: 'Web',
         url: `http://localhost:${uiPort}`,
-        webRoot: '${workspaceFolder}/we-src/src',
+        webRoot: '${workspaceFolder}/web-src/src',
         sourceMapPathOverrides: {
           'webpack:///src/*': '${webRoot}/*'
         }
