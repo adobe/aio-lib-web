@@ -1,4 +1,5 @@
-/* eslint camelcase: ["error", {properties: "never", allow: ["shared_namespace", "my_auth_package", "my_auth_seq_package", "base_url", "org_id", "technical_account_id", "meta_scopes" ]}] */
+/* eslint camelcase: ["error", {properties: "never", allow: ["shared_namespace", "my_auth_package",
+"my_auth_seq_package", "base_url", "org_id", "technical_account_id", "meta_scopes", "my_cache_package" ]}] */
 const BaseScript = require('../lib/abstract-script')
 const fs = require('fs-extra')
 const yaml = require('js-yaml')

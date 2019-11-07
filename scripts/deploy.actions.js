@@ -29,7 +29,7 @@ class DeployActions extends BaseScript {
 
     const dist = this.config.actions.dist
     if (!(fs.pathExistsSync(dist)) ||
-        !(fs.statSync(dist)).isDirectory() ||
+        !(fs.lstatSync(dist)).isDirectory() ||
         !(fs.readdirSync(dist)).length === 0) {
       throw new Error(`missing files in ${this._relApp(dist)}, maybe you forgot to build your actions ?`)
     }
