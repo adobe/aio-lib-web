@@ -223,51 +223,44 @@ class ActionServer extends BaseScript {
       const name = `Action:${packageName}/${an}`
       actionConfigNames.push(name)
       const action = manifestActions[an]
-      const isBundled = fs.statSync(this._absApp(action.function)).isFile()
+      const actionPath = this._absApp(action.function)
 
       const config = {
         type: 'node',
         request: 'launch',
         name: name,
         // expect wskdebug to be installed locally
-        runtimeExecutable: '${workspaceFolder}/node_modules/.bin/wskdebug',
-        env: { WSK_CONFIG_FILE: '${workspaceFolder}/' + WSK_DEBUG_PROPS },
+        runtimeExecutable: this._absApp('/node_modules/.bin/wskdebug'),
+        env: { WSK_CONFIG_FILE: this._absApp(WSK_DEBUG_PROPS) },
         timeout: 30000,
+        // replaces remoteRoot with localRoot to get src files
+        localRoot: this._absApp('.'),
         remoteRoot: '/code',
         outputCapture: 'std'
       }
 
-      if (isBundled) {
-        // replaces remoteRoot with localRoot to get src files
-        config.localRoot = '${workspaceFolder}/' + path.dirname(action.function)
-        // set wskdebug arg w/ custom build command
+      const actionFileStats = fs.lstatSync(actionPath)
+      if (actionFileStats.isFile()) {
+        // set wskdebug arg w/ path to src file
         config.runtimeArgs = [
           `${packageName}/${an}`,
-          '${workspaceFolder}/' + action.function,
-          // build actions on changes
-          // todo do not expose global dependency on aio app cli from aio-scripts!
-          // todo2 do not live reload from wskdebug but from run command ?
-          // todo3 build single action instead of all
-          '--on-build',
-          '"aio app deploy -ba"',
-          '--build-path',
-          path.join(this.config.actions.dist, `debug-${an}/${path.basename(action.function)}`),
+          actionPath,
+          '--source-root',
+          config.localRoot,
           '-v'
         ]
-        config.envFile = '${workspaceFolder}/.env' // make sure .env is available for building
-        config.cwd = '${workspaceFolder}/' // to make sure we build from root
-        config.sourceMaps = true
-        config.smartStep = true // makes sure debugging steps do not include bundled code that does not map to sources (like webpack_require)
-      } else {
-        // replaces remoteRoot with localRoot to get src files
-        config.localRoot = '${workspaceFolder}/' + action.function
-        // todo throw on build if no package.json + main
-        const zipMain = (fs.existsSync(path.join(action.function, 'package.json')) && fs.readJsonSync(path.join(action.function, 'package.json')).main) || 'index.js'
+      } else if (actionFileStats.isDirectory()) {
+        // set wskdebug arg w/ path to src file in function dir
+        const zipMain = (fs.existsSync(path.join(actionPath, 'package.json')) && fs.readJsonSync(path.join(actionPath, 'package.json')).main) || 'index.js'
         config.runtimeArgs = [
-        `${packageName}/${an}`,
-        '${workspaceFolder}/' + path.join(action.function, zipMain),
-        '-v'
+          `${packageName}/${an}`,
+          path.join(actionPath, zipMain),
+          '--source-root',
+          config.localRoot,
+          '-v'
         ]
+      } else {
+        throw new Error(`${actionPath} is not a valid file or directory`)
       }
 
       return config
@@ -285,7 +278,7 @@ class ActionServer extends BaseScript {
         request: 'launch',
         name: 'Web',
         url: `http://localhost:${uiPort}`,
-        webRoot: '${workspaceFolder}/' + this.config.web.src,
+        webRoot: this.config.web.src,
         sourceMapPathOverrides: {
           'webpack:///src/*': '${webRoot}/*'
         }

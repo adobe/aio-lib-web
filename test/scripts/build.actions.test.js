@@ -14,10 +14,6 @@ const { vol } = global.mockFs()
 const AppScripts = require('../..')
 const utils = require('../../lib/utils')
 
-// mocks
-const fsExtra = require('fs-extra')
-fsExtra.moveSync = jest.fn() // even tho we mock the fs let's mock the move of map file
-
 jest.mock('webpack')
 const webpack = require('webpack')
 const webpackMock = {
@@ -39,7 +35,6 @@ beforeEach(() => {
 
   webpack.mockClear()
   webpackMock.run.mockReset()
-  fsExtra.moveSync.mockReset()
 
   webpackMock.run.mockImplementation(cb => cb(null, {}))
 })
@@ -53,8 +48,6 @@ test('Build actions: 1 zip and 1 js', async () => {
   expect(utils.zip).toHaveBeenCalledWith('/actions/action-zip', '/dist/actions/action-zip.zip')
   expect(utils.zip).toHaveBeenCalledWith('/dist/actions/debug-action/action.js', '/dist/actions/action.zip', 'index.js')
   expect(utils.installDeps).toHaveBeenCalledWith('/actions/action-zip')
-
-  expect(fsExtra.moveSync).toHaveBeenCalledWith('/dist/actions/debug-action/action.js.map', '/actions/action.js.map', { overwrite: true })
 
   expect(webpack).toHaveBeenCalledWith(expect.objectContaining({
     entry: ['/actions/action.js'],
