@@ -63,10 +63,11 @@ aio-app-scripts undeploy.ui
 
 ## Using aio-app-scripts for local dev
 
-> **Requires docker!**
-
 - run dev server, this will spin up a local OpenWhisk stack and run a small
   express server for the frontend
+
+> **Requires docker!**
+> **Requires Java!**
 
 ```bash
    aio-app-scripts dev
@@ -80,7 +81,8 @@ aio-app-scripts undeploy.ui
 
 ### Debugging with VS Code
 
-> **Requires wskdebug which is not yet publicly available!**
+> **Requires docker!**
+> **Requires @adobe/wskdebug in application**
 
 - Actions can be debugged in both with local dev and remote actions dev modes
 
