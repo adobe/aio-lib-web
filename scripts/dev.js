@@ -285,7 +285,7 @@ class ActionServer extends BaseScript {
         request: 'launch',
         name: 'Web',
         url: `http://localhost:${uiPort}`,
-        webRoot: '${workspaceFolder}/web-src/src',
+        webRoot: '${workspaceFolder}/' + this.config.web.src,
         sourceMapPathOverrides: {
           'webpack:///src/*': '${webRoot}/*'
         }
