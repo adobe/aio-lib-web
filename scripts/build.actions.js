@@ -80,9 +80,14 @@ class BuildActions extends BaseScript {
 
         // zip the bundled file (no source maps)
         // the path in zip must be renamed to index.js even if buildFilename is not index.js
-        await utils.zip(path.join(buildDir, buildFilename), outFile, 'index.js')
-      }
+        const zipSrcPath = path.join(buildDir, buildFilename)
 
+        if (fs.existsSync(zipSrcPath)) {
+          await utils.zip(zipSrcPath, outFile, 'index.js')
+        } else {
+          throw new Error(`the path ${zipSrcPath} does not exist. compile step must have failed.`)
+        }
+      }
       return outFile
     }
 
