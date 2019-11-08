@@ -158,8 +158,6 @@ class ActionServer extends BaseScript {
         config.runtimeArgs = [
           `${packageName}/${an}`,
           actionPath,
-          '--source-root',
-          config.localRoot,
           '-v'
         ]
       } else if (actionFileStats.isDirectory()) {
@@ -168,8 +166,6 @@ class ActionServer extends BaseScript {
         config.runtimeArgs = [
           `${packageName}/${an}`,
           path.join(actionPath, zipMain),
-          '--source-root',
-          config.localRoot,
           '-v'
         ]
       } else {
