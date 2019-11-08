@@ -29,7 +29,7 @@ class BuildActions extends BaseScript {
 
     const build = async (name, action) => {
       const actionPath = this._absApp(action.function)
-      const outFile = path.join(this.config.actions.dist, `${name}.zip`)
+      const outPath = path.join(this.config.actions.dist, `${name}.zip`)
       const actionFileStats = fs.lstatSync(actionPath)
 
       if (!actionFileStats.isDirectory() && !actionFileStats.isFile()) throw new Error(`${action.function} is not a valid file or directory`)
@@ -42,18 +42,16 @@ class BuildActions extends BaseScript {
         }
         // if directory install dependencies
         await utils.installDeps(actionPath)
-        await utils.zip(actionPath, outFile)
+        await utils.zip(actionPath, outPath)
       } else {
-        const buildDir = path.join(this.config.actions.dist, `debug-${name}`)
-        const buildFilename = path.basename(action.function)
         // if not directory => package and minify to single file
         const compiler = webpack({
           entry: [
             actionPath
           ],
           output: {
-            path: buildDir,
-            filename: buildFilename,
+            path: path.dirname(outPath),
+            filename: path.basename(outPath),
             libraryTarget: 'commonjs2'
           },
           // see https://webpack.js.org/configuration/mode/
@@ -78,17 +76,16 @@ class BuildActions extends BaseScript {
           return resolve(stats)
         }))
 
-        // zip the bundled file (no source maps)
+        // zip the bundled file
         // the path in zip must be renamed to index.js even if buildFilename is not index.js
-        const zipSrcPath = path.join(buildDir, buildFilename)
-
+        const zipSrcPath = outPath
         if (fs.existsSync(zipSrcPath)) {
-          await utils.zip(zipSrcPath, outFile, 'index.js')
+          await utils.zip(zipSrcPath, outPath, 'index.js')
         } else {
           throw new Error(`the path ${zipSrcPath} does not exist. compile step must have failed.`)
         }
       }
-      return outFile
+      return outPath
     }
 
     // build all sequentially (todo make bundler execution parallel)
