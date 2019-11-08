@@ -18,6 +18,9 @@ const fs = require('fs-extra')
 const path = require('path')
 
 const webpack = require('webpack')
+
+const debug = require('debug')('aio-app-scripts:build.actions')
+
 // const Bundler = require('parcel-bundler')
 
 class BuildActions extends BaseScript {
@@ -44,14 +47,16 @@ class BuildActions extends BaseScript {
         await utils.installDeps(actionPath)
         await utils.zip(actionPath, outPath)
       } else {
+        const outBuildFilename = `${name}.tmp.js`
+        const outBuildDir = path.dirname(outPath)
         // if not directory => package and minify to single file
         const compiler = webpack({
           entry: [
             actionPath
           ],
           output: {
-            path: path.dirname(outPath),
-            filename: path.basename(outPath),
+            path: outBuildDir,
+            filename: outBuildFilename,
             libraryTarget: 'commonjs2'
           },
           // see https://webpack.js.org/configuration/mode/
@@ -66,23 +71,28 @@ class BuildActions extends BaseScript {
             extensions: ['.js'],
             mainFields: ['main']
           }
-
-          // remove packages from bundled file that are available in runtime (on top of those add their dep as well)
-          // disabled for now as we need to consider versions as well
+          // todo remove packages from bundled file that are available in runtime (add the deps of deps as well)
+          // disabled for now as we need to consider versions (at least majors) to avoid nasty bugs
           // ,externals: ['express', 'request', 'request-promise', 'body-parser', 'openwhisk']
         })
+
         await new Promise((resolve, reject) => compiler.run((err, stats) => {
           if (err) reject(err)
+          // stats must be defined at this point
+          const info = stats.toJson()
+          if (stats.hasWarnings()) debug(`webpack compilation warnings:\n${info.warnings}`)
+          else if (stats.hasErrors()) reject(new Error(`action build failed, webpack compilation errors:\n${info.errors}`))
           return resolve(stats)
         }))
 
         // zip the bundled file
         // the path in zip must be renamed to index.js even if buildFilename is not index.js
-        const zipSrcPath = outPath
+        const zipSrcPath = path.join(outBuildDir, outBuildFilename)
         if (fs.existsSync(zipSrcPath)) {
           await utils.zip(zipSrcPath, outPath, 'index.js')
+          fs.removeSync(zipSrcPath) // remove the build file
         } else {
-          throw new Error(`the path ${zipSrcPath} does not exist. compile step must have failed.`)
+          throw new Error(`the path ${zipSrcPath} does not exist, building action '${name}' has failed`)
         }
       }
       return outPath

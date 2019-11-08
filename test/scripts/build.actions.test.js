@@ -20,6 +20,11 @@ const webpackMock = {
   run: jest.fn()
 }
 webpack.mockReturnValue(webpackMock)
+const webpackStatsMock = {
+  toJson: jest.fn(),
+  hasErrors: jest.fn(),
+  hasWarnings: jest.fn()
+}
 
 utils.installDeps = jest.fn()
 // todo mock zip dependency instead of full utility for 100% coverage
@@ -35,26 +40,35 @@ beforeEach(() => {
 
   webpack.mockClear()
   webpackMock.run.mockReset()
+  webpackStatsMock.toJson.mockReset()
+  webpackStatsMock.hasErrors.mockReset()
+  webpackStatsMock.hasWarnings.mockReset()
 
-  webpackMock.run.mockImplementation(cb => cb(null, {}))
+  webpackMock.run.mockImplementation(cb => cb(null, webpackStatsMock))
 })
+
 test('Build actions: 1 zip and 1 js', async () => {
   global.loadFs(vol, 'sample-app')
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
+  webpackMock.run.mockImplementation(cb => {
+    // fake the build files
+    vol.writeFileSync('/dist/actions/action.tmp.js', 'fake')
+    cb(null, webpackStatsMock)
+  })
+
   const scripts = await AppScripts()
 
   await scripts.buildActions()
 
-  expect(utils.zip).toHaveBeenCalledWith('/actions/action-zip', '/dist/actions/action-zip.zip')
-  expect(utils.zip).toHaveBeenCalledWith('/dist/actions/debug-action/action.js', '/dist/actions/action.zip', 'index.js')
-  expect(utils.installDeps).toHaveBeenCalledWith('/actions/action-zip')
-
+  expect(webpackMock.run).toHaveBeenCalledTimes(1)
   expect(webpack).toHaveBeenCalledWith(expect.objectContaining({
     entry: ['/actions/action.js'],
     output: expect.objectContaining({
-      path: '/dist/actions/debug-action',
-      filename: 'action.js'
+      path: '/dist/actions',
+      filename: 'action.tmp.js'
     })
   }))
-  expect(webpackMock.run).toHaveBeenCalledTimes(1)
+  expect(utils.installDeps).toHaveBeenCalledWith('/actions/action-zip')
+  expect(utils.zip).toHaveBeenCalledWith('/actions/action-zip', '/dist/actions/action-zip.zip')
+  expect(utils.zip).toHaveBeenCalledWith('/dist/actions/action.tmp.js', '/dist/actions/action.zip', 'index.js')
 })
