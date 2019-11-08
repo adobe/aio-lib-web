@@ -22,6 +22,9 @@ class UndeployActions extends BaseScript {
     const taskName = 'Undeploy actions'
     this.emit('start', taskName)
 
+    // 0. check credentials
+    utils.checkOpenWhiskCredentials(this.config)
+
     // 1. rewrite wskManifest config
     const manifest = cloneDeep(this.config.manifest.full)
     // replace package name

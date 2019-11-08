@@ -11,6 +11,11 @@ class AddAuth extends BaseScript {
   async run () {
     const taskName = 'Add Auth'
     this.emit('start', taskName)
+
+    // check runtime credentials
+    utils.checkOpenWhiskCredentials(this.config)
+
+    // todo this is already done in config-loader
     this.aioConfig = aioConfig.get() || {}
 
     switch (utils.getCustomConfig(this.aioConfig, 'ims_auth_type', 'code')) {
@@ -30,9 +35,10 @@ class AddAuth extends BaseScript {
 
   async addAuth (manifestFile) {
     logger.debug('Adding Auth to manifest')
+    // todo refactorr config loading this is all done in config-loader
     const manifest = yaml.safeLoad(fs.readFileSync(manifestFile, 'utf8'))
     const runtimeParams = utils.getCustomConfig(this.aioConfig, 'runtime') || { namespace: 'change-me' }
-    const namespace = runtimeParams.namespace
+    const namespace = runtimeParams.namespace // same as this.config.ow.namespace
     const shared_namespace = utils.getCustomConfig(this.aioConfig, 'shared_namespace', 'adobeio')
     const {
       client_id = 'change-me',

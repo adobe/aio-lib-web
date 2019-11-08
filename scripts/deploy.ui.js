@@ -14,6 +14,7 @@ governing permissions and limitations under the License.
 const BaseScript = require('../lib/abstract-script')
 const TvmClient = require('@adobe/aio-lib-core-tvm')
 const RemoteStorage = require('../lib/remote-storage')
+const utils = require('../lib/utils')
 
 const fs = require('fs-extra')
 const path = require('path')
@@ -23,8 +24,12 @@ class DeployUI extends BaseScript {
     const taskName = 'Deploy static files'
     this.emit('start', taskName)
 
+    // checks
+    /// a. has frontend
     if (!this.config.app.hasFrontend) throw new Error('cannot deploy UI, app has no frontend')
-
+    /// b. credentials
+    utils.checkS3Credentials(this.config)
+    /// c. build files
     const dist = this.config.web.distProd
     if (!(fs.existsSync(dist)) ||
         !(fs.lstatSync(dist)).isDirectory() ||

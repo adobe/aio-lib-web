@@ -27,6 +27,10 @@ class DeployActions extends BaseScript {
     const taskName = 'Deploy actions'
     this.emit('start', taskName)
 
+    // checks
+    /// a. missing credentials
+    utils.checkOpenWhiskCredentials(this.config)
+    /// b. missing build files
     const dist = this.config.actions.dist
     if (!(fs.pathExistsSync(dist)) ||
         !(fs.lstatSync(dist)).isDirectory() ||

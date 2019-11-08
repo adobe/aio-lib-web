@@ -41,16 +41,15 @@ class ActionServer extends BaseScript {
     this.emit('start', taskName)
 
     // control variables
-    const isLocal = !this.config.actions.remote
+    const isLocal = !this.config.actions.devRemote
     const hasFrontend = this.config.app.hasFrontend
 
     // port for UI
     const port = args[0] || process.env.PORT || 9080
 
+    // state
     const resources = {}
-    let devConfig = this.config // if remote keep same config
-
-    // process.env.NODE_ENV = 'development'
+    let devConfig // config will be different if local or remote
 
     // bind cleanup function
     process.on('SIGINT', () => cleanup(null, resources))
@@ -74,7 +73,10 @@ class ActionServer extends BaseScript {
         resources.dotenvSave = DOTENV_SAVE
         devConfig = require('../lib/config-loader')() // reload config
       } else {
+        // check credentials
+        utils.checkOpenWhiskCredentials(this.config)
         this.emit('progress', 'using remote actions')
+        devConfig = this.config
       }
 
       // build and deploy actions // todo support live reloading ?
