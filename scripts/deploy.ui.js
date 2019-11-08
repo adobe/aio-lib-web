@@ -49,7 +49,7 @@ class DeployUI extends BaseScript {
     }
     await remoteStorage.uploadDir(dist, this.config.s3.folder, f => this.emit('progress', path.basename(f)))
 
-    const url = `https://${this.config.ow.namespace}.${this.config.app.hostname}/${this.config.s3.folder}/index.html`
+    const url = `https://${this.config.ow.namespace}.${this.config.app.hostname}/${this.config.ow.package}/index.html`
     this.emit('end', taskName, url)
     return url
   }
