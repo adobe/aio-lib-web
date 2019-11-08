@@ -36,6 +36,22 @@ describe('lib/utils', () => {
     expect(typeof utils.undeployWsk).toBe('function')
     expect(utils.writeConfig).toBeDefined()
     expect(typeof utils.writeConfig).toBe('function')
+    expect(utils.getCustomConfig).toBeDefined()
+    expect(typeof utils.getCustomConfig).toBe('function')
+    expect(utils.checkOpenWhiskCredentials).toBeDefined()
+    expect(typeof utils.checkOpenWhiskCredentials).toBe('function')
+    expect(utils.checkFile).toBeDefined()
+    expect(typeof utils.checkFile).toBe('function')
+    expect(utils.checkS3Credentials).toBeDefined()
+    expect(typeof utils.checkS3Credentials).toBe('function')
+    expect(utils.getUIDevExpressApp).toBeDefined()
+    expect(typeof utils.getUIDevExpressApp).toBe('function')
+    expect(utils.downloadOWJar).toBeDefined()
+    expect(typeof utils.downloadOWJar).toBe('function')
+    expect(utils.runOpenWhiskJar).toBeDefined()
+    expect(typeof utils.runOpenWhiskJar).toBe('function')
+    expect(utils.saveAndReplaceDotEnvCredentials).toBeDefined()
+    expect(typeof utils.saveAndReplaceDotEnvCredentials).toBe('function')
   })
 
   test('urlJoin', () => {
@@ -72,37 +88,21 @@ describe('lib/utils', () => {
     // TODO: more?
   })
 
-  // test('zipFolder', () => {
-
+  // test('hasWskDebugInstalled', async () => {
+  //   mockResult = () => {
+  //     return { stdout: 'wskdebug version 8.132.3' }
+  //   }
+  //   const hasWskDbg = await utils.hasWskDebugInstalled()
+  //   expect(hasWskDbg).toBe(true)
   // })
 
-  // test('installDeps', () => {
-
+  // test('hasWskDebugInstalled mock false', async () => {
+  //   mockResult = () => {
+  //     throw Error('fake exception')
+  //   }
+  //   const hasWskDbg = await utils.hasWskDebugInstalled()
+  //   expect(hasWskDbg).toBe(false)
   // })
-
-  // test('spawnAioRuntimeDeploy', () => {
-
-  // })
-
-  // test('writeConfig', () => {
-
-  // })
-
-  test('hasWskDebugInstalled', async () => {
-    mockResult = () => {
-      return { stdout: 'wskdebug version 8.132.3' }
-    }
-    const hasWskDbg = await utils.hasWskDebugInstalled()
-    expect(hasWskDbg).toBe(true)
-  })
-
-  test('hasWskDebugInstalled mock false', async () => {
-    mockResult = () => {
-      throw Error('fake exception')
-    }
-    const hasWskDbg = await utils.hasWskDebugInstalled()
-    expect(hasWskDbg).toBe(false)
-  })
 
   test('hasDockerCLI', async () => {
     mockResult = () => {
