@@ -42,11 +42,11 @@ test('Load AppScripts for valid app in creds mode, and should store them in inte
 test('Fail load AppScripts with missing manifest.yml', async () => {
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
   fs.unlinkSync(path.join(process.cwd(), 'manifest.yml'))
-  expect(AppScripts.bind(this)).toThrowWithMessageContaining(['missing', 'manifest'])
+  expect(AppScripts.bind(this)).toThrowWithMessageContaining(['no such file', 'manifest.yml'])
 })
 
 test('Fail load AppScripts with missing package.json', async () => {
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
   fs.unlinkSync(path.join(process.cwd(), 'package.json'))
-  expect(AppScripts.bind(this)).toThrowWithMessageContaining(['missing', 'package.json'])
+  expect(AppScripts.bind(this)).toThrowWithMessageContaining(['no such file', 'package.json'])
 })
