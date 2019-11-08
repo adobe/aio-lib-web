@@ -23,14 +23,9 @@ beforeEach(async () => {
   mockAIOConfig.get.mockReset()
 })
 
-afterEach(() => global.cleanFs(vol))
-
-function withoutKey (object, topKey, key) {
-  // deep copy
-  const copy = JSON.parse(JSON.stringify(object))
-  delete copy[topKey][key]
-  return copy
-}
+afterEach(() => {
+  global.cleanFs(vol)
+})
 
 test('Load AppScripts for valid app in tvm mode', async () => {
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
@@ -44,55 +39,14 @@ test('Load AppScripts for valid app in creds mode, and should store them in inte
   expect(scripts._config.s3.creds).toEqual(global.expectedS3ENVCreds)
 })
 
-test('Fail load AppScripts with missing config', async () => {
-  expect(AppScripts.bind(this)).toThrowWithMessageContaining(['missing'])
-})
-
 test('Fail load AppScripts with missing manifest.yml', async () => {
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
   fs.unlinkSync(path.join(process.cwd(), 'manifest.yml'))
-  expect(AppScripts.bind(this)).toThrowWithMessageContaining(['missing', 'manifest'])
+  expect(AppScripts.bind(this)).toThrowWithMessageContaining(['no such file', 'manifest.yml'])
 })
 
 test('Fail load AppScripts with missing package.json', async () => {
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
   fs.unlinkSync(path.join(process.cwd(), 'package.json'))
-  expect(AppScripts.bind(this)).toThrowWithMessageContaining(['missing', 'package.json'])
-})
-
-test('Fail load AppScripts with missing namespace config', async () => {
-  const missing = 'namespace'
-  mockAIOConfig.get.mockReturnValue(withoutKey(global.fakeConfig.tvm, 'runtime', missing))
-  expect(AppScripts.bind(this)).toThrowWithMessageContaining(['missing', missing])
-})
-
-test('Fail load AppScripts with missing auth config', async () => {
-  const missing = 'auth'
-  mockAIOConfig.get.mockReturnValue(withoutKey(global.fakeConfig.tvm, 'runtime', missing))
-  expect(AppScripts.bind(this)).toThrowWithMessageContaining(['missing', missing])
-})
-test('Fail load AppScripts with missing apihost env', async () => {
-  const missing = 'apihost'
-  mockAIOConfig.get.mockReturnValue(withoutKey(global.fakeConfig.tvm, 'runtime', missing))
-  expect(AppScripts.bind(this)).toThrowWithMessageContaining(['missing', missing])
-})
-
-test('Fail load AppScripts with missing tvmurl config in tvm mode', async () => {
-  const missing = 'tvmurl'
-  mockAIOConfig.get.mockReturnValue(withoutKey(global.fakeConfig.tvm, 'cna', missing))
-  expect(AppScripts.bind(this)).toThrowWithMessageContaining(['missing', missing])
-})
-
-test('Fail load AppScripts with missing s3bucket config in creds mode', async () => {
-  mockAIOConfig.get.mockReturnValue(withoutKey(global.fakeConfig.creds, 'cna', 's3bucket'))
-  expect(AppScripts.bind(this)).toThrowWithMessageContaining(['missing'])
-})
-
-test('Fail load AppScripts with missing awsaccesskeyid config in creds mode', async () => {
-  mockAIOConfig.get.mockReturnValue(withoutKey(global.fakeConfig.creds, 'cna', 'awsaccesskeyid'))
-  expect(AppScripts.bind(this)).toThrowWithMessageContaining(['missing'])
-})
-test('Fail load AppScripts with missing awssecretaccesskey config in creds mode', async () => {
-  mockAIOConfig.get.mockReturnValue(withoutKey(global.fakeConfig.creds, 'cna', 'awssecretaccesskey'))
-  expect(AppScripts.bind(this)).toThrowWithMessageContaining(['missing'])
+  expect(AppScripts.bind(this)).toThrowWithMessageContaining(['no such file', 'package.json'])
 })

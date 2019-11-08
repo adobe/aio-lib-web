@@ -51,9 +51,7 @@ test('Deploy 1 zip and 1 js action', async () => {
         version: '1.0.0',
         actions: {
           action: {
-            function:
-            'dist/actions/action.js',
-            main: 'module.exports.main',
+            function: 'dist/actions/action.zip',
             runtime: 'nodejs:10',
             web: 'yes'
           },

@@ -27,9 +27,13 @@ class DeployActions extends BaseScript {
     const taskName = 'Deploy actions'
     this.emit('start', taskName)
 
+    // checks
+    /// a. missing credentials
+    utils.checkOpenWhiskCredentials(this.config)
+    /// b. missing build files
     const dist = this.config.actions.dist
     if (!(fs.pathExistsSync(dist)) ||
-        !(fs.statSync(dist)).isDirectory() ||
+        !(fs.lstatSync(dist)).isDirectory() ||
         !(fs.readdirSync(dist)).length === 0) {
       throw new Error(`missing files in ${this._relApp(dist)}, maybe you forgot to build your actions ?`)
     }
@@ -40,14 +44,8 @@ class DeployActions extends BaseScript {
     manifestPackage.version = this.config.app.version
     const relDist = this._relApp(this.config.actions.dist)
     await Promise.all(Object.entries(manifestPackage.actions).map(async ([name, action]) => {
-      const actionPath = this._absApp(action.function)
       // change path to built action
-      if ((fs.statSync(actionPath)).isDirectory()) {
-        action.function = path.join(relDist, name + '.zip')
-      } else {
-        action.function = path.join(relDist, name + '.js')
-        action.main = 'module.exports.' + (action.main || 'main')
-      }
+      action.function = path.join(relDist, name + '.zip')
     }))
     // replace package name
     manifest.packages[this.config.ow.package] = manifest.packages[this.config.manifest.packagePlaceholder]
