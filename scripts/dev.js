@@ -143,7 +143,7 @@ class ActionServer extends BaseScript {
         request: 'launch',
         name: name,
         // todo allow for global install aswell
-        runtimeExecutable: this._absApp('/node_modules/.bin/wskdebug'),
+        runtimeExecutable: this._absApp('./node_modules/.bin/wskdebug'),
         env: { WSK_CONFIG_FILE: this._absApp(WSK_DEBUG_PROPS) },
         timeout: 30000,
         // replaces remoteRoot with localRoot to get src files
