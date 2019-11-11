@@ -15,7 +15,38 @@ governing permissions and limitations under the License.
 
 Script to add authentication actions to manifest. The script needs aio config to have parameters listed below. For a full list of configuration parameters, check the Config Index section below.
 
-## Configuring
+## Configuring with .env file
+
+### Example
+```
+aio_ims__auth__type=code
+aio_oauth_client__id=xxx
+aio_oauth_client__secret=xxx
+```
+
+### Config Index
+| Config | Description |
+| --- | --- |
+| aio_ims__auth__type | one of 'code' or 'jwt' |
+| aio_oauth_client__id | client id of the console integration |
+| aio_oauth_client__secret | client secret of the console integration |
+| aio_oauth_scopes | ims auth scopes separated by comma for the specified client_id (default is 'openid,AdobeID') |
+| aio_oauth_base__url | base url for authentication url (default is ims) |
+| aio_oauth_redirect__url | url to redirect to after getting the access token |
+| aio_oauth_cookie__path | cookie path to use for storing the user id |
+| aio_oauth_persistence | persist the auth tokens |
+| aio_oauth_my__auth__package | package name to use for binding to adobeio/oauth package |
+| aio_oauth_my__cache__package | package name to use for binding to adobeio/cache package |
+| aio_oauth_my__auth__seq__package | package name to use for authenticate sequence |
+| aio_jwt-auth_client__id | client id of the console integration |
+| aio_jwt-auth_client__secret | client secret of the console integration |
+| aio_jwt-auth_jwt__payload | the payload with iss (org_id), sub (technical_account_id) and meta_scopes |
+| aio_jwt-auth_jwt__private__key | private key of the service account integration |
+| aio_jwt-auth_my__auth__package | package name to use for binding to adobeio/oauth package |
+| aio_jwt-auth_my__cache__package | package name to use for binding to adobeio/cache package |
+| aio_jwt-auth_my__auth__seq__package | package name to use for authenticate sequence |
+
+## Configuring with aio config
 
 ### OAUTH
 ```javascript
@@ -49,7 +80,7 @@ persistence: 'true'
 },
 ims_auth_type:"jwt"
 ```
-## Config Index
+### Config Index
 | Config | Description |
 | --- | --- |
 | ims_auth_type | one of 'code' or 'jwt' |
@@ -73,5 +104,5 @@ ims_auth_type:"jwt"
  
 ## Usage
 After deploying the manifest.yml generated above, you have two URLs. One for the authentication (and persistence if enabled) and one to get the tokens.
-https://adobeioruntime.net/api/v1/web/<my_auth_seq_package>/authenticate
-https://adobeioruntime.net/api/v1/web/<my_auth_package>/tokens
+- https://adobeioruntime.net/api/v1/web/<my_auth_seq_package>/authenticate
+- https://adobeioruntime.net/api/v1/web/<my_auth_package>/tokens
