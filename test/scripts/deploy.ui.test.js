@@ -82,7 +82,7 @@ describe('Deploy static files with tvm', () => {
     // spies can be restored
     await global.addFakeFiles(vol, buildDir, ['index.html'])
     const url = await scripts.deployUI()
-    expect(url).toBe(`https://s3.amazonaws.com/${global.fakeS3Bucket}/${scripts._config.s3.folder}/index.html`)
+    expect(url).toBe('https://fake_ns.adobeio-static.net/sample-app-1.0.0/index.html')
   })
 
   test('Should fail if no build files', async () => {
