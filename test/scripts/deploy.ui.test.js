@@ -88,6 +88,15 @@ describe('Deploy static files with tvm', () => {
   test('Should fail if no build files', async () => {
     expect(scripts.deployUI.bind(scripts)).toThrowWithMessageContaining(['build', 'missing'])
   })
+
+  // test('Should throw error for no Index.html', async () => {
+  //   try {
+  //     vol.unlinkSync('/web-src/index.html');
+  //     await scripts.deployUI()
+  //   } catch (e) {
+  //     expect(e.message).toBe('cannot deploy UI, app has no frontend')
+  //   }
+  // })
 })
 
 describe('Deploy static files with env credentials', () => {
@@ -112,23 +121,5 @@ describe('Deploy static files with env credentials', () => {
     await global.addFakeFiles(vol, buildDir, ['index.html'])
     await scripts.deployUI()
     expect(RemoteStorage).toHaveBeenCalledWith(global.expectedS3ENVCreds)
-  })
-})
-
-describe(' Test with No package app ', () => {
-  let scripts
-  beforeAll(async () => {
-    // create test app
-    global.loadFs(vol, 'no-package-app')
-    mockAIOConfig.get.mockReturnValue(global.fakeConfig.creds)
-    scripts = await AppScripts()
-  })
-
-  test('Should throw error for no Index.html', async () => {
-    try {
-      await scripts.deployUI()
-    } catch (e) {
-      expect(e.message).toBe('cannot deploy UI, app has no frontend')
-    }
   })
 })
