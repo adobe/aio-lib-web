@@ -82,12 +82,21 @@ describe('Deploy static files with tvm', () => {
     // spies can be restored
     await global.addFakeFiles(vol, buildDir, ['index.html'])
     const url = await scripts.deployUI()
-    expect(url).toBe('https://fake_ns.adobeio-static.net/sample-app-1.0.0/index.html')
+    expect(url).toBe('https://fake_ns.fake-domain.net/sample-app-1.0.0/index.html')
   })
 
   test('Should fail if no build files', async () => {
     expect(scripts.deployUI.bind(scripts)).toThrowWithMessageContaining(['build', 'missing'])
   })
+
+  // test('Should throw error for no Index.html', async () => {
+  //   try {
+  //     vol.unlinkSync('/web-src/index.html');
+  //     await scripts.deployUI()
+  //   } catch (e) {
+  //     expect(e.message).toBe('cannot deploy UI, app has no frontend')
+  //   }
+  // })
 })
 
 describe('Deploy static files with env credentials', () => {

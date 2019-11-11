@@ -100,10 +100,12 @@ global.fakeConfig = {
     runtime: {
       apihost: 'https://example.com',
       namespace: 'fake_ns',
-      auth: 'fake:auth'
+      auth: 'fake:auth',
+      apiversion: 'v1'
     },
     cna: {
-      tvmurl: 'https://example.com/api/v1/web/fakens/tvm/get-s3-upload-token'
+      tvmurl: 'https://example.com/api/v1/web/fakens/tvm/get-s3-upload-token',
+      hostname: 'fake-domain.net'
     }
   },
   creds: {
@@ -117,6 +119,8 @@ global.fakeConfig = {
       awsaccesskeyid: 'fakeAwsKeyId',
       awssecretaccesskey: 'fakeAwsSecretKey'
     }
+  },
+  config_defaults: {
   }
 }
 
