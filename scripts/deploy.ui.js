@@ -14,6 +14,7 @@ governing permissions and limitations under the License.
 const BaseScript = require('../lib/abstract-script')
 const TvmClient = require('@adobe/aio-lib-core-tvm')
 const RemoteStorage = require('../lib/remote-storage')
+const utils = require('../lib/utils')
 
 const fs = require('fs-extra')
 const path = require('path')
@@ -23,11 +24,15 @@ class DeployUI extends BaseScript {
     const taskName = 'Deploy static files'
     this.emit('start', taskName)
 
+    // checks
+    /// a. has frontend
     if (!this.config.app.hasFrontend) throw new Error('cannot deploy UI, app has no frontend')
-
+    /// b. credentials
+    utils.checkS3Credentials(this.config)
+    /// c. build files
     const dist = this.config.web.distProd
     if (!(fs.existsSync(dist)) ||
-        !(fs.statSync(dist)).isDirectory() ||
+        !(fs.lstatSync(dist)).isDirectory() ||
         !(fs.readdirSync(dist)).length === 0) {
       throw new Error(`missing files in ${this._relApp(dist)}, maybe you forgot to build your UI ?`)
     }
@@ -49,7 +54,7 @@ class DeployUI extends BaseScript {
     }
     await remoteStorage.uploadDir(dist, this.config.s3.folder, f => this.emit('progress', path.basename(f)))
 
-    const url = `https://s3.amazonaws.com/${creds.params.Bucket}/${this.config.s3.folder}/index.html`
+    const url = `https://${this.config.ow.namespace}.${this.config.app.hostname}/${this.config.ow.package}/index.html`
     this.emit('end', taskName, url)
     return url
   }
