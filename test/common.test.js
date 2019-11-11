@@ -78,6 +78,13 @@ describe(' Test with sample app ', () => {
     const scripts = AppScripts()
     expect(scripts._config.ow.apiversion).toBe('v1')
   })
+
+  test('Empty Config get', async () => {
+    mockAIOConfig.get.mockReturnValue(null)
+    const scripts = AppScripts()
+    expect(scripts._config.ow.apiversion).toBe('v1')
+
+  })
 })
 
 describe(' Test with app with empty package.json', () => {
