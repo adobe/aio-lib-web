@@ -1,0 +1,12 @@
+packages:
+  __CNA_PACKAGE__:
+    license: Apache-2.0
+    actions:
+      action:
+        function: actions/action.js
+        web: yes
+        runtime: 'nodejs:10'
+      action-zip:
+        function: actions/action-zip
+        web: yes
+        runtime: 'nodejs:10'

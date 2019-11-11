@@ -17,36 +17,83 @@ const path = require('path')
 const AppScripts = require('../')
 const mockAIOConfig = require('@adobe/aio-lib-core-config')
 
-beforeEach(async () => {
-  // create test app and switch cwd
-  global.loadFs(vol, 'sample-app')
-  mockAIOConfig.get.mockReset()
+const defaultAppHostName = 'adobeio-static.net'
+const actionURL = 'https://fake_ns.example.com/api/v1/web/sample-app-1.0.0/action'
+
+describe(' Test with sample app ', () => {
+  beforeEach(async () => {
+    // create test app and switch cwd
+    global.loadFs(vol, 'sample-app')
+    mockAIOConfig.get.mockReset()
+  })
+
+  afterEach(() => {
+    global.cleanFs(vol)
+  })
+
+  test('Load AppScripts for valid app in tvm mode', async () => {
+    mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
+    expect(AppScripts()).toEqual(global.expectedScripts)
+  })
+
+  test('Load AppScripts for valid app in creds mode, and should store them in internal config', async () => {
+    mockAIOConfig.get.mockReturnValue(global.fakeConfig.creds)
+    const scripts = AppScripts()
+    expect(scripts).toEqual(global.expectedScripts)
+    expect(scripts._config.s3.creds).toEqual(global.expectedS3ENVCreds)
+  })
+
+  test('Fail load AppScripts with missing manifest.yml', async () => {
+    mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
+    fs.unlinkSync(path.join(process.cwd(), 'manifest.yml'))
+    expect(AppScripts.bind(this)).toThrowWithMessageContaining(['no such file', 'manifest.yml'])
+  })
+
+  test('Fail load AppScripts with missing package.json', async () => {
+    mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
+    fs.unlinkSync(path.join(process.cwd(), 'package.json'))
+    expect(AppScripts.bind(this)).toThrowWithMessageContaining(['no such file', 'package.json'])
+  })
+
+  test('Set app Hostname from config', async () => {
+    mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
+    const scripts = AppScripts()
+    expect(scripts._config.app.hostname).toBe('fake-domain.net')
+  })
+
+  test('Default app Hostname', async () => {
+    mockAIOConfig.get.mockReturnValue(global.fakeConfig.config_defaults)
+    const scripts = AppScripts()
+    expect(scripts._config.app.hostname).toBe(defaultAppHostName)
+  })
+
+  test('Set Action URL with Namespace subdomain', async () => {
+    mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
+    const scripts = AppScripts()
+    expect(scripts._config.actions.urls.action).toBe(actionURL)
+  })
+
+  test('Config defaults', async () => {
+    mockAIOConfig.get.mockReturnValue(global.fakeConfig.config_defaults)
+    const scripts = AppScripts()
+    expect(scripts._config.ow.apiversion).toBe('v1')
+  })
 })
 
-afterEach(() => {
-  global.cleanFs(vol)
-})
+describe(' Test with app with empty package.json', () => {
+  beforeEach(async () => {
+    // create test app and switch cwd
+    global.loadFs(vol, 'no-package-app')
+    mockAIOConfig.get.mockReset()
+  })
 
-test('Load AppScripts for valid app in tvm mode', async () => {
-  mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
-  expect(AppScripts()).toEqual(global.expectedScripts)
-})
+  afterEach(() => {
+    global.cleanFs(vol)
+  })
 
-test('Load AppScripts for valid app in creds mode, and should store them in internal config', async () => {
-  mockAIOConfig.get.mockReturnValue(global.fakeConfig.creds)
-  const scripts = AppScripts()
-  expect(scripts).toEqual(global.expectedScripts)
-  expect(scripts._config.s3.creds).toEqual(global.expectedS3ENVCreds)
-})
-
-test('Fail load AppScripts with missing manifest.yml', async () => {
-  mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
-  fs.unlinkSync(path.join(process.cwd(), 'manifest.yml'))
-  expect(AppScripts.bind(this)).toThrowWithMessageContaining(['no such file', 'manifest.yml'])
-})
-
-test('Fail load AppScripts with missing package.json', async () => {
-  mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
-  fs.unlinkSync(path.join(process.cwd(), 'package.json'))
-  expect(AppScripts.bind(this)).toThrowWithMessageContaining(['no such file', 'package.json'])
+  test('Load pp without any name and version in package.json ', async () => {
+    mockAIOConfig.get.mockReturnValue(global.fakeConfig.config_defaults)
+    const scripts = AppScripts()
+    expect(scripts._config.app.version).toBe('0.0.1')
+  })
 })

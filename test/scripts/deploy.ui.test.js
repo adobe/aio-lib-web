@@ -82,7 +82,7 @@ describe('Deploy static files with tvm', () => {
     // spies can be restored
     await global.addFakeFiles(vol, buildDir, ['index.html'])
     const url = await scripts.deployUI()
-    expect(url).toBe('https://fake_ns.adobeio-static.net/sample-app-1.0.0/index.html')
+    expect(url).toBe('https://fake_ns.fake-domain.net/sample-app-1.0.0/index.html')
   })
 
   test('Should fail if no build files', async () => {
@@ -112,5 +112,23 @@ describe('Deploy static files with env credentials', () => {
     await global.addFakeFiles(vol, buildDir, ['index.html'])
     await scripts.deployUI()
     expect(RemoteStorage).toHaveBeenCalledWith(global.expectedS3ENVCreds)
+  })
+})
+
+describe(' Test with No package app ', () => {
+  let scripts
+  beforeAll(async () => {
+    // create test app
+    global.loadFs(vol, 'no-package-app')
+    mockAIOConfig.get.mockReturnValue(global.fakeConfig.creds)
+    scripts = await AppScripts()
+  })
+
+  test('Should throw error for no Index.html', async () => {
+    try {
+      await scripts.deployUI()
+    } catch (e) {
+      expect(e.message).toBe('cannot deploy UI, app has no frontend')
+    }
   })
 })
