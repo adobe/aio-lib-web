@@ -204,7 +204,7 @@ class ActionServer extends BaseScript {
 function cleanup (err, resources) {
   console.error() // return to new line
 
-  if (err) console.error(err)
+  if (err) throw err // exits with 1
   if (resources.dotenv && resources.dotenvSave && fs.existsSync(resources.dotenvSave)) {
     console.error('resetting .env file...')
     fs.moveSync(resources.dotenvSave, resources.dotenv, { overwrite: true })
@@ -225,7 +225,7 @@ function cleanup (err, resources) {
     console.error('killing ui dev server...')
     resources.uiServer.close()
   }
-  err ? process.exit(1) : process.exit(0)
+  process.exit(0) // todo don't exit just make sure we get out of waiting, unregister sigint and return properly (e.g. not waiting on stdin.resume anymore)
 }
 
 module.exports = ActionServer

@@ -36,7 +36,7 @@ class UndeployUI extends BaseScript {
     const remoteStorage = new RemoteStorage(creds)
 
     if (!(await remoteStorage.folderExists(this.config.s3.folder))) {
-      throw new Error(`Cannot undeploy static files, S3 folder ${this.config.s3.folder} does not exist.`)
+      throw new Error(`cannot undeploy static files, there is no deployment for ${this.config.s3.folder}`)
     }
 
     await remoteStorage.emptyFolder(this.config.s3.folder)
