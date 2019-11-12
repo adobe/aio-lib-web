@@ -66,12 +66,6 @@ test('Default app Hostname', async () => {
   expect(scripts._config.app.hostname).toBe(defaultAppHostName)
 })
 
-test('Set Action URL with Namespace subdomain', async () => {
-  mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
-  const scripts = AppScripts()
-  expect(scripts._config.actions.urls.action).toBe(actionURL)
-})
-
 test('Config defaults', async () => {
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.config_defaults)
   const scripts = AppScripts()

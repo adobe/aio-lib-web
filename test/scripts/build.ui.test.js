@@ -46,3 +46,9 @@ test('Build static files index.html', async () => {
   const buildFiles = vol.readdirSync(buildDir)
   expect(buildFiles.sort()).toEqual(['index.html'])
 })
+
+// test('Set Action URL with Namespace subdomain', async () => {
+//   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
+//   const scripts = AppScripts()
+//   expect(scripts._config.actions.urls.action).toBe(actionURL)
+// })
