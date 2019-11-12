@@ -13,6 +13,8 @@ governing permissions and limitations under the License.
 /* eslint-disable no-template-curly-in-string */
 const BaseScript = require('../lib/abstract-script')
 
+const debug = require('debug')('aio-app-scripts:dev')
+
 const path = require('path')
 const fs = require('fs-extra')
 
@@ -21,7 +23,7 @@ const DeployActions = require('./deploy.actions')
 const utils = require('../lib/utils')
 
 // TODO: this jar should become part of the distro, OR it should be pulled from bintray or similar.
-const OW_JAR_URL = 'https://github.com/chetanmeh/incubator-openwhisk/releases/download/v0.10/openwhisk-standalone.jar'
+const OW_JAR_URL = 'https://github.com/adobe/aio-app-scripts/raw/binaries/bin/openwhisk-standalone-0.10.jar'
 
 // This path will be relative to this module, and not the cwd, so multiple projects can use it.
 const OW_JAR_FILE = path.resolve(__dirname, '../bin/openwhisk-standalone.jar')
@@ -127,7 +129,7 @@ class ActionServer extends BaseScript {
         process.stdin.resume()
       }
     } catch (e) {
-      cleanup(e)
+      cleanup(e, resources)
     }
   }
 
@@ -206,10 +208,7 @@ class ActionServer extends BaseScript {
   }
 }
 
-function cleanup (err, resources) {
-  console.error() // return to new line
-
-  if (err) throw err // exits with 1
+function cleanup (err, resources = {}) {
   if (resources.dotenv && resources.dotenvSave && fs.existsSync(resources.dotenvSave)) {
     console.error('resetting .env file...')
     fs.moveSync(resources.dotenvSave, resources.dotenv, { overwrite: true })
@@ -229,6 +228,10 @@ function cleanup (err, resources) {
   if (resources.uiServer) {
     console.error('killing ui dev server...')
     resources.uiServer.close()
+  }
+  if (err) {
+    debug('cleaning up because of dev error', err)
+    throw err // exits with 1
   }
   process.exit(0) // todo don't exit just make sure we get out of waiting, unregister sigint and return properly (e.g. not waiting on stdin.resume anymore)
 }
