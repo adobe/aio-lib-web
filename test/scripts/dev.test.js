@@ -108,7 +108,7 @@ describe('run dev when remote actions is set', () => {
     expect(execa).toHaveBeenCalledTimes(0) // no execa calls expected
     expect(fetch).toHaveBeenCalledTimes(0)
     expect(express).toHaveBeenCalledTimes(0)
-    // expect(bundler).toHaveBeenCalledTimes(0) // todo 
+    // expect(bundler).toHaveBeenCalledTimes(0) // todo
   })
 })
 

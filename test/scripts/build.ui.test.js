@@ -47,6 +47,7 @@ test('Build static files index.html', async () => {
   expect(buildFiles.sort()).toEqual(['index.html'])
 })
 
+// const actionURL = 'https://fake_ns.example.com/api/v1/web/sample-app-1.0.0/action'
 // test('Set Action URL with Namespace subdomain', async () => {
 //   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
 //   const scripts = AppScripts()
