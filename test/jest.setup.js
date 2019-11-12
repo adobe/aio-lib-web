@@ -23,6 +23,11 @@ process.on('unhandledRejection', error => {
   throw error
 })
 
+beforeEach(() => {
+  // expect every test to have assertions
+  expect.hasAssertions()
+})
+
 const fixturePath = path.join(__dirname, '__fixtures__')
 
 /**
@@ -69,6 +74,7 @@ global.mockFs = () => {
   const vol = memfs.vol
   const mockFs = memfs.fs
   jest.mock('fs', () => mockFs)
+
   return { vol, fs: mockFs }
 }
 
