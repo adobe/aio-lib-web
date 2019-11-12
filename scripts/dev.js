@@ -56,12 +56,16 @@ class ActionServer extends BaseScript {
 
     try {
       if (isLocal) {
-        this.emit('progress', 'checking if docker is running...')
-        if (!utils.hasDockerCLI()) throw new Error('could not find docker CLI, please make sure docker is installed')
-        if (!utils.isDockerRunning()) throw new Error('docker is not running, please make sure to start docker')
+        this.emit('progress', 'checking if docker is installed...')
+        if (!await utils.hasDockerCLI()) throw new Error('could not find docker CLI, please make sure docker is installed')
 
-        this.emit('progres', `downloading OpenWhisk standalone jar from ${OW_JAR_URL} to ${OW_JAR_FILE}, this might take a while... (to be done only once!)`)
-        if (!fs.existsSync(OW_JAR_FILE)) await utils.downloadOWJar(OW_JAR_URL, OW_JAR_FILE)
+        this.emit('progress', 'checking if docker is running...')
+        if (!await utils.isDockerRunning()) throw new Error('docker is not running, please make sure to start docker')
+
+        if (!fs.existsSync(OW_JAR_FILE)) {
+          this.emit('progress', `downloading OpenWhisk standalone jar from ${OW_JAR_URL} to ${OW_JAR_FILE}, this might take a while... (to be done only once!)`)
+          await utils.downloadOWJar(OW_JAR_URL, OW_JAR_FILE)
+        }
 
         this.emit('progress', 'starting local OpenWhisk stack..')
         const res = await utils.runOpenWhiskJar(OW_JAR_FILE, OW_LOCAL_APIHOST, 20000, { stdio: 'inherit' })
@@ -105,7 +109,8 @@ class ActionServer extends BaseScript {
       if (hasFrontend) {
         // inject backend urls into ui
         this.emit('progress', 'injecting backend urls into frontend config')
-        await utils.writeConfig(devConfig.web.injectedConfig, devConfig.actions.urls)
+        const urls = await utils.generateActionUrls(devConfig.ow, devConfig.manifest.package, isLocal)
+        await utils.writeConfig(devConfig.web.injectedConfig, urls)
 
         this.emit('progress', 'starting local frontend server..')
         // todo: does it have to be index.html?

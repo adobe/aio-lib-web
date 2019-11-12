@@ -59,7 +59,7 @@ test('Should add config into manifest for ims_auth_type=code', async () => {
           }
         },
         'mycachep-shared': {
-          'location': '/adobeio/cache'
+          location: '/adobeio/cache'
         }
       }
     }
@@ -96,7 +96,7 @@ test('jwt', async () => {
           }
         },
         'myjwtcachep-shared': {
-          'location': '/adobeio/cache'
+          location: '/adobeio/cache'
         }
       }
     }

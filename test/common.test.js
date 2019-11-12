@@ -18,7 +18,6 @@ const AppScripts = require('../')
 const mockAIOConfig = require('@adobe/aio-lib-core-config')
 
 const defaultAppHostName = 'adobeio-static.net'
-const actionURL = 'https://fake_ns.example.com/api/v1/web/sample-app-1.0.0/action'
 
 beforeEach(async () => {
   // create test app and switch cwd
@@ -64,12 +63,6 @@ test('Default app Hostname', async () => {
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.config_defaults)
   const scripts = AppScripts()
   expect(scripts._config.app.hostname).toBe(defaultAppHostName)
-})
-
-test('Set Action URL with Namespace subdomain', async () => {
-  mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
-  const scripts = AppScripts()
-  expect(scripts._config.actions.urls.action).toBe(actionURL)
 })
 
 test('Config defaults', async () => {
