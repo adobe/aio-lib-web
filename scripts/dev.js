@@ -70,7 +70,7 @@ class ActionServer extends BaseScript {
         }
 
         this.emit('progress', 'starting local OpenWhisk stack..')
-        const res = await utils.runOpenWhiskJar(OW_JAR_FILE, OW_LOCAL_APIHOST, 20000, { stdio: 'inherit' })
+        const res = await utils.runOpenWhiskJar(OW_JAR_FILE, OW_LOCAL_APIHOST, 60000, { stdio: 'inherit' })
         resources.owProc = res.proc
 
         this.emit('progress', `saving .env to ${DOTENV_SAVE} and writing new .env with local OpenWhisk guest credentials..`)
