@@ -91,7 +91,7 @@ test('emptyFolder should call S3#deleteObjects with correct parameters with mult
 })
 
 test('uploadFile should call S3#upload with the correct parameters', async () => {
-  global.addFakeFiles(vol, 'fakeDir', ['index.js'])
+  global.addFakeFiles(vol, 'fakeDir', { 'index.js': 'fake content' })
   const uploadMock = jest.fn()
   spyS3({
     upload: uploadMock

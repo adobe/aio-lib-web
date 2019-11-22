@@ -21,17 +21,13 @@ const fs = require('fs-extra')
 const BuildActions = require('./build.actions')
 const DeployActions = require('./deploy.actions')
 const utils = require('../lib/utils')
+const execa = require('execa')
 
 // TODO: this jar should become part of the distro, OR it should be pulled from bintray or similar.
 const OW_JAR_URL = 'https://github.com/adobe/aio-app-scripts/raw/binaries/bin/openwhisk-standalone-0.10.jar'
 
 // This path will be relative to this module, and not the cwd, so multiple projects can use it.
 const OW_JAR_FILE = path.resolve(__dirname, '../bin/openwhisk-standalone.jar')
-// const OW_LOG_FILE = '.openwhisk-standalone.log'
-const DOTENV_SAVE = '.env.app.save'
-const WSK_DEBUG_PROPS = '.wskdebug.props.tmp'
-const CODE_DEBUG_SAVE = '.vscode/launch.json.save'
-const CODE_DEBUG = '.vscode/launch.json'
 
 const OW_LOCAL_APIHOST = 'http://localhost:3233'
 const OW_LOCAL_NAMESPACE = 'guest'
@@ -42,12 +38,20 @@ class ActionServer extends BaseScript {
     const taskName = 'Local Dev Server'
     this.emit('start', taskName)
 
+    // files
+    // const OW_LOG_FILE = '.openwhisk-standalone.log'
+    const DOTENV_SAVE = this._absApp('.env.app.save')
+    const WSK_DEBUG_PROPS = this._absApp('.wskdebug.props.tmp')
+    const CODE_DEBUG_SAVE = this._absApp('.vscode/launch.json.save')
+    const CODE_DEBUG = this._absApp('.vscode/launch.json')
+
     // control variables
     const isLocal = !this.config.actions.devRemote
     const hasFrontend = this.config.app.hasFrontend
 
+    // todo take port for ow server as well
     // port for UI
-    const port = args[0] || process.env.PORT || 9080
+    const uiPort = args[0] || process.env.PORT || 9080
 
     // state
     const resources = {}
@@ -85,7 +89,8 @@ class ActionServer extends BaseScript {
         devConfig = this.config
       }
 
-      // build and deploy actions // todo support live reloading ?
+      // build and deploy actions
+      // todo support live reloading ?
       this.emit('progress', 'redeploying actions..')
       await (new BuildActions(devConfig)).run()
       await (new DeployActions(devConfig)).run()
@@ -102,11 +107,11 @@ class ActionServer extends BaseScript {
       if (fs.existsSync(CODE_DEBUG)) {
         if (!fs.existsSync(CODE_DEBUG_SAVE)) {
           fs.moveSync(CODE_DEBUG, CODE_DEBUG_SAVE)
+          resources.vscodeDebugConfigSave = CODE_DEBUG_SAVE
         }
       }
-      fs.writeFileSync(CODE_DEBUG, JSON.stringify(await this.generateVSCodeDebugConfig(devConfig, hasFrontend, port), null, 2))
+      fs.writeFileSync(CODE_DEBUG, JSON.stringify(await this.generateVSCodeDebugConfig(devConfig, hasFrontend, uiPort, WSK_DEBUG_PROPS), null, 2))
       resources.vscodeDebugConfig = CODE_DEBUG
-      resources.vscodeDebugConfigSave = CODE_DEBUG_SAVE
 
       if (hasFrontend) {
         // inject backend urls into ui
@@ -118,23 +123,23 @@ class ActionServer extends BaseScript {
         // todo: does it have to be index.html?
         const entryFile = path.join(devConfig.web.src, 'index.html')
         const app = utils.getUIDevExpressApp(entryFile, devConfig.web.distDev)
-        resources.uiServer = app.listen(port)
+        resources.uiServer = app.listen(uiPort)
 
-        this.emit('progress', `local frontend server running at http://localhost:${port}`)
+        this.emit('progress', `local frontend server running at http://localhost:${uiPort}`)
       }
-      this.emit('progress', 'press CTRL+C to terminate dev environment')
       if (!resources.owProc && !resources.uiServer) {
         // not local + ow is not running => need to explicitely wait for CTRL+C
         // trick to avoid termination
-        process.stdin.resume()
+        resources.dummyProc = execa('node')
       }
+      this.emit('progress', 'press CTRL+C to terminate dev environment')
     } catch (e) {
       cleanup(e, resources)
     }
   }
 
   // todo make util not instance function
-  async generateVSCodeDebugConfig (devConfig, hasFrontend, uiPort) {
+  async generateVSCodeDebugConfig (devConfig, hasFrontend, uiPort, wskdebugProps) {
     const packageName = devConfig.ow.package
     const manifestActions = devConfig.manifest.package.actions // yaml.safeLoad(await fs.readFile(devConfig.manifest.dist, 'utf8')).packages[packageName].actions //
 
@@ -151,7 +156,7 @@ class ActionServer extends BaseScript {
         name: name,
         // todo allow for global install aswell
         runtimeExecutable: this._absApp('./node_modules/.bin/wskdebug'),
-        env: { WSK_CONFIG_FILE: this._absApp(WSK_DEBUG_PROPS) },
+        env: { WSK_CONFIG_FILE: wskdebugProps },
         timeout: 30000,
         // replaces remoteRoot with localRoot to get src files
         localRoot: this._absApp('.'),
@@ -195,8 +200,9 @@ class ActionServer extends BaseScript {
         name: 'Web',
         url: `http://localhost:${uiPort}`,
         webRoot: devConfig.web.src,
+        breakOnLoad: true,
         sourceMapPathOverrides: {
-          'webpack:///src/*': '${webRoot}/*'
+          '*': path.join(devConfig.web.distDev, '*')
         }
       })
       debugConfig.compounds.push({
@@ -219,15 +225,28 @@ function cleanup (err, resources = {}) {
   }
   if (resources.wskdebugProps) {
     console.error('removing wskdebug tmp credentials file...')
-    fs.removeSync(resources.wskdebugProps)
+    fs.unlinkSync(resources.wskdebugProps)
   }
-  if (resources.vscodeDebugConfig && resources.vscodeDebugConfigSave && fs.existsSync(resources.vscodeDebugConfigSave)) {
-    console.error('resetting .vscode/launch.json...')
+  if (resources.vscodeDebugConfig && !resources.vscodeDebugConfigSave) {
+    console.error('removing .vscode/launch.json...')
+    const vscodeDir = path.dirname(resources.vscodeDebugConfig)
+    fs.unlinkSync(resources.vscodeDebugConfig)
+    if (fs.readdirSync(vscodeDir).length === 0) {
+      fs.rmdirSync(vscodeDir)
+    }
+  }
+  if (resources.vscodeDebugConfigSave) {
+    console.error('restoring previous .vscode/launch.json...')
     fs.moveSync(resources.vscodeDebugConfigSave, resources.vscodeDebugConfig, { overwrite: true })
   }
   if (resources.uiServer) {
     console.error('killing ui dev server...')
     resources.uiServer.close()
+  }
+
+  if (resources.dummyProc) {
+    console.error('closing sigint waiter...')
+    resources.dummyProc.kill()
   }
   if (err) {
     debug('cleaning up because of dev error', err)

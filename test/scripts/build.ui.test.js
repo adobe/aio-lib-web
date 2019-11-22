@@ -14,8 +14,15 @@ const { vol } = global.mockFs()
 const AppScripts = require('../..')
 const mockAIOConfig = require('@adobe/aio-lib-core-config')
 
+const Bundler = require('parcel-bundler')
 jest.mock('parcel-bundler')
-afterEach(() => global.cleanFs(vol))
+
+beforeEach(() => {
+  // those are defined in __mocks__
+  Bundler.mockConstructor.mockReset()
+  Bundler.mockBundle.mockReset()
+  global.cleanFs(vol)
+})
 
 test('Should fail build if app has no frontend', async () => {
   global.loadFs(vol, 'sample-app')
@@ -27,12 +34,21 @@ test('Should fail build if app has no frontend', async () => {
   await expect(scripts.buildUI()).rejects.toEqual(expect.objectContaining({ message: expect.stringContaining('app has no frontend') }))
 })
 
+test('Should send a warning if namespace is not configured (for action urls)', async () => {
+  global.loadFs(vol, 'sample-app')
+  mockAIOConfig.get.mockReturnValue(global.configWithMissing(global.fakeConfig.tvm, 'runtime.namespace'))
+  const warningMock = jest.fn()
+  const scripts = await AppScripts({ listeners: { onWarning: warningMock } })
+  await scripts.buildUI()
+
+  expect(warningMock).toHaveBeenCalledWith(expect.stringContaining('injected urls to backend actions are invalid'))
+})
+
 test('Build static files index.html', async () => {
   global.loadFs(vol, 'sample-app')
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
 
   const scripts = await AppScripts()
-  const buildDir = scripts._config.web.distProd
 
   await scripts.buildUI()
 
@@ -43,8 +59,12 @@ test('Build static files index.html', async () => {
     'action-zip': expect.any(String),
     'action-sequence': expect.any(String)
   }))
-  const buildFiles = vol.readdirSync(buildDir)
-  expect(buildFiles.sort()).toEqual(['index.html'])
+
+  expect(Bundler.mockConstructor).toHaveBeenCalledWith('/web-src/index.html', expect.objectContaining({
+    publicUrl: './',
+    outDir: '/dist/web-src-prod'
+  }))
+  expect(Bundler.mockBundle).toHaveBeenCalledTimes(1)
 })
 
 // const actionURL = 'https://fake_ns.example.com/api/v1/web/sample-app-1.0.0/action'

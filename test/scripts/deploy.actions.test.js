@@ -63,7 +63,8 @@ test('Deploy 1 zip and 1 js action', async () => {
         },
         sequences: {
           'action-sequence': {
-            actions: 'action, action-zip'
+            actions: 'action, action-zip',
+            web: 'yes'
           }
         }
       }

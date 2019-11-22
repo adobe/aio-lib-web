@@ -10,6 +10,7 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
+const cloneDeep = require('lodash.clonedeep')
 const path = require('path')
 // const { stdout, stderr } = require('stdout-stderr')
 
@@ -94,17 +95,31 @@ global.cleanFs = vol => vol.reset()
 
 global.addFakeFiles = async (vol, dir, files) => {
   if (typeof files === 'string') files = [files]
+  if (Array.isArray(files)) files = files.reduce((obj, curr) => { obj[curr] = 'fake-content'; return obj }, {})
   vol.mkdirpSync(dir)
-  files.forEach(f => {
-    vol.writeFileSync(path.join(dir, f), 'fake content')
+  Object.keys(files).forEach(f => {
+    vol.writeFileSync(path.join(dir, f), files[f])
   })
+}
+
+global.configWithMissing = (config, members) => {
+  if (typeof members === 'string') members = [members]
+  config = cloneDeep(config)
+  members.forEach(m => {
+    // a config member can be hierarchical e.g. 'my.config.that.i.want.to.remove'
+    const split = m.split('.')
+    const last = split.pop()
+    const traverse = split.reduce((_traverse, next) => _traverse[next], config)
+    delete traverse[last]
+  })
+  return config
 }
 
 global.fakeS3Bucket = 'fake-bucket'
 global.fakeConfig = {
   tvm: {
     runtime: {
-      apihost: 'https://example.com',
+      apihost: 'https://example.com', // must start with https
       namespace: 'fake_ns',
       auth: 'fake:auth',
       apiversion: 'v1'
