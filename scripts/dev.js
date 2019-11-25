@@ -111,7 +111,7 @@ class ActionServer extends BaseScript {
       if (hasFrontend) {
         // inject backend urls into ui
         this.emit('progress', 'injecting backend urls into frontend config')
-        const urls = await utils.generateActionUrls(devConfig.ow, devConfig.manifest.package, isLocal)
+        const urls = await utils.generateActionUrls(devConfig, devConfig.manifest.package, isLocal)
         await utils.writeConfig(devConfig.web.injectedConfig, urls)
 
         this.emit('progress', 'starting local frontend server..')
