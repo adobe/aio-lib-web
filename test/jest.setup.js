@@ -18,7 +18,7 @@ const path = require('path')
 // beforeEach(() => { stdout.start(); stderr.start() })
 // afterEach(() => { stdout.stop(); stderr.stop() })
 
-jest.setTimeout(30000)
+jest.setTimeout(20000)
 
 process.on('unhandledRejection', error => {
   throw error
@@ -93,7 +93,7 @@ global.loadFs = (vol, fixtures) => {
 
 global.cleanFs = vol => vol.reset()
 
-global.addFakeFiles = async (vol, dir, files) => {
+global.addFakeFiles = (vol, dir, files) => {
   if (typeof files === 'string') files = [files]
   if (Array.isArray(files)) files = files.reduce((obj, curr) => { obj[curr] = 'fake-content'; return obj }, {})
   vol.mkdirpSync(dir)
@@ -127,6 +127,14 @@ global.fakeConfig = {
     cna: {
       tvmurl: 'https://example.com/api/v1/web/fakens/tvm/get-s3-upload-token',
       hostname: 'fake-domain.net'
+    }
+  },
+  local: {
+    runtime: {
+      // those must match the once set by dev cmd
+      apihost: 'http://localhost:3233',
+      namespace: 'guest',
+      auth: '23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP'
     }
   },
   creds: {

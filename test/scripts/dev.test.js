@@ -11,9 +11,10 @@ governing permissions and limitations under the License.
 */
 const { vol } = global.mockFs()
 const AppScripts = require('../..')
-const mockAIOConfig = require('@adobe/aio-lib-core-config')
 const cloneDeep = require('lodash.clonedeep')
 const path = require('path')
+const stream = require('stream')
+const mockAIOConfig = require('@adobe/aio-lib-core-config')
 
 /* ****************** Mocks & beforeEach ******************* */
 const execa = require('execa')
@@ -36,6 +37,10 @@ jest.mock('../../scripts/deploy.actions')
 process.exit = jest.fn()
 const mockOnProgress = jest.fn()
 
+const actualSetTimeout = setTimeout
+const now = Date.now
+let time
+
 beforeEach(() => {
   global.cleanFs(vol)
   delete process.env.REMOTE_ACTIONS
@@ -53,13 +58,50 @@ beforeEach(() => {
   process.removeAllListeners('SIGINT')
 
   mockOnProgress.mockReset()
+
+  // workaround for timers and elapsed time
+  // to replace when https://github.com/facebook/jest/issues/5165 is closed
+  Date.now = jest.fn()
+  global.setTimeout = jest.fn()
+  time = now()
+  Date.now.mockImplementation(() => time)
+  global.setTimeout.mockImplementation((fn, d) => { time = time + d; fn() })
 })
 
-/* ****************** Helpers ******************* */
+/* ****************** Consts ******************* */
 
-function writeFakeOwJar () {
-  const owJarPath = path.resolve(__dirname, '../bin/openwhisk-standalone.jar')
-  global.addFakeFiles(vol, path.dirname(owJarPath), path.basename(owJarPath))
+const localOWCredentials = {
+  ...global.fakeConfig.local.runtime
+}
+
+const remoteOWCredentials = {
+  ...global.fakeConfig.tvm.runtime
+}
+
+const expectedLocalOWConfig = expect.objectContaining({
+  ow: expect.objectContaining({
+    ...localOWCredentials
+  })
+})
+
+const expectedRemoteOWConfig = expect.objectContaining({
+  ow: expect.objectContaining({
+    ...remoteOWCredentials
+  })
+})
+
+const owJarPath = path.resolve(__dirname, '../../bin/openwhisk-standalone.jar')
+const owJarUrl = 'https://github.com/adobe/aio-app-scripts/raw/binaries/bin/openwhisk-standalone-0.10.jar'
+
+const execaLocalOWArgs = ['java', expect.arrayContaining(['-jar', owJarPath]), expect.anything()]
+
+/* ****************** Helpers ******************* */
+function generateDotenvContent (credentials) {
+  let content = ''
+  if (credentials.namespace) content = content + `AIO_RUNTIME_NAMESPACE=${credentials.namespace}`
+  if (credentials.auth) content = content + `\nAIO_RUNTIME_AUTH=${credentials.auth}`
+  if (credentials.apihost) content = content + `\nAIO_RUNTIME_APIHOST=${credentials.apihost}`
+  return content
 }
 
 async function loadEnvScripts (project, config, excludeFiles = []) {
@@ -69,6 +111,20 @@ async function loadEnvScripts (project, config, excludeFiles = []) {
   mockAIOConfig.get.mockReturnValue(config)
   const scripts = AppScripts({ listeners: { onProgress: mockOnProgress } })
   return scripts
+}
+
+function writeFakeOwJar () {
+  global.addFakeFiles(vol, path.dirname(owJarPath), path.basename(owJarPath))
+}
+
+function deleteFakeOwJar () {
+  const parts = owJarPath.split('/').slice(1) // slice(1) to remove first empty '' because of path starting with /
+  vol.unlinkSync(owJarPath)
+  parts.pop()
+  while (parts.length > 0) {
+    vol.rmdirSync('/' + parts.join('/'))
+    parts.pop()
+  }
 }
 
 // helpers for checking good path
@@ -95,14 +151,21 @@ function expectUIServer (fakeMiddleware, port) {
   expect(express.mockApp.listen).toHaveBeenCalledWith(port)
 }
 
-function expectAppFiles (files) {
-  expect(vol.readdirSync('/').sort()).toEqual(files.sort())
+function expectAppFiles (expectedFiles) {
+  // also allow the /Users (win and osx) and /home (linux) which is created to contain the openwhisk standalone jar
+  // todo mock the ow jar download/file save?
+  expectedFiles = new Set(expectedFiles)
+  const files = new Set(vol.readdirSync('/'))
+  if (files.has('Users')) files.delete('Users')
+  if (files.has('home')) files.delete('home')
+  expect(files).toEqual(expectedFiles)
 }
 
 async function testCleanupNoErrors (done, scripts, postCleanupChecks) {
   // todo why do we need to remove listeners here, somehow the one in beforeEach isn't sufficient, is jest adding a listener?
   process.removeAllListeners('SIGINT')
   process.exit.mockImplementation(() => {
+    console.error = consoleerror
     postCleanupChecks()
     expect(process.exit).toHaveBeenCalledWith(0)
     done()
@@ -111,14 +174,15 @@ async function testCleanupNoErrors (done, scripts, postCleanupChecks) {
   expect(process.exit).toHaveBeenCalledTimes(0)
   // make sure we have only one listener = cleanup listener after each test + no pending promises
   expect(process.listenerCount('SIGINT')).toEqual(1)
+  const consoleerror = console.error
   console.error = jest.fn()
   // send cleanup signal
   process.emit('SIGINT')
-  console.error.mockRestore()
   // if test times out => means handler is not calling process.exit
 }
 
 async function testCleanupOnError (scripts, postCleanupChecks) {
+  const consoleerror = console.error
   console.error = jest.fn()
   const error = new Error('fake')
   mockOnProgress.mockImplementation(msg => {
@@ -129,6 +193,7 @@ async function testCleanupOnError (scripts, postCleanupChecks) {
     }
   })
   await expect(scripts.runDev()).rejects.toBe(error)
+  console.error = consoleerror
   postCleanupChecks()
 }
 
@@ -153,26 +218,6 @@ const getExpectedUIVSCodeDebugConfig = uiPort => expect.objectContaining({
   sourceMapPathOverrides: {
     '*': '/dist/web-src-dev/*'
   }
-})
-
-/* ****************** Consts ******************* */
-
-const execaLocalOWArgs = ['java', expect.arrayContaining(expect.stringContaining('openwhisk')), expect.anything()]
-
-const expectedLocalOWConfig = expect.objectContaining({
-  ow: expect.objectContaining({
-    namespace: 'guest',
-    auth: '23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP',
-    apihost: 'http://localhost:3233'
-  })
-})
-
-const expectedRemoteOWConfig = expect.objectContaining({
-  ow: expect.objectContaining({
-    namespace: global.fakeConfig.tvm.runtime.namespace,
-    auth: global.fakeConfig.tvm.runtime.auth,
-    apihost: global.fakeConfig.tvm.runtime.apihost
-  })
 })
 
 /* ****************** Tests ******************* */
@@ -262,9 +307,9 @@ function runCommonRemoteTests (ref) {
   test('should generate a .wskdebug.props.tmp file with the remote credentials', async () => {
     await ref.scripts.runDev()
     const debugProps = vol.readFileSync('.wskdebug.props.tmp').toString()
-    expect(debugProps).toEqual(expect.stringContaining(`NAMESPACE=${global.fakeConfig.tvm.runtime.namespace}`))
-    expect(debugProps).toEqual(expect.stringContaining(`AUTH=${global.fakeConfig.tvm.runtime.auth}`))
-    expect(debugProps).toEqual(expect.stringContaining(`APIHOST=${global.fakeConfig.tvm.runtime.apihost}`))
+    expect(debugProps).toContain(`NAMESPACE=${remoteOWCredentials.namespace}`)
+    expect(debugProps).toContain(`AUTH=${remoteOWCredentials.auth}`)
+    expect(debugProps).toContain(`APIHOST=${remoteOWCredentials.apihost}`)
   })
 }
 
@@ -325,40 +370,256 @@ function runCommonWithFrontendTests (ref) {
 }
 
 function runCommonLocalTests (ref) {
-  test('fails if docker CLI is not installed', async () => {
-    // add ow jar
-    writeFakeOwJar()
+  test('should fail if java is not installed', async () => {
+    execa.mockImplementation((cmd, args) => {
+      if (cmd === 'java') {
+        throw new Error('fake error')
+      }
+      return { stdout: jest.fn() }
+    })
+    await expect(ref.scripts.runDev()).rejects.toEqual(expect.objectContaining({ message: 'could not find java CLI, please make sure java is installed' }))
+  })
+
+  test('should fail if docker CLI is not installed', async () => {
     execa.mockImplementation((cmd, args) => {
       if (cmd === 'docker' && args.includes('-v')) {
         throw new Error('fake error')
       }
+      return { stdout: jest.fn() }
     })
     await expect(ref.scripts.runDev()).rejects.toEqual(expect.objectContaining({ message: 'could not find docker CLI, please make sure docker is installed' }))
   })
 
-  test('fails if docker is not running', async () => {
-    // add ow jar
-    writeFakeOwJar()
+  test('should fail if docker is not running', async () => {
     execa.mockImplementation((cmd, args) => {
       if (cmd === 'docker' && args.includes('info')) {
         throw new Error('fake error')
       }
+      return { stdout: jest.fn() }
     })
     await expect(ref.scripts.runDev()).rejects.toEqual(expect.objectContaining({ message: 'docker is not running, please make sure to start docker' }))
   })
 
-  test('downloads openwhisk-standalone.jar on first usage', async () => {
+  test('should download openwhisk-standalone.jar on first usage', async () => {
+    // there seems to be a bug with memfs streams + mock timeouts
+    // Error [ERR_UNHANDLED_ERROR]: Unhandled error. (Error: EBADF: bad file descriptor, close)
+    // so disabling mocks for this test only, with the consequence of taking 4 seconds to run
+    // todo fix mock to avoid later bugs + performance
+    global.setTimeout = actualSetTimeout
+    Date.now = now
+
+    deleteFakeOwJar()
+    const streamBuffer = ['fake', 'ow', 'jar', null]
+    const fakeOwJarStream = stream.Readable({
+      read: function () {
+        this.push(streamBuffer.shift())
+      },
+      emitClose: true
+    })
+    fetch.mockResolvedValue({
+      ok: true,
+      body: fakeOwJarStream
+    })
+
     await ref.scripts.runDev()
-    expect(fetch).toHaveBeenCalledWith('https://github.com/adobe/aio-app-scripts/raw/binaries/bin/openwhisk-standalone-0.10.jar')
+
+    expect(fetch).toHaveBeenCalledWith(owJarUrl)
+    expect(vol.existsSync(owJarPath)).toEqual(true)
+    expect(vol.readFileSync(owJarPath).toString()).toEqual('fakeowjar')
   })
-// fork: isLocal true/false
-// isLocal -> no java install
-// isLocal -> no whisk jar ... should download
-// isLocal -> no whisk jar, no network, should fail
-// isLocal - should backup .env file
-// isLocal -> should write devConfig to .env
-// isLocal -> should wait for whisk jar startup
-// isLocal -> should fail if whisk jar startup timeouts
+
+  test('should fail when there is a connection error while downloading openwhisk-standalone.jar on first usage', async () => {
+    deleteFakeOwJar()
+    fetch.mockRejectedValue(new Error('fake connection error'))
+    await expect(ref.scripts.runDev()).rejects.toEqual(expect.objectContaining({ message: `connection error while downloading '${owJarUrl}', are you online?` }))
+  })
+
+  test('should fail if fetch fails to download openwhisk-standalone.jar on first usage because of status error', async () => {
+    deleteFakeOwJar()
+    fetch.mockResolvedValue({
+      ok: false,
+      statusText: 404
+    })
+    await expect(ref.scripts.runDev()).rejects.toEqual(expect.objectContaining({ message: `unexpected response while downloading '${owJarUrl}': 404` }))
+  })
+
+  test('should build and deploy actions to local ow', async () => {
+    // config should load new local credentials exposed in .env by run cmd
+    mockAIOConfig.get.mockReturnValue(global.fakeConfig.local)
+    await ref.scripts.runDev()
+    expectDevActionBuildAndDeploy(expectedLocalOWConfig)
+  })
+
+  test('should create a tmp .env file with local openwhisk credentials if there is no existing .env', async () => {
+    await ref.scripts.runDev()
+    expect(vol.existsSync('/.env')).toBe(true)
+    const dotenvContent = vol.readFileSync('/.env').toString()
+    expect(dotenvContent).toContain(generateDotenvContent(localOWCredentials))
+  })
+
+  test('should backup an existing .env and create a new .env with local openwhisk credentials', async () => {
+    vol.writeFileSync('/.env', generateDotenvContent(remoteOWCredentials))
+    await ref.scripts.runDev()
+    // 1. make sure the new .env is still written properly
+    expect(vol.existsSync('/.env')).toBe(true)
+    const dotenvContent = vol.readFileSync('/.env').toString()
+    expect(dotenvContent).toContain(generateDotenvContent(localOWCredentials))
+    // 2. check that saved file has old content
+    expect(vol.existsSync('/.env.app.save')).toBe(true)
+    const dotenvSaveContent = vol.readFileSync('/.env.app.save').toString()
+    expect(dotenvSaveContent).toEqual(generateDotenvContent(remoteOWCredentials))
+  })
+
+  test('should take additional variables from existing .env and plug them into new .env with local openwhisk credentials', async () => {
+    const dotenvOldContent = generateDotenvContent(remoteOWCredentials) + `
+AIO_RUNTIME_MORE=hello
+AIO_CNA_TVMURL=yolo
+MORE_VAR_1=hello2
+`
+    vol.writeFileSync('/.env', dotenvOldContent)
+
+    await ref.scripts.runDev()
+    // 1. make sure the new .env is still written properly
+    expect(vol.existsSync('/.env')).toBe(true)
+    const dotenvContent = vol.readFileSync('/.env').toString()
+    expect(dotenvContent).toContain(generateDotenvContent(localOWCredentials))
+    // 2. make sure the new .env include additional variables
+    expect(dotenvContent).toContain('AIO_RUNTIME_MORE=hello')
+    expect(dotenvContent).toContain('AIO_CNA_TVMURL=yolo')
+    expect(dotenvContent).toContain('MORE_VAR_1=hello2')
+    // 3. check that saved file has old content
+    expect(vol.existsSync('/.env.app.save')).toBe(true)
+    const dotenvSaveContent = vol.readFileSync('/.env.app.save').toString()
+    expect(dotenvSaveContent).toEqual(dotenvOldContent)
+  })
+
+  test('should restore .env file on SIGINT', async done => {
+    const dotenvOldContent = generateDotenvContent(remoteOWCredentials) + `
+AIO_RUNTIME_MORE=hello
+AIO_CNA_TVMURL=yolo
+MORE_VAR_1=hello2
+`
+    vol.writeFileSync('/.env', dotenvOldContent)
+
+    await testCleanupNoErrors(done, ref.scripts, () => {
+      expect(vol.existsSync('/.env.app.save')).toBe(false)
+      expect(vol.existsSync('/.env')).toBe(true)
+      const dotenvContent = vol.readFileSync('/.env').toString()
+      expect(dotenvContent).toEqual(dotenvOldContent)
+    })
+  })
+
+  test('should restore .env file on error', async () => {
+    const dotenvOldContent = generateDotenvContent(remoteOWCredentials) + `
+AIO_RUNTIME_MORE=hello
+AIO_CNA_TVMURL=yolo
+MORE_VAR_1=hello2
+`
+    vol.writeFileSync('/.env', dotenvOldContent)
+
+    await testCleanupOnError(ref.scripts, () => {
+      expect(vol.existsSync('/.env.app.save')).toBe(false)
+      expect(vol.existsSync('/.env')).toBe(true)
+      const dotenvContent = vol.readFileSync('/.env').toString()
+      expect(dotenvContent).toEqual(dotenvOldContent)
+    })
+  })
+
+  test('should start openwhisk-standalone jar', async () => {
+    await ref.scripts.runDev()
+    expect(execa).toHaveBeenCalledWith(...execaLocalOWArgs)
+  })
+
+  test('should kill openwhisk-standalone subprocess on SIGINT', async done => {
+    const owProcessMockKill = jest.fn()
+    execa.mockImplementation((cmd, args) => {
+      if (cmd === 'java' && args.includes('-jar') && args.includes(owJarPath)) {
+        return {
+          stdout: jest.fn(),
+          kill: owProcessMockKill
+        }
+      }
+      return {
+        stdout: jest.fn(),
+        kill: jest.fn()
+      }
+    })
+    await testCleanupNoErrors(done, ref.scripts, () => {
+      expect(execa).toHaveBeenCalledWith(...execaLocalOWArgs)
+      expect(owProcessMockKill).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  test('should kill openwhisk-standalone subprocess on error', async () => {
+    const owProcessMockKill = jest.fn()
+    execa.mockImplementation((cmd, args) => {
+      if (cmd === 'java' && args.includes('-jar') && args.includes(owJarPath)) {
+        return {
+          stdout: jest.fn(),
+          kill: owProcessMockKill
+        }
+      }
+      return {
+        stdout: jest.fn(),
+        kill: jest.fn()
+      }
+    })
+    await testCleanupOnError(ref.scripts, () => {
+      expect(execa).toHaveBeenCalledWith(...execaLocalOWArgs)
+      expect(owProcessMockKill).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  test('should wait for local openwhisk-standalone jar startup', async () => {
+    let waitSteps = 4
+    fetch.mockImplementation(async url => {
+      if (url === 'http://localhost:3233/api/v1') {
+        if (waitSteps > 0) {
+          waitSteps--
+          return { ok: false }
+        }
+      }
+      return { ok: true }
+    })
+
+    await ref.scripts.runDev()
+    expect(execa).toHaveBeenCalledWith(...execaLocalOWArgs)
+    expect(fetch).toHaveBeenCalledWith('http://localhost:3233/api/v1')
+    expect(fetch).toHaveBeenCalledTimes(5)
+    expect(setTimeout).toHaveBeenCalledWith(expect.any(Function), 4000) // initial wait
+    expect(setTimeout).toHaveBeenCalledWith(expect.any(Function), 500) // period wait
+    expect(setTimeout).toHaveBeenCalledTimes(5)
+  })
+
+  test('should fail if local openwhisk-standalone jar startup takes 61seconds', async () => {
+    const initialTime = Date.now() // fake Date.now() only increases with setTimeout, see beginning of this file
+    fetch.mockImplementation(async url => {
+      if (url === 'http://localhost:3233/api/v1') {
+        if (Date.now() < initialTime + 61000) return { ok: false }
+      }
+      return { ok: true }
+    })
+    await expect(ref.scripts.runDev()).rejects.toEqual(expect.objectContaining({ message: 'local openwhisk stack startup timed out: 60000ms' }))
+    expect(execa).toHaveBeenCalledWith(...execaLocalOWArgs)
+    expect(fetch).toHaveBeenCalledWith('http://localhost:3233/api/v1')
+    expect(setTimeout).toHaveBeenCalledWith(expect.any(Function), 4000) // initial wait
+    expect(setTimeout).toHaveBeenCalledWith(expect.any(Function), 500) // period wait
+  })
+
+  test('should run if local openwhisk-standalone jar startup takes 59seconds', async () => {
+    const initialTime = Date.now() // fake Date.now() only increases with setTimeout, see beginning of this file
+    fetch.mockImplementation(async url => {
+      if (url === 'http://localhost:3233/api/v1') {
+        if (Date.now() < initialTime + 59000) return { ok: false }
+      }
+      return { ok: true }
+    })
+    await expect(ref.scripts.runDev()).resolves.toBe(undefined) // this would break if scripts does not return undefined anymore (replace with anything)
+    expect(execa).toHaveBeenCalledWith(...execaLocalOWArgs)
+    expect(fetch).toHaveBeenCalledWith('http://localhost:3233/api/v1')
+    expect(setTimeout).toHaveBeenCalledWith(expect.any(Function), 4000) // initial wait
+    expect(setTimeout).toHaveBeenCalledWith(expect.any(Function), 500) // period wait
+  })
 }
 
 describe('with remote actions and no frontend', () => {
@@ -412,65 +673,31 @@ describe('with remote actions and frontend', () => {
     await ref.scripts.runDev()
     expect(vol.existsSync('/web-src/src/config.json')).toEqual(true)
     expect(JSON.parse(vol.readFileSync('/web-src/src/config.json').toString())).toEqual({
-      action: 'https://' + global.fakeConfig.tvm.runtime.namespace + '.' + global.fakeConfig.tvm.runtime.apihost.split('https://')[1] + '/api/v1/web/sample-app-1.0.0/action',
-      'action-zip': 'https://' + global.fakeConfig.tvm.runtime.namespace + '.' + global.fakeConfig.tvm.runtime.apihost.split('https://')[1] + '/api/v1/web/sample-app-1.0.0/action-zip',
-      'action-sequence': 'https://' + global.fakeConfig.tvm.runtime.namespace + '.' + global.fakeConfig.tvm.runtime.apihost.split('https://')[1] + '/api/v1/web/sample-app-1.0.0/action-sequence'
+      action: 'https://' + remoteOWCredentials.namespace + '.' + remoteOWCredentials.apihost.split('https://')[1] + '/api/v1/web/sample-app-1.0.0/action',
+      'action-zip': 'https://' + remoteOWCredentials.namespace + '.' + remoteOWCredentials.apihost.split('https://')[1] + '/api/v1/web/sample-app-1.0.0/action-zip',
+      'action-sequence': 'https://' + remoteOWCredentials.namespace + '.' + remoteOWCredentials.apihost.split('https://')[1] + '/api/v1/web/sample-app-1.0.0/action-sequence'
     })
   })
 })
 
-// describe('with local actions and no frontend', () => {
-// const ref = {}
-// beforeEach(async () => {
-//   process.env.REMOTE_ACTIONS = 'false'
-//   ref.scripts = await loadEnvScripts('sample-app', global.fakeConfig.tvm, ['/web-src/index.html'])
-// default mocks
-// fetch.mockResolvedValue({
-//   ok: true
-// })
-// execa.mockResolvedValue({
-// stdout: jest.fn()
-// })
-// })
+describe('with local actions and no frontend', () => {
+  const ref = {}
+  beforeEach(async () => {
+    process.env.REMOTE_ACTIONS = 'false'
+    ref.scripts = await loadEnvScripts('sample-app', global.fakeConfig.tvm, ['/web-src/index.html'])
+    // default mocks
+    // assume ow jar is already downloaded
+    writeFakeOwJar()
+    execa.mockReturnValue({
+      stdout: jest.fn(),
+      kill: jest.fn()
+    })
+    fetch.mockResolvedValue({
+      ok: true
+    })
+  })
 
-// runCommonTests(ref)
-// runCommonLocalTests(ref)
-// runCommonBackendOnlyTests(ref)
-// })
-// check java install
-
-// Tests to write:
-// Missing aio runtime config
-// missing config.actions.remote
-// missing config.app.hasFrontend
-// fork: isLocal true/false
-// isLocal -> no docker
-// isLocal -> docker not running
-// isLocal -> no java install
-// isLocal -> no whisk jar ... should download
-// isLocal -> no whisk jar, no network, should fail
-// isLocal - should backup .env file
-// isLocal -> should write devConfig to .env
-// isLocal -> should wait for whisk jar startup
-// isLocal -> should fail if whisk jar startup timeouts
-
-// should BuildActions with devConfig
-// should DeployActions with devConfig
-// should prepare wskprops for wskdebug
-// should check for vscode, skip writing launch.json if it is not installed
-// should backup launch.json
-// should generate vs code debug config
-
-// branch (ifHasFrontEnd)
-// should gets entry file config.web.src + index.html
-// should writes config for web (devConfig.actions.urls)
-// should create express app
-// should create parcel bundler, use as middleware
-// should start express server
-// on error, or process.SIGINT should call cleanup()
-
-// - actions.remote
-// - app.hasFrontend
-// - web.src
-// - web.distDev
-// - process.env.PORT
+  runCommonTests(ref)
+  runCommonBackendOnlyTests(ref)
+  runCommonLocalTests(ref)
+})

@@ -62,6 +62,9 @@ class ActionServer extends BaseScript {
 
     try {
       if (isLocal) {
+        this.emit('progress', 'checking if java is installed...')
+        if (!await utils.hasJavaCLI()) throw new Error('could not find java CLI, please make sure java is installed')
+
         this.emit('progress', 'checking if docker is installed...')
         if (!await utils.hasDockerCLI()) throw new Error('could not find docker CLI, please make sure docker is installed')
 
@@ -77,11 +80,26 @@ class ActionServer extends BaseScript {
         const res = await utils.runOpenWhiskJar(OW_JAR_FILE, OW_LOCAL_APIHOST, 60000, { stdio: 'inherit' })
         resources.owProc = res.proc
 
-        this.emit('progress', `saving .env to ${DOTENV_SAVE} and writing new .env with local OpenWhisk guest credentials..`)
-        utils.saveAndReplaceDotEnvCredentials(DOTENV_SAVE, OW_LOCAL_APIHOST, OW_LOCAL_NAMESPACE, OW_LOCAL_AUTH)
-        resources.dotenv = '.env'
-        resources.dotenvSave = DOTENV_SAVE
-        devConfig = require('../lib/config-loader')() // reload config
+        // case1: no dotenv file => expose local credentials in .env, delete on cleanup
+        const dotenvFile = this._absApp('.env')
+        if (!fs.existsSync(dotenvFile)) {
+          // todo move to utils
+          this.emit('progress', 'writing temporary .env with local OpenWhisk guest credentials..')
+          fs.writeFileSync(dotenvFile, `AIO_RUNTIME_NAMESPACE=${OW_LOCAL_NAMESPACE}\nAIO_RUNTIME_AUTH=${OW_LOCAL_AUTH}\nAIO_RUNTIME_APIHOST=${OW_LOCAL_APIHOST}`)
+          resources.dotenv = dotenvFile
+        } else {
+          // case2: existing dotenv file => save .env & expose local credentials in .env, restore on cleanup
+          this.emit('progress', `saving .env to ${DOTENV_SAVE} and writing new .env with local OpenWhisk guest credentials..`)
+          utils.saveAndReplaceDotEnvCredentials(dotenvFile, DOTENV_SAVE, OW_LOCAL_APIHOST, OW_LOCAL_NAMESPACE, OW_LOCAL_AUTH)
+          resources.dotenvSave = DOTENV_SAVE
+          resources.dotenv = dotenvFile
+        }
+        // delete potentially conflicting env vars
+        delete process.env.AIO_RUNTIME_APIHOST
+        delete process.env.AIO_RUNTIME_NAMESPACE
+        delete process.env.AIO_RUNTIME_AUTH
+
+        devConfig = require('../lib/config-loader')() // reload config for local config
       } else {
         // check credentials
         utils.checkOpenWhiskCredentials(this.config)
@@ -216,8 +234,12 @@ class ActionServer extends BaseScript {
 
 function cleanup (err, resources = {}) {
   if (resources.dotenv && resources.dotenvSave && fs.existsSync(resources.dotenvSave)) {
-    console.error('resetting .env file...')
+    console.error('restoring .env file...')
     fs.moveSync(resources.dotenvSave, resources.dotenv, { overwrite: true })
+  } else if (resources.dotenv && !resources.dotenvSave) {
+    // if there was no save file it means .env was created
+    console.error('deleting tmp .env file...')
+    fs.removeSync(resources.dotenv)
   }
   if (resources.owProc) {
     console.error('killing local OpenWhisk process...')
