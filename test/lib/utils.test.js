@@ -136,3 +136,6 @@ describe('lib/utils', () => {
     expect(isRunning).toBe(false)
   })
 })
+
+// todo test + mock utils once it is exposed as a library
+// for now we test most of utils through scripts
