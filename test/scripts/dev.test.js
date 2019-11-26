@@ -701,3 +701,25 @@ describe('with local actions and no frontend', () => {
   runCommonBackendOnlyTests(ref)
   runCommonLocalTests(ref)
 })
+
+describe('with local actions and frontend', () => {
+  const ref = {}
+  beforeEach(async () => {
+    process.env.REMOTE_ACTIONS = 'false'
+    ref.scripts = await loadEnvScripts('sample-app', global.fakeConfig.tvm)
+    // default mocks
+    // assume ow jar is already downloaded
+    writeFakeOwJar()
+    execa.mockReturnValue({
+      stdout: jest.fn(),
+      kill: jest.fn()
+    })
+    fetch.mockResolvedValue({
+      ok: true
+    })
+  })
+
+  runCommonTests(ref)
+  runCommonWithFrontendTests(ref)
+  runCommonLocalTests(ref)
+})
