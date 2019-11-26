@@ -265,8 +265,23 @@ function runCommonTests (ref) {
     expect(vol.existsSync('/.vscode/launch.json.save')).toEqual(false)
   })
 
+  test('should not overwrite .vscode/config.json.save', async () => {
+    // why? because it might be because previous restore failed
+    global.addFakeFiles(vol, '.vscode', { 'launch.json': 'fakecontent' })
+    global.addFakeFiles(vol, '.vscode', { 'launch.json.save': 'fakecontentsaved' })
+    await ref.scripts.runDev()
+    expect(vol.existsSync('/.vscode/launch.json.save')).toEqual(true)
+    expect(vol.readFileSync('/.vscode/launch.json.save').toString()).toEqual('fakecontentsaved')
+  })
+
   test('should cleanup generated files on SIGINT', async done => {
     await testCleanupNoErrors(done, ref.scripts, () => { expectAppFiles(['manifest.yml', 'package.json', 'web-src', 'actions']) })
+  })
+
+  test('should cleanup generated files on error', async () => {
+    await testCleanupOnError(ref.scripts, () => {
+      expectAppFiles(['manifest.yml', 'package.json', 'web-src', 'actions'])
+    })
   })
 
   test('should cleanup and restore previous existing .vscode/config.json on SIGINT', async done => {
@@ -279,12 +294,6 @@ function runCommonTests (ref) {
     })
   })
 
-  test('should cleanup generated files on error', async () => {
-    await testCleanupOnError(ref.scripts, () => {
-      expectAppFiles(['manifest.yml', 'package.json', 'web-src', 'actions'])
-    })
-  })
-
   test('should cleanup and restore previous existing .vscode/config.json on error', async () => {
     global.addFakeFiles(vol, '.vscode', { 'launch.json': 'fakecontent' })
     await testCleanupOnError(ref.scripts, () => {
@@ -292,6 +301,24 @@ function runCommonTests (ref) {
       expect(vol.existsSync('/.vscode/launch.json.save')).toEqual(false)
       expect(vol.existsSync('/.vscode/launch.json')).toEqual(true)
       expect(vol.readFileSync('/.vscode/launch.json').toString()).toEqual('fakecontent')
+    })
+  })
+
+  test('should not remove previously existing ./vscode/launch.json.save on SIGINT', async done => {
+    global.addFakeFiles(vol, '.vscode', { 'launch.json': 'fakecontent' })
+    global.addFakeFiles(vol, '.vscode', { 'launch.json.save': 'fakecontentsaved' })
+    await testCleanupNoErrors(done, ref.scripts, () => {
+      expect(vol.existsSync('/.vscode/launch.json.save')).toEqual(true)
+      expect(vol.readFileSync('/.vscode/launch.json.save').toString()).toEqual('fakecontentsaved')
+    })
+  })
+
+  test('should not remove previously existing ./vscode/launch.json.save on error', async () => {
+    global.addFakeFiles(vol, '.vscode', { 'launch.json': 'fakecontent' })
+    global.addFakeFiles(vol, '.vscode', { 'launch.json.save': 'fakecontentsaved' })
+    await testCleanupOnError(ref.scripts, () => {
+      expect(vol.existsSync('/.vscode/launch.json.save')).toEqual(true)
+      expect(vol.readFileSync('/.vscode/launch.json.save').toString()).toEqual('fakecontentsaved')
     })
   })
 }

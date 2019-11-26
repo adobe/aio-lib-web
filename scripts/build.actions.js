@@ -39,7 +39,7 @@ class BuildActions extends BaseScript {
 
       if (actionFileStats.isDirectory()) {
         // make sure package.json.main||index.js exists
-        const expectedActionName = (fs.existsSync(path.join(actionPath, 'package.json')) && fs.readJsonSync(path.join(actionPath, 'package.json')).main) || 'index.js'
+        const expectedActionName = utils.getEntryFileName(path.join(actionPath, 'package.json'))
         if (expectedActionName && !fs.existsSync(path.join(actionPath, expectedActionName))) {
           throw new Error(`the directory ${action.function} must contain either a package.json with a 'main' flag or an index.js file at its root`)
         }

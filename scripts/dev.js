@@ -188,24 +188,24 @@ class ActionServer extends BaseScript {
 
       const actionFileStats = fs.lstatSync(actionPath)
       if (actionFileStats.isFile()) {
-        // set wskdebug arg w/ path to src file
-        config.runtimeArgs = [
-          `${packageName}/${an}`,
-          actionPath,
-          '-v'
-        ]
-      } else if (actionFileStats.isDirectory()) {
-        // set wskdebug arg w/ path to src file in function dir
-        const zipMain = (fs.existsSync(path.join(actionPath, 'package.json')) && fs.readJsonSync(path.join(actionPath, 'package.json')).main) || 'index.js'
+
+      } if (actionFileStats.isDirectory()) {
+        // take package.json.main or 'index.js'
+        const zipMain = utils.getEntryFileName(path.join(actionPath, 'package.json'))
         config.runtimeArgs = [
           `${packageName}/${an}`,
           path.join(actionPath, zipMain),
           '-v'
         ]
       } else {
-        throw new Error(`${actionPath} is not a valid file or directory`)
+        // we assume its a file at this point
+        // if symlink should have thrown an error during build stage, here we just ignore it
+        config.runtimeArgs = [
+          `${packageName}/${an}`,
+          actionPath,
+          '-v'
+        ]
       }
-
       return config
     })
     const debugConfig = {
@@ -236,7 +236,7 @@ class ActionServer extends BaseScript {
   }
 }
 
-function cleanup (err, resources = {}) {
+function cleanup (err, resources) {
   if (resources.dotenv && resources.dotenvSave && fs.existsSync(resources.dotenvSave)) {
     console.error('restoring .env file...')
     fs.moveSync(resources.dotenvSave, resources.dotenv, { overwrite: true })
