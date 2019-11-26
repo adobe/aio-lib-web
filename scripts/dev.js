@@ -33,6 +33,10 @@ const OW_LOCAL_APIHOST = 'http://localhost:3233'
 const OW_LOCAL_NAMESPACE = 'guest'
 const OW_LOCAL_AUTH = '23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP'
 
+const owWaitInitTime = 2000
+const owWaitPeriodTime = 500
+const owTimeout = 60000
+
 class ActionServer extends BaseScript {
   async run (args = []) {
     const taskName = 'Local Dev Server'
@@ -77,7 +81,7 @@ class ActionServer extends BaseScript {
         }
 
         this.emit('progress', 'starting local OpenWhisk stack..')
-        const res = await utils.runOpenWhiskJar(OW_JAR_FILE, OW_LOCAL_APIHOST, 60000, { stdio: 'inherit' })
+        const res = await utils.runOpenWhiskJar(OW_JAR_FILE, OW_LOCAL_APIHOST, owWaitInitTime, owWaitPeriodTime, owTimeout, { stdio: 'inherit' })
         resources.owProc = res.proc
 
         // case1: no dotenv file => expose local credentials in .env, delete on cleanup

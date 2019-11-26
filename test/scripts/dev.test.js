@@ -90,8 +90,11 @@ const expectedRemoteOWConfig = expect.objectContaining({
   })
 })
 
+// those must match the ones defined in dev.js
 const owJarPath = path.resolve(__dirname, '../../bin/openwhisk-standalone.jar')
 const owJarUrl = 'https://github.com/adobe/aio-app-scripts/raw/binaries/bin/openwhisk-standalone-0.10.jar'
+const waitInitTime = 2000
+const waitPeriodTime = 500
 
 const execaLocalOWArgs = ['java', expect.arrayContaining(['-jar', owJarPath]), expect.anything()]
 
@@ -403,8 +406,8 @@ function runCommonLocalTests (ref) {
   test('should download openwhisk-standalone.jar on first usage', async () => {
     // there seems to be a bug with memfs streams + mock timeouts
     // Error [ERR_UNHANDLED_ERROR]: Unhandled error. (Error: EBADF: bad file descriptor, close)
-    // so disabling mocks for this test only, with the consequence of taking 4 seconds to run
-    // todo fix mock to avoid later bugs + performance
+    // so disabling mocks for this test only, with the consequence of taking 2 seconds to run
+    // !!!! todo fix and use timer mocks to avoid bugs in new tests + performance !!!!
     global.setTimeout = actualSetTimeout
     Date.now = now
 
@@ -586,8 +589,8 @@ MORE_VAR_1=hello2
     expect(execa).toHaveBeenCalledWith(...execaLocalOWArgs)
     expect(fetch).toHaveBeenCalledWith('http://localhost:3233/api/v1')
     expect(fetch).toHaveBeenCalledTimes(5)
-    expect(setTimeout).toHaveBeenCalledWith(expect.any(Function), 4000) // initial wait
-    expect(setTimeout).toHaveBeenCalledWith(expect.any(Function), 500) // period wait
+    expect(setTimeout).toHaveBeenCalledWith(expect.any(Function), waitInitTime) // initial wait
+    expect(setTimeout).toHaveBeenCalledWith(expect.any(Function), waitPeriodTime) // period wait
     expect(setTimeout).toHaveBeenCalledTimes(5)
   })
 
@@ -602,8 +605,8 @@ MORE_VAR_1=hello2
     await expect(ref.scripts.runDev()).rejects.toEqual(expect.objectContaining({ message: 'local openwhisk stack startup timed out: 60000ms' }))
     expect(execa).toHaveBeenCalledWith(...execaLocalOWArgs)
     expect(fetch).toHaveBeenCalledWith('http://localhost:3233/api/v1')
-    expect(setTimeout).toHaveBeenCalledWith(expect.any(Function), 4000) // initial wait
-    expect(setTimeout).toHaveBeenCalledWith(expect.any(Function), 500) // period wait
+    expect(setTimeout).toHaveBeenCalledWith(expect.any(Function), waitInitTime) // initial wait
+    expect(setTimeout).toHaveBeenCalledWith(expect.any(Function), waitPeriodTime) // period wait
   })
 
   test('should run if local openwhisk-standalone jar startup takes 59seconds', async () => {
@@ -617,8 +620,8 @@ MORE_VAR_1=hello2
     await expect(ref.scripts.runDev()).resolves.toBe(undefined) // this would break if scripts does not return undefined anymore (replace with anything)
     expect(execa).toHaveBeenCalledWith(...execaLocalOWArgs)
     expect(fetch).toHaveBeenCalledWith('http://localhost:3233/api/v1')
-    expect(setTimeout).toHaveBeenCalledWith(expect.any(Function), 4000) // initial wait
-    expect(setTimeout).toHaveBeenCalledWith(expect.any(Function), 500) // period wait
+    expect(setTimeout).toHaveBeenCalledWith(expect.any(Function), waitInitTime) // initial wait
+    expect(setTimeout).toHaveBeenCalledWith(expect.any(Function), waitPeriodTime) // period wait
   })
 }
 
