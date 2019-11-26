@@ -40,7 +40,7 @@ class BuildActions extends BaseScript {
       if (actionFileStats.isDirectory()) {
         // make sure package.json.main||index.js exists
         const expectedActionName = utils.getEntryFileName(path.join(actionPath, 'package.json'))
-        if (expectedActionName && !fs.existsSync(path.join(actionPath, expectedActionName))) {
+        if (!fs.existsSync(path.join(actionPath, expectedActionName))) {
           throw new Error(`the directory ${action.function} must contain either a package.json with a 'main' flag or an index.js file at its root`)
         }
         // if directory install dependencies
@@ -92,7 +92,7 @@ class BuildActions extends BaseScript {
           await utils.zip(zipSrcPath, outPath, 'index.js')
           fs.removeSync(zipSrcPath) // remove the build file
         } else {
-          throw new Error(`the path ${zipSrcPath} does not exist, building action '${name}' has failed`)
+          throw new Error(`could not find bundled output ${zipSrcPath}, building action '${name}' has likely failed`)
         }
       }
       return outPath
