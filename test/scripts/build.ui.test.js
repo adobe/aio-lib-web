@@ -17,10 +17,13 @@ const mockAIOConfig = require('@adobe/aio-lib-core-config')
 const Bundler = require('parcel-bundler')
 jest.mock('parcel-bundler')
 
+const mockOnProgress = jest.fn()
+
 beforeEach(() => {
   // those are defined in __mocks__
   Bundler.mockConstructor.mockReset()
   Bundler.mockBundle.mockReset()
+  mockOnProgress.mockReset()
   global.cleanFs(vol)
 })
 
@@ -34,7 +37,7 @@ test('Should fail build if app has no frontend', async () => {
   await expect(scripts.buildUI()).rejects.toEqual(expect.objectContaining({ message: expect.stringContaining('app has no frontend') }))
 })
 
-test('Should send a warning if namespace is not configured (for action urls)', async () => {
+test('should send a warning if namespace is not configured (for action urls)', async () => {
   global.loadFs(vol, 'sample-app')
   mockAIOConfig.get.mockReturnValue(global.configWithMissing(global.fakeConfig.tvm, 'runtime.namespace'))
   const warningMock = jest.fn()
@@ -44,11 +47,14 @@ test('Should send a warning if namespace is not configured (for action urls)', a
   expect(warningMock).toHaveBeenCalledWith(expect.stringContaining('injected urls to backend actions are invalid'))
 })
 
-test('Build static files index.html', async () => {
+test('should build static files from web-src/index.html', async () => {
   global.loadFs(vol, 'sample-app')
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
+  Bundler.mockBundle.mockImplementation(async () => {
+    global.addFakeFiles(vol, '/dist/web-src-prod/', ['fake.js', 'fake.js.map'])
+  })
 
-  const scripts = await AppScripts()
+  const scripts = await AppScripts({ listeners: { onProgress: mockOnProgress } })
 
   await scripts.buildUI()
 
@@ -65,11 +71,22 @@ test('Build static files index.html', async () => {
     outDir: '/dist/web-src-prod'
   }))
   expect(Bundler.mockBundle).toHaveBeenCalledTimes(1)
+  expect(mockOnProgress).toHaveBeenCalledWith('dist/web-src-prod/fake.js')
+  expect(mockOnProgress).toHaveBeenCalledWith('dist/web-src-prod/fake.js.map')
 })
 
-// const actionURL = 'https://fake_ns.example.com/api/v1/web/sample-app-1.0.0/action'
-// test('Set Action URL with Namespace subdomain', async () => {
-//   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
-//   const scripts = AppScripts()
-//   expect(scripts._config.actions.urls.action).toBe(actionURL)
-// })
+test('should inject web-src/src/config.json into the UI', async () => {
+  global.loadFs(vol, 'sample-app')
+  mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
+  const scripts = await AppScripts()
+
+  await scripts.buildUI()
+  const remoteOWCredentials = global.fakeConfig.tvm.runtime
+  expect(vol.existsSync('/web-src/src/config.json')).toBe(true)
+  const baseUrl = 'https://' + remoteOWCredentials.namespace + '.' + remoteOWCredentials.apihost.split('https://')[1] + '/api/v1/web/sample-app-1.0.0/'
+  expect(JSON.parse(vol.readFileSync('/web-src/src/config.json').toString())).toEqual({
+    action: baseUrl + 'action',
+    'action-zip': baseUrl + 'action-zip',
+    'action-sequence': baseUrl + 'action-sequence'
+  })
+})

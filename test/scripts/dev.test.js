@@ -392,11 +392,6 @@ function runCommonWithFrontendTests (ref) {
     express.mockApp.listen.mockReturnValue({ close: mockClose })
     await testCleanupOnError(ref.scripts, () => expect(mockClose).toHaveBeenCalledTimes(1))
   })
-
-  test('should inject web-src/src/config.json into the UI', async () => {
-    await ref.scripts.runDev()
-    expect(vol.existsSync('/web-src/src/config.json')).toEqual(true)
-  })
 }
 
 function runCommonLocalTests (ref) {
@@ -474,8 +469,6 @@ function runCommonLocalTests (ref) {
   })
 
   test('should build and deploy actions to local ow', async () => {
-    // config should load new local credentials exposed in .env by run cmd
-    mockAIOConfig.get.mockReturnValue(global.fakeConfig.local)
     await ref.scripts.runDev()
     expectDevActionBuildAndDeploy(expectedLocalOWConfig)
   })
@@ -702,10 +695,11 @@ describe('with remote actions and frontend', () => {
   test('should inject remote action urls into the UI', async () => {
     await ref.scripts.runDev()
     expect(vol.existsSync('/web-src/src/config.json')).toEqual(true)
+    const baseUrl = 'https://' + remoteOWCredentials.namespace + '.' + remoteOWCredentials.apihost.split('https://')[1] + '/api/v1/web/sample-app-1.0.0/'
     expect(JSON.parse(vol.readFileSync('/web-src/src/config.json').toString())).toEqual({
-      action: 'https://' + remoteOWCredentials.namespace + '.' + remoteOWCredentials.apihost.split('https://')[1] + '/api/v1/web/sample-app-1.0.0/action',
-      'action-zip': 'https://' + remoteOWCredentials.namespace + '.' + remoteOWCredentials.apihost.split('https://')[1] + '/api/v1/web/sample-app-1.0.0/action-zip',
-      'action-sequence': 'https://' + remoteOWCredentials.namespace + '.' + remoteOWCredentials.apihost.split('https://')[1] + '/api/v1/web/sample-app-1.0.0/action-sequence'
+      action: baseUrl + 'action',
+      'action-zip': baseUrl + 'action-zip',
+      'action-sequence': baseUrl + 'action-sequence'
     })
   })
 })
@@ -725,6 +719,9 @@ describe('with local actions and no frontend', () => {
     fetch.mockResolvedValue({
       ok: true
     })
+    // should expose a new config with local credentials when reloaded in the dev cmd
+    // we could also not mock aioConfig and expect it to read from .env
+    mockAIOConfig.get.mockReturnValue(global.fakeConfig.local)
   })
 
   runCommonTests(ref)
@@ -747,9 +744,23 @@ describe('with local actions and frontend', () => {
     fetch.mockResolvedValue({
       ok: true
     })
+    // should expose a new config with local credentials when reloaded in the dev cmd
+    // we could also not mock aioConfig and expect it to read from .env
+    mockAIOConfig.get.mockReturnValue(global.fakeConfig.local)
   })
 
   runCommonTests(ref)
   runCommonWithFrontendTests(ref)
   runCommonLocalTests(ref)
+
+  test('should inject local action urls into the UI', async () => {
+    await ref.scripts.runDev()
+    expect(vol.existsSync('/web-src/src/config.json')).toEqual(true)
+    const baseUrl = localOWCredentials.apihost + '/api/v1/web/' + localOWCredentials.namespace + '/sample-app-1.0.0/'
+    expect(JSON.parse(vol.readFileSync('/web-src/src/config.json').toString())).toEqual({
+      action: baseUrl + 'action',
+      'action-zip': baseUrl + 'action-zip',
+      'action-sequence': baseUrl + 'action-sequence'
+    })
+  })
 })
