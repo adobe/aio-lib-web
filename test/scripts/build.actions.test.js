@@ -97,10 +97,39 @@ describe('build by zipping js action folder', () => {
   test('should fail if no package.json', async () => {
     // delete package.json
     vol.unlinkSync('/actions/action-zip/package.json')
-    // rename index.js
-    vol.renameSync('/actions/action-zip/index.js', '/actions/action-zip/action.js')
     // eslint-disable-next-line quotes
     await expect(scripts.buildActions()).rejects.toThrow(`missing required actions/action-zip/package.json for folder actions`)
+  })
+
+  test('should fail if package.json main field is not defined and there is no index.js file', async () => {
+    // rename index.js
+    vol.renameSync('/actions/action-zip/index.js', '/actions/action-zip/action.js')
+    // rewrite package.json
+    const packagejson = JSON.parse(vol.readFileSync('/actions/action-zip/package.json').toString())
+    delete packagejson.main
+    vol.writeFileSync('/actions/action-zip/package.json', JSON.stringify(packagejson))
+
+    await expect(scripts.buildActions()).rejects.toThrow('the directory actions/action-zip must contain either a package.json with a \'main\' flag or an index.js file at its root')
+  })
+
+  test('should fail if package.json main field does not point to an existing file although there is an index.js file', async () => {
+    // rewrite package.json
+    const packagejson = JSON.parse(vol.readFileSync('/actions/action-zip/package.json').toString())
+    packagejson.main = 'action.js'
+    vol.writeFileSync('/actions/action-zip/package.json', JSON.stringify(packagejson))
+
+    await expect(scripts.buildActions()).rejects.toThrow('the directory actions/action-zip must contain either a package.json with a \'main\' flag or an index.js file at its root')
+  })
+
+  test('should build if package.json main field is undefined and there is an index.js file', async () => {
+    // rewrite package.json
+    const packagejson = JSON.parse(vol.readFileSync('/actions/action-zip/package.json').toString())
+    delete packagejson.main
+    vol.writeFileSync('/actions/action-zip/package.json', JSON.stringify(packagejson))
+    await scripts.buildActions()
+    expect(webpackMock.run).toHaveBeenCalledTimes(0) // no webpack bundling
+    expect(utils.installDeps).toHaveBeenCalledWith('/actions/action-zip')
+    expect(utils.zip).toHaveBeenCalledWith('/actions/action-zip', '/dist/actions/action-zip.zip')
   })
 
   test('should build a zip action package.json main field points to file not called index.js', async () => {
