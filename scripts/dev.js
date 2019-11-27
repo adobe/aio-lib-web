@@ -117,7 +117,7 @@ class ActionServer extends BaseScript {
       await (new BuildActions(devConfig)).run()
       await (new DeployActions(devConfig)).run()
 
-      this.emit('progress', `writing credentials to tmp wskdebug config '${WSK_DEBUG_PROPS}'..`)
+      this.emit('progress', `writing credentials to tmp wskdebug config '${this._relApp(WSK_DEBUG_PROPS)}'..`)
       // prepare wskprops for wskdebug
       fs.writeFileSync(WSK_DEBUG_PROPS, `NAMESPACE=${devConfig.ow.namespace}\nAUTH=${devConfig.ow.auth}\nAPIHOST=${devConfig.ow.apihost}`)
       resources.wskdebugProps = WSK_DEBUG_PROPS
