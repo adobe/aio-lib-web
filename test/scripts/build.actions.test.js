@@ -14,9 +14,16 @@ const { vol } = global.mockFs()
 const AppScripts = require('../..')
 const utils = require('../../lib/utils')
 
+const execa = require('execa')
+jest.mock('execa')
+
 const debug = require('debug')
 jest.mock('debug')
 
+// zip implementation is complex to test => tested in utils.test.js
+utils.zip = jest.fn()
+
+// todo move webpack mock to __mocks__
 jest.mock('webpack')
 const webpack = require('webpack')
 const webpackMock = {
@@ -29,17 +36,10 @@ const webpackStatsMock = {
   hasWarnings: jest.fn()
 }
 
-utils.installDeps = jest.fn()
-// todo mock zip dependency instead of full utility for 100% coverage
-utils.zip = jest.fn()
-
 const mockAIOConfig = require('@adobe/aio-lib-core-config')
 
 beforeEach(() => {
   global.cleanFs(vol)
-
-  utils.zip.mockReset()
-  utils.installDeps.mockReset()
 
   webpack.mockClear()
   webpackMock.run.mockReset()
@@ -49,8 +49,13 @@ beforeEach(() => {
 
   webpackMock.run.mockImplementation(cb => cb(null, webpackStatsMock))
 
+  execa.mockReset()
   debug.mockReset()
+
+  utils.zip.mockReset()
 })
+
+const getExpectedExecaNPMInstallArgs = actionFolder => ['npm', ['install', '--no-package-lock', '--only=prod'], expect.objectContaining({ cwd: actionFolder })]
 
 describe('build by zipping js action folder', () => {
   let scripts
@@ -83,14 +88,14 @@ describe('build by zipping js action folder', () => {
 
   test('should build a zip action folder with a package.json and action named index.js', async () => {
     await scripts.buildActions()
-    expect(utils.installDeps).toHaveBeenCalledWith('/actions/action-zip')
+    expect(execa).toHaveBeenCalledWith(...getExpectedExecaNPMInstallArgs('/actions/action-zip'))
     expect(utils.zip).toHaveBeenCalledWith('/actions/action-zip', '/dist/actions/action-zip.zip')
   })
 
   test('should still build a zip action if there is no ui', async () => {
     vol.unlinkSync('/web-src/index.html')
     await scripts.buildActions()
-    expect(utils.installDeps).toHaveBeenCalledWith('/actions/action-zip')
+    expect(execa).toHaveBeenCalledWith(...getExpectedExecaNPMInstallArgs('/actions/action-zip'))
     expect(utils.zip).toHaveBeenCalledWith('/actions/action-zip', '/dist/actions/action-zip.zip')
   })
 
@@ -128,7 +133,7 @@ describe('build by zipping js action folder', () => {
     vol.writeFileSync('/actions/action-zip/package.json', JSON.stringify(packagejson))
     await scripts.buildActions()
     expect(webpackMock.run).toHaveBeenCalledTimes(0) // no webpack bundling
-    expect(utils.installDeps).toHaveBeenCalledWith('/actions/action-zip')
+    expect(execa).toHaveBeenCalledWith(...getExpectedExecaNPMInstallArgs('/actions/action-zip'))
     expect(utils.zip).toHaveBeenCalledWith('/actions/action-zip', '/dist/actions/action-zip.zip')
   })
 
@@ -142,7 +147,7 @@ describe('build by zipping js action folder', () => {
 
     await scripts.buildActions()
     expect(webpackMock.run).toHaveBeenCalledTimes(0) // no webpack bundling
-    expect(utils.installDeps).toHaveBeenCalledWith('/actions/action-zip')
+    expect(execa).toHaveBeenCalledWith(...getExpectedExecaNPMInstallArgs('/actions/action-zip'))
     expect(utils.zip).toHaveBeenCalledWith('/actions/action-zip', '/dist/actions/action-zip.zip')
   })
 })
@@ -270,7 +275,7 @@ test('should build 1 zip action and 1 bundled action in one go', async () => {
       filename: 'action.tmp.js'
     })
   }))
-  expect(utils.installDeps).toHaveBeenCalledWith('/actions/action-zip')
+  expect(execa).toHaveBeenCalledWith(...getExpectedExecaNPMInstallArgs('/actions/action-zip'))
   expect(utils.zip).toHaveBeenCalledWith('/actions/action-zip', '/dist/actions/action-zip.zip')
   expect(utils.zip).toHaveBeenCalledWith('/dist/actions/action.tmp.js', '/dist/actions/action.zip', 'index.js')
 })

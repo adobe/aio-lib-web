@@ -47,10 +47,24 @@ test('Fail load AppScripts with missing manifest.yml', async () => {
   expect(AppScripts.bind(this)).toThrowWithMessageContaining(['no such file', 'manifest.yml'])
 })
 
+test('Fail load AppScripts with symlink manifest.yml', async () => {
+  mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
+  fs.unlinkSync('/manifest.yml')
+  fs.symlinkSync('fake', '/manifest.yml')
+  expect(AppScripts.bind(this)).toThrowWithMessageContaining(['/manifest.yml is not a valid file (e.g. cannot be a dir or a symlink)'])
+})
+
 test('Fail load AppScripts with missing package.json', async () => {
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
   fs.unlinkSync(path.join(process.cwd(), 'package.json'))
   expect(AppScripts.bind(this)).toThrowWithMessageContaining(['no such file', 'package.json'])
+})
+
+test('Fail load AppScripts with symlink package.json', async () => {
+  mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
+  fs.unlinkSync('/package.json')
+  fs.symlinkSync('fake', '/package.json')
+  expect(AppScripts.bind(this)).toThrowWithMessageContaining(['/package.json is not a valid file (e.g. cannot be a dir or a symlink)'])
 })
 
 test('should use default hostname if app uses tvm but there is no cna.hostname configuration', async () => {

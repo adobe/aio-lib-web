@@ -453,6 +453,26 @@ function runCommonLocalTests (ref) {
     expect(vol.readFileSync(owJarPath).toString()).toEqual('fakeowjar')
   })
 
+  test('should fail if downloading openwhisk-standalone.jar creates a stream error', async () => {
+    // restore timeouts see above
+    global.setTimeout = actualSetTimeout
+    Date.now = now
+
+    deleteFakeOwJar()
+    const fakeOwJarStream = stream.Readable({
+      read: function () {
+        this.emit('error', new Error('fake stream error'))
+      },
+      emitClose: true
+    })
+    fetch.mockResolvedValue({
+      ok: true,
+      body: fakeOwJarStream
+    })
+
+    await expect(ref.scripts.runDev()).rejects.toThrow('fake stream error')
+  })
+
   test('should fail when there is a connection error while downloading openwhisk-standalone.jar on first usage', async () => {
     deleteFakeOwJar()
     fetch.mockRejectedValue(new Error('fake connection error'))
@@ -491,6 +511,13 @@ function runCommonLocalTests (ref) {
     expect(vol.existsSync('/.env.app.save')).toBe(true)
     const dotenvSaveContent = vol.readFileSync('/.env.app.save').toString()
     expect(dotenvSaveContent).toEqual(generateDotenvContent(remoteOWCredentials))
+  })
+
+  test('should fail backup an existing .env if .env.save already exists', async () => {
+    vol.writeFileSync('/.env', generateDotenvContent(remoteOWCredentials))
+    vol.writeFileSync('/.env.app.save', 'fake content')
+    await expect(ref.scripts.runDev()).rejects.toThrow('cannot save .env, please make sure to restore and delete /.env.app.save')
+    expect(vol.readFileSync('/.env.app.save').toString()).toEqual('fake content')
   })
 
   test('should take additional variables from existing .env and plug them into new .env with local openwhisk credentials', async () => {
@@ -597,7 +624,13 @@ MORE_VAR_1=hello2
     let waitSteps = 4
     fetch.mockImplementation(async url => {
       if (url === 'http://localhost:3233/api/v1') {
+        if (waitSteps > 3) {
+          // fake first call connection error
+          waitSteps--
+          throw new Error('connection error')
+        }
         if (waitSteps > 0) {
+          // fake some calls status error
           waitSteps--
           return { ok: false }
         }

@@ -10,6 +10,7 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 const { vol } = global.mockFs()
+const cloneDeep = require('lodash.clonedeep')
 
 const RemoteStorage = require('../../lib/remote-storage')
 jest.mock('../../lib/remote-storage')
@@ -38,6 +39,43 @@ beforeEach(() => {
 })
 
 afterEach(() => global.cleanFs(vol))
+
+describe('missing credentials/tvm url', () => {
+  const errorMessage = 'missing Adobe I/O TVM url or s3 credentials, did you set the `AIO_CNA_TVMURL` OR `[AIO_CNA_AWSACCESSKEYID, AIO_CNA_AWSSECRETACCESSKEY, AIO_CNA_S3BUCKET]` environment variables?'
+  beforeEach(async () => {
+    // create test app
+    global.loadFs(vol, 'sample-app')
+  })
+  test('should fail if there is no tvm url nor s3 credentials configured', async () => {
+    mockAIOConfig.get.mockReturnValue({})
+    const scripts = await AppScripts()
+    await expect(scripts.deployUI()).rejects.toThrow(errorMessage)
+  })
+
+  test('should fail if there is no tvm url and missing cna.awsaccesskeyid', async () => {
+    const config = cloneDeep(global.fakeConfig.creds)
+    delete config.cna.awsaccesskeyid
+    mockAIOConfig.get.mockReturnValue(config)
+    const scripts = await AppScripts()
+    await expect(scripts.deployUI()).rejects.toThrow(errorMessage)
+  })
+
+  test('should fail if there is no tvm url and missing cna.s3bucket', async () => {
+    const config = cloneDeep(global.fakeConfig.creds)
+    delete config.cna.s3bucket
+    mockAIOConfig.get.mockReturnValue(config)
+    const scripts = await AppScripts()
+    await expect(scripts.deployUI()).rejects.toThrow(errorMessage)
+  })
+
+  test('should fail if there is no tvm url and missing cna.awssecretaccesskey', async () => {
+    const config = cloneDeep(global.fakeConfig.creds)
+    delete config.cna.awssecretaccesskey
+    mockAIOConfig.get.mockReturnValue(config)
+    const scripts = await AppScripts()
+    await expect(scripts.deployUI()).rejects.toThrow(errorMessage)
+  })
+})
 
 describe('deploy static files with tvm', () => {
   let scripts

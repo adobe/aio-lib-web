@@ -9,13 +9,16 @@ the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTA
 OF ANY KIND, either express or implied. See the License for the specific language
 governing permissions and limitations under the License.
 */
-
+const { vol } = global.mockFs()
 // const path = require('path')
 const utils = require('../../lib/utils')
 let mockResult = jest.fn()
 jest.mock('execa', () => jest.fn().mockImplementation(() => {
   return mockResult()
 }))
+
+const archiver = require('archiver')
+jest.mock('archiver')
 
 describe('lib/utils', () => {
   test('exists and has methods', async () => {
@@ -145,5 +148,57 @@ describe('lib/utils', () => {
   })
 })
 
-// todo test + mock utils once it is exposed as a library
+describe('lib/utils.zip', () => {
+  beforeEach(async () => {
+    global.cleanFs(vol)
+    archiver.mockReset()
+  })
+
+  test('should zip a directory', async () => {
+    global.addFakeFiles(vol, '/indir', ['fake1.js', 'fake2.js'])
+    await utils.zip('/indir', '/out.zip')
+
+    expect(archiver.mockDirectory).toHaveBeenCalledWith('/indir', false)
+    expect(archiver.mockFile).toHaveBeenCalledTimes(0)
+    expect(vol.existsSync('/out.zip')).toEqual(true)
+  })
+
+  test('should zip a file with pathInZip=false', async () => {
+    global.addFakeFiles(vol, '/indir', ['fake1.js'])
+
+    await utils.zip('/indir/fake1.js', '/out.zip')
+
+    expect(archiver.mockFile).toHaveBeenCalledWith('/indir/fake1.js', { name: 'fake1.js' })
+    expect(archiver.mockDirectory).toHaveBeenCalledTimes(0)
+    expect(vol.existsSync('/out.zip')).toEqual(true)
+  })
+
+  test('should zip a file with pathInZip=some/path.js', async () => {
+    global.addFakeFiles(vol, '/indir', ['fake1.js'])
+
+    await utils.zip('/indir/fake1.js', '/out.zip', 'some/path.js')
+
+    expect(archiver.mockFile).toHaveBeenCalledWith('/indir/fake1.js', { name: 'some/path.js' })
+    expect(archiver.mockDirectory).toHaveBeenCalledTimes(0)
+    expect(vol.existsSync('/out.zip')).toEqual(true)
+  })
+
+  test('should fail if symlink', async () => {
+    global.addFakeFiles(vol, '/indir', ['fake1.js'])
+    vol.symlinkSync('/indir/fake1.js', '/indir/symlink.js')
+    await expect(utils.zip('/indir/symlink.js', '/out.zip')).rejects.toThrow('symlink.js is not a valid dir or file')
+    expect(archiver.mockFile).toHaveBeenCalledTimes(0)
+    expect(archiver.mockDirectory).toHaveBeenCalledTimes(0)
+    expect(vol.existsSync('/out.zip')).toEqual(false)
+  })
+
+  test('should fail if file does not exists', async () => {
+    await expect(utils.zip('/notexist.js', '/out.zip')).rejects.toEqual(expect.objectContaining({ message: expect.stringContaining('ENOENT') }))
+    expect(archiver.mockFile).toHaveBeenCalledTimes(0)
+    expect(archiver.mockDirectory).toHaveBeenCalledTimes(0)
+    expect(vol.existsSync('/out.zip')).toEqual(false)
+  })
+})
+
+// todo test utils independently + mock utils in scripts once it is exposed as a library
 // for now we test most of utils through scripts
