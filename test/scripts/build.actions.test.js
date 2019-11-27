@@ -200,6 +200,17 @@ describe('build by bundling js action file with webpack', () => {
     await expect(scripts.buildActions()).rejects.toThrow('action build failed, webpack compilation errors:\nfake errors')
   })
 
+  test('should both write a debug message and fail if webpack returns a warning and an error', async () => {
+    webpackStatsMock.hasErrors.mockReturnValue(true)
+    webpackStatsMock.hasWarnings.mockReturnValue(true)
+    webpackStatsMock.toJson.mockReturnValue({
+      errors: 'fake errors',
+      warnings: 'fake warnings'
+    })
+    await expect(scripts.buildActions()).rejects.toThrow('action build failed, webpack compilation errors:\nfake errors')
+    expect(debug.mockDebug).toHaveBeenCalledWith('webpack compilation warnings:\nfake warnings')
+  })
+
   test('should fail if webpack did not generated the js file for the bundled action', async () => {
     webpackMock.run.mockImplementation(cb => {
       // do not write a fake bundled file, simply return w/o errors

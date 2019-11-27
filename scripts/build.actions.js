@@ -87,7 +87,7 @@ class BuildActions extends BaseScript {
           // stats must be defined at this point
           const info = stats.toJson()
           if (stats.hasWarnings()) debug(`webpack compilation warnings:\n${info.warnings}`)
-          else if (stats.hasErrors()) reject(new Error(`action build failed, webpack compilation errors:\n${info.errors}`))
+          if (stats.hasErrors()) reject(new Error(`action build failed, webpack compilation errors:\n${info.errors}`))
           return resolve(stats)
         }))
 
