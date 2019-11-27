@@ -12,18 +12,20 @@ governing permissions and limitations under the License.
 const { vol } = global.mockFs()
 
 const RemoteStorage = require('../../lib/remote-storage')
+jest.mock('../../lib/remote-storage')
 const AppScripts = require('../..')
-const AbstractScript = require('../../lib/abstract-script')
 
 const TvmClient = require('@adobe/aio-lib-core-tvm')
 jest.mock('@adobe/aio-lib-core-tvm')
 const tvmRequestMock = jest.fn()
 const mockAIOConfig = require('@adobe/aio-lib-core-config')
-jest.mock('../../lib/remote-storage')
+
+const mockOnProgress = jest.fn()
+const mockOnWarning = jest.fn()
 
 beforeEach(() => {
   // clear stats on mocks
-  RemoteStorage.mockClear()
+  RemoteStorage.mockClear() // we cannot reset class members here
   tvmRequestMock.mockReset()
   TvmClient.init.mockReset()
 
@@ -31,22 +33,24 @@ beforeEach(() => {
   TvmClient.init.mockResolvedValue({
     getAwsS3Credentials: tvmRequestMock
   })
+  mockOnProgress.mockReset()
+  mockOnWarning.mockReset()
 })
 
 afterEach(() => global.cleanFs(vol))
 
-describe('Deploy static files with tvm', () => {
+describe('deploy static files with tvm', () => {
   let scripts
   let buildDir
   beforeEach(async () => {
     // create test app
     global.loadFs(vol, 'sample-app')
     mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
-    scripts = await AppScripts()
+    scripts = await AppScripts({ listeners: { onProgress: mockOnProgress, onWarning: mockOnWarning } })
     buildDir = scripts._config.web.distProd
   })
 
-  test('Should call tvm client and remote storage once', async () => {
+  test('should call tvm client and remote storage once', async () => {
     await global.addFakeFiles(vol, buildDir, ['index.html'])
     await scripts.deployUI()
     expect(RemoteStorage).toHaveBeenCalledTimes(1)
@@ -61,42 +65,52 @@ describe('Deploy static files with tvm', () => {
     expect(tvmRequestMock).toHaveBeenCalledTimes(1)
   })
 
-  test('Should call remote storage with TVM like credentials', async () => {
+  test('should call remote storage with TVM like credentials', async () => {
     await global.addFakeFiles(vol, buildDir, ['index.html'])
     await scripts.deployUI()
     expect(RemoteStorage).toHaveBeenCalledWith(global.expectedS3TVMCreds)
   })
 
-  test('Should emit a warning event if the deployment existed', async () => {
-    // spies can be restored
-    const spy = jest.spyOn(RemoteStorage.prototype, 'folderExists').mockReturnValue(true)
-    const spyEvent = jest.spyOn(AbstractScript.prototype, 'emit')
+  test('should call onProgress listener', async () => {
     await global.addFakeFiles(vol, buildDir, ['index.html'])
+    // spies can be restored
+    const spy = jest.spyOn(RemoteStorage.prototype, 'uploadDir').mockImplementation((dir, prefix, progressCb) => {
+      progressCb('index.html')
+    })
     await scripts.deployUI()
-    expect(spyEvent).toHaveBeenCalledWith('warning', expect.any(String))
+    expect(mockOnProgress).toHaveBeenCalledWith('index.html')
     spy.mockRestore()
-    spyEvent.mockRestore()
   })
 
-  test('Should return with the correct URL', async () => {
+  test('should emit a warning event if the deployment existed', async () => {
+    // spies can be restored
+    const spy = jest.spyOn(RemoteStorage.prototype, 'folderExists').mockReturnValue(true)
+    await global.addFakeFiles(vol, buildDir, ['index.html'])
+    await scripts.deployUI()
+    expect(mockOnWarning).toHaveBeenCalledWith('an already existing deployment for version 1.0.0 will be overwritten')
+    spy.mockRestore()
+  })
+
+  test('should return with the correct URL', async () => {
     // spies can be restored
     await global.addFakeFiles(vol, buildDir, ['index.html'])
     const url = await scripts.deployUI()
     expect(url).toBe('https://fake_ns.fake-domain.net/sample-app-1.0.0/index.html')
   })
 
-  test('Should fail if no build files', async () => {
+  test('should fail if no build files', async () => {
     expect(scripts.deployUI.bind(scripts)).toThrowWithMessageContaining(['build', 'missing'])
   })
 
-  // test('Should throw error for no Index.html', async () => {
-  //   try {
-  //     vol.unlinkSync('/web-src/index.html');
-  //     await scripts.deployUI()
-  //   } catch (e) {
-  //     expect(e.message).toBe('cannot deploy UI, app has no frontend')
-  //   }
-  // })
+  test('should fail build if app has no frontend', async () => {
+    global.loadFs(vol, 'sample-app')
+    vol.unlinkSync('/web-src/index.html')
+    mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
+
+    const scripts = await AppScripts()
+
+    await expect(scripts.deployUI()).rejects.toEqual(expect.objectContaining({ message: expect.stringContaining('app has no frontend') }))
+  })
 })
 
 describe('Deploy static files with env credentials', () => {
