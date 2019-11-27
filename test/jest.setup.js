@@ -125,8 +125,7 @@ global.fakeConfig = {
       apiversion: 'v1'
     },
     cna: {
-      tvmurl: 'https://example.com/api/v1/web/fakens/tvm/get-s3-upload-token',
-      hostname: 'fake-domain.net'
+      tvmurl: 'https://example.com/api/v1/web/fakens/tvm/get-s3-upload-token'
     }
   },
   local: {
@@ -144,12 +143,10 @@ global.fakeConfig = {
       auth: 'fake:auth'
     },
     cna: {
-      s3bucket: global.fakeS3Bucket,
+      s3bucket: 'customBucket',
       awsaccesskeyid: 'fakeAwsKeyId',
       awssecretaccesskey: 'fakeAwsSecretKey'
     }
-  },
-  config_defaults: {
   }
 }
 

@@ -71,17 +71,15 @@ describe('deploy static files with tvm', () => {
     expect(RemoteStorage).toHaveBeenCalledWith(global.expectedS3TVMCreds)
   })
 
-  test('should call onProgress listener', async () => {
-    await global.addFakeFiles(vol, buildDir, ['index.html'])
+  test('should return with the default cdn domain url', async () => {
     // spies can be restored
-    const spy = jest.spyOn(RemoteStorage.prototype, 'uploadDir').mockImplementation((dir, prefix, progressCb) => {
-      progressCb('index.html')
-    })
-    await scripts.deployUI()
-    expect(mockOnProgress).toHaveBeenCalledWith('index.html')
-    spy.mockRestore()
+    await global.addFakeFiles(vol, buildDir, ['index.html'])
+    const url = await scripts.deployUI()
+    expect(url).toBe('https://fake_ns.adobeio-static.net/sample-app-1.0.0/index.html')
   })
 
+  // below = those are common with s3 credential mode
+  // todo move to different describe block
   test('should emit a warning event if the deployment existed', async () => {
     // spies can be restored
     const spy = jest.spyOn(RemoteStorage.prototype, 'folderExists').mockReturnValue(true)
@@ -89,13 +87,6 @@ describe('deploy static files with tvm', () => {
     await scripts.deployUI()
     expect(mockOnWarning).toHaveBeenCalledWith('an already existing deployment for version 1.0.0 will be overwritten')
     spy.mockRestore()
-  })
-
-  test('should return with the correct URL', async () => {
-    // spies can be restored
-    await global.addFakeFiles(vol, buildDir, ['index.html'])
-    const url = await scripts.deployUI()
-    expect(url).toBe('https://fake_ns.fake-domain.net/sample-app-1.0.0/index.html')
   })
 
   test('should fail if no build files', async () => {
@@ -110,6 +101,17 @@ describe('deploy static files with tvm', () => {
     const scripts = await AppScripts()
 
     await expect(scripts.deployUI()).rejects.toEqual(expect.objectContaining({ message: expect.stringContaining('app has no frontend') }))
+  })
+
+  test('should call onProgress listener', async () => {
+    await global.addFakeFiles(vol, buildDir, ['index.html'])
+    // spies can be restored
+    const spy = jest.spyOn(RemoteStorage.prototype, 'uploadDir').mockImplementation((dir, prefix, progressCb) => {
+      progressCb('index.html')
+    })
+    await scripts.deployUI()
+    expect(mockOnProgress).toHaveBeenCalledWith('index.html')
+    spy.mockRestore()
   })
 })
 
@@ -135,5 +137,12 @@ describe('Deploy static files with env credentials', () => {
     await global.addFakeFiles(vol, buildDir, ['index.html'])
     await scripts.deployUI()
     expect(RemoteStorage).toHaveBeenCalledWith(global.expectedS3ENVCreds)
+  })
+
+  test('should return with the s3 url (no cdn / custom domain ootb)', async () => {
+    // spies can be restored
+    await global.addFakeFiles(vol, buildDir, ['index.html'])
+    const url = await scripts.deployUI()
+    expect(url).toBe(`https://s3.amazonaws.com/${global.fakeConfig.creds.cna.s3bucket}/${global.fakeConfig.creds.runtime.namespace}/sample-app-1.0.0/index.html`)
   })
 })

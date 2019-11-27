@@ -11,7 +11,7 @@ governing permissions and limitations under the License.
 */
 
 const { vol, fs } = global.mockFs()
-
+const cloneDeep = require('lodash.clonedeep')
 const path = require('path')
 // import exposed module
 const AppScripts = require('../')
@@ -53,20 +53,36 @@ test('Fail load AppScripts with missing package.json', async () => {
   expect(AppScripts.bind(this)).toThrowWithMessageContaining(['no such file', 'package.json'])
 })
 
-test('Set app Hostname from config', async () => {
+test('should use default hostname if app uses tvm but there is no cna.hostname configuration', async () => {
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
-  const scripts = AppScripts()
-  expect(scripts._config.app.hostname).toBe('fake-domain.net')
-})
-
-test('Default app Hostname', async () => {
-  mockAIOConfig.get.mockReturnValue(global.fakeConfig.config_defaults)
   const scripts = AppScripts()
   expect(scripts._config.app.hostname).toBe(defaultAppHostName)
 })
 
+test('should use no custom hostname if app uses provided s3 credentials and no hostname was configured', async () => {
+  mockAIOConfig.get.mockReturnValue(global.fakeConfig.creds)
+  const scripts = AppScripts()
+  expect(scripts._config.app.hostname).toBe(undefined)
+})
+
+test('should use configured cna.hostname if app uses provided s3 credentials', async () => {
+  const config = cloneDeep(global.fakeConfig.creds)
+  config.cna.hostname = 'fake-domain.net'
+  mockAIOConfig.get.mockReturnValue(config)
+  const scripts = AppScripts()
+  expect(scripts._config.app.hostname).toBe('fake-domain.net')
+})
+
+test('should use configured cna.hostname if app uses tvm', async () => {
+  const config = cloneDeep(global.fakeConfig.tvm)
+  config.cna.hostname = 'fake-domain.net'
+  mockAIOConfig.get.mockReturnValue(config)
+  const scripts = AppScripts()
+  expect(scripts._config.app.hostname).toBe('fake-domain.net')
+})
+
 test('Config defaults', async () => {
-  mockAIOConfig.get.mockReturnValue(global.fakeConfig.config_defaults)
+  mockAIOConfig.get.mockReturnValue({})
   const scripts = AppScripts()
   expect(scripts._config.ow.apiversion).toBe('v1')
 })
@@ -78,7 +94,7 @@ test('Empty Config get', async () => {
 })
 
 test('Load pp without any name and version in package.json ', async () => {
-  mockAIOConfig.get.mockReturnValue(global.fakeConfig.config_defaults)
+  mockAIOConfig.get.mockReturnValue({})
   fs.writeFileSync('package.json', '{}')
   const scripts = AppScripts()
   expect(scripts._config.app.version).toBe('0.0.1')

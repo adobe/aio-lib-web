@@ -46,6 +46,7 @@ class DeployUI extends BaseScript {
           apiUrl: this.config.s3.tvmUrl,
           cacheFile: this.config.s3.credsCacheFile
         })).getAwsS3Credentials()
+
     const remoteStorage = new RemoteStorage(creds)
 
     if (await remoteStorage.folderExists(this.config.s3.folder)) {
@@ -54,7 +55,7 @@ class DeployUI extends BaseScript {
     }
     await remoteStorage.uploadDir(dist, this.config.s3.folder, f => this.emit('progress', path.basename(f)))
 
-    const url = `https://${this.config.ow.namespace}.${this.config.app.hostname}/${this.config.ow.package}/index.html`
+    const url = utils.getUIUrl(this.config, creds.params.Bucket)
     this.emit('end', taskName, url)
     return url
   }

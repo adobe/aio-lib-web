@@ -52,6 +52,14 @@ describe('lib/utils', () => {
     expect(typeof utils.runOpenWhiskJar).toBe('function')
     expect(utils.saveAndReplaceDotEnvCredentials).toBeDefined()
     expect(typeof utils.saveAndReplaceDotEnvCredentials).toBe('function')
+    expect(utils.getActionUrls).toBeDefined()
+    expect(typeof utils.getActionUrls).toBe('function')
+    expect(utils.getUIUrl).toBeDefined()
+    expect(typeof utils.getUIUrl).toBe('function')
+    expect(utils.getEntryFileName).toBeDefined()
+    expect(typeof utils.getEntryFileName).toBe('function')
+    expect(utils.getUIDevExpressApp).toBeDefined()
+    expect(typeof utils.getUIDevExpressApp).toBe('function')
   })
 
   test('urlJoin', () => {
