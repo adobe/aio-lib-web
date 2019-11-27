@@ -38,13 +38,19 @@ class BuildActions extends BaseScript {
       if (!actionFileStats.isDirectory() && !actionFileStats.isFile()) throw new Error(`${action.function} is not a valid file or directory`)
 
       if (actionFileStats.isDirectory()) {
-        // make sure package.json.main||index.js exists
-        const expectedActionName = utils.getEntryFileName(path.join(actionPath, 'package.json'))
+        // make sure package.json exists
+        const packageJsonPath = path.join(actionPath, 'package.json')
+        if (!fs.existsSync(packageJsonPath)) {
+          throw new Error(`missing required ${this._relApp(packageJsonPath)} for folder actions`)
+        }
+        // make sure package.json exposes main or there is an index.js
+        const expectedActionName = utils.getActionEntryFile(packageJsonPath)
         if (!fs.existsSync(path.join(actionPath, expectedActionName))) {
           throw new Error(`the directory ${action.function} must contain either a package.json with a 'main' flag or an index.js file at its root`)
         }
-        // if directory install dependencies
+        // install dependencies
         await utils.installDeps(actionPath)
+        // zip the action
         await utils.zip(actionPath, outPath)
       } else {
         const outBuildFilename = `${name}.tmp.js`

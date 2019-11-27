@@ -191,7 +191,7 @@ class ActionServer extends BaseScript {
 
       } if (actionFileStats.isDirectory()) {
         // take package.json.main or 'index.js'
-        const zipMain = utils.getEntryFileName(path.join(actionPath, 'package.json'))
+        const zipMain = utils.getActionEntryFile(path.join(actionPath, 'package.json'))
         config.runtimeArgs = [
           `${packageName}/${an}`,
           path.join(actionPath, zipMain),

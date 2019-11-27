@@ -94,22 +94,13 @@ describe('build by zipping js action folder', () => {
     expect(utils.zip).toHaveBeenCalledWith('/actions/action-zip', '/dist/actions/action-zip.zip')
   })
 
-  test('should fail if no package.json and action file is not named index.js', async () => {
+  test('should fail if no package.json', async () => {
     // delete package.json
     vol.unlinkSync('/actions/action-zip/package.json')
     // rename index.js
     vol.renameSync('/actions/action-zip/index.js', '/actions/action-zip/action.js')
     // eslint-disable-next-line quotes
-    await expect(scripts.buildActions()).rejects.toThrow(`the directory actions/action-zip must contain either a package.json with a 'main' flag or an index.js file at its root`)
-  })
-
-  test('should build an action if no package.json but action file is named index.js', async () => {
-    // delete package.json
-    vol.unlinkSync('/actions/action-zip/package.json')
-    await scripts.buildActions()
-    expect(webpackMock.run).toHaveBeenCalledTimes(0) // no webpack bundling
-    expect(utils.installDeps).toHaveBeenCalledWith('/actions/action-zip')
-    expect(utils.zip).toHaveBeenCalledWith('/actions/action-zip', '/dist/actions/action-zip.zip')
+    await expect(scripts.buildActions()).rejects.toThrow(`missing required actions/action-zip/package.json for folder actions`)
   })
 
   test('should build a zip action package.json main field points to file not called index.js', async () => {
