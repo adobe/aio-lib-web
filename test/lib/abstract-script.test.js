@@ -47,4 +47,8 @@ describe('_absApp method', () => {
     const absScript = new AbstractScript({ root: 'hello' })
     expect(absScript._absApp('goodbye')).toBe(path.join('hello', 'goodbye'))
   })
+  test('returns same path when path is already absolut', async () => {
+    const absScript = new AbstractScript({ root: '/hello' })
+    expect(absScript._absApp('/hello/goodbye')).toBe('/hello/goodbye')
+  })
 })

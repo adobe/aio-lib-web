@@ -9,12 +9,40 @@ the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTA
 OF ANY KIND, either express or implied. See the License for the specific language
 governing permissions and limitations under the License.
 */
+const Readable = require('stream').Readable
 
-module.exports = () => {
-  return {
-    pipe: jest.fn(),
-    on: jest.fn(),
-    directory: jest.fn(),
-    finalize: jest.fn()
-  }
+const mockConstructor = jest.fn()
+const mockDirectory = jest.fn()
+const mockFile = jest.fn()
+let fakeError = false
+
+const mockArchive = () => {
+  // this hacky, make sure the fake read stream works as expected and that there are no corner cases
+  const ret = new Readable({
+    read: fakeError
+      ? function () { ret.push(null); this.emit('error', fakeError); this.destroy() }
+      : function () { this.push('a') }
+  })
+  ret.file = mockFile
+  ret.directory = mockDirectory
+  ret.finalize = () => { if (!fakeError) { ret.push(null) } }
+  return ret
 }
+
+const archiver = function (...args) {
+  mockConstructor(args)
+  return mockArchive()
+}
+
+archiver.mockFile = mockFile
+archiver.mockDirectory = mockDirectory
+archiver.mockConstructor = mockConstructor
+archiver.setFakeError = function (e) { fakeError = e }
+archiver.mockReset = () => {
+  mockConstructor.mockReset()
+  mockDirectory.mockReset()
+  mockFile.mockReset()
+  fakeError = false
+}
+
+module.exports = archiver

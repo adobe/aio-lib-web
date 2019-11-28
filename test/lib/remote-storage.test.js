@@ -37,6 +37,26 @@ test('Constructor should throw when missing credentials', async () => {
   expect(instantiate.bind(this)).toThrowWithMessageContaining(['required'])
 })
 
+test('folderExists missing prefix', async () => {
+  const rs = new RemoteStorage(global.fakeTVMResponse)
+  await expect(rs.folderExists()).rejects.toEqual(expect.objectContaining({ message: 'prefix must be a valid string' }))
+})
+
+test('emptyFolder missing prefix', async () => {
+  const rs = new RemoteStorage(global.fakeTVMResponse)
+  await expect(rs.emptyFolder()).rejects.toEqual(expect.objectContaining({ message: 'prefix must be a valid string' }))
+})
+
+test('uploadFile missing prefix', async () => {
+  const rs = new RemoteStorage(global.fakeTVMResponse)
+  await expect(rs.uploadFile()).rejects.toEqual(expect.objectContaining({ message: 'prefix must be a valid string' }))
+})
+
+test('uploadDir missing prefix', async () => {
+  const rs = new RemoteStorage(global.fakeTVMResponse)
+  await expect(rs.uploadDir()).rejects.toEqual(expect.objectContaining({ message: 'prefix must be a valid string' }))
+})
+
 test('folderExists should return false if there are no files', async () => {
   spyS3({ listObjectsV2: () => Object({ Contents: [] }) })
   const rs = new RemoteStorage(global.fakeTVMResponse)
@@ -90,8 +110,27 @@ test('emptyFolder should call S3#deleteObjects with correct parameters with mult
   expect(deleteMock).toHaveBeenCalledWith({ Delete: { Objects: content } })
 })
 
+test('emptyFolder should call S3#deleteObjects multiple time if listObjects is truncated', async () => {
+  const deleteMock = jest.fn()
+  const content = [{ Key: 'fakeprefix/index.html' }, { Key: 'fakeprefix/index.css' }, { Key: 'fakeprefix/index.js' }]
+  let iterations = 3
+  spyS3({
+    listObjectsV2: () => {
+      iterations--
+      const IsTruncated = iterations > 0
+      return Object({ Contents: [content[iterations]], IsTruncated })
+    },
+    deleteObjects: deleteMock
+  })
+  const rs = new RemoteStorage(global.fakeTVMResponse)
+  await rs.emptyFolder('fakeprefix')
+  expect(deleteMock).toHaveBeenCalledWith({ Delete: { Objects: [content[0]] } })
+  expect(deleteMock).toHaveBeenCalledWith({ Delete: { Objects: [content[1]] } })
+  expect(deleteMock).toHaveBeenCalledWith({ Delete: { Objects: [content[2]] } })
+})
+
 test('uploadFile should call S3#upload with the correct parameters', async () => {
-  global.addFakeFiles(vol, 'fakeDir', ['index.js'])
+  global.addFakeFiles(vol, 'fakeDir', { 'index.js': 'fake content' })
   const uploadMock = jest.fn()
   spyS3({
     upload: uploadMock
