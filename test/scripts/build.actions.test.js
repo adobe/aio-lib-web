@@ -102,8 +102,7 @@ describe('build by zipping js action folder', () => {
   test('should fail if no package.json', async () => {
     // delete package.json
     vol.unlinkSync('/actions/action-zip/package.json')
-    // eslint-disable-next-line quotes
-    await expect(scripts.buildActions()).rejects.toThrow(`missing required actions/action-zip/package.json for folder actions`)
+    await expect(scripts.buildActions()).rejects.toThrow(`missing required ${n('actions/action-zip/package.json')} for folder actions`)
   })
 
   test('should fail if package.json main field is not defined and there is no index.js file', async () => {

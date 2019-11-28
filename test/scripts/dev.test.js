@@ -96,7 +96,7 @@ const owJarUrl = 'https://github.com/adobe/aio-app-scripts/raw/binaries/bin/open
 const waitInitTime = 2000
 const waitPeriodTime = 500
 
-const execaLocalOWArgs = ['java', expect.arrayContaining(['-jar', owJarPath]), expect.anything()]
+const execaLocalOWArgs = ['java', expect.arrayContaining(['-jar', r(owJarPath)]), expect.anything()]
 
 /* ****************** Helpers ******************* */
 function generateDotenvContent (credentials) {
@@ -146,7 +146,7 @@ function expectUIServer (fakeMiddleware, port) {
   expect(Bundler.mockConstructor).toHaveBeenCalledTimes(1)
 
   expect(express.mockApp.use).toHaveBeenCalledWith(fakeMiddleware)
-  expect(Bundler.mockConstructor).toHaveBeenCalledWith('/web-src/index.html', expect.objectContaining({
+  expect(Bundler.mockConstructor).toHaveBeenCalledWith(r('/web-src/index.html'), expect.objectContaining({
     watch: true,
     outDir: '/dist/web-src-dev'
   }))
@@ -516,7 +516,7 @@ function runCommonLocalTests (ref) {
   test('should fail backup an existing .env if .env.save already exists', async () => {
     vol.writeFileSync('/.env', generateDotenvContent(remoteOWCredentials))
     vol.writeFileSync('/.env.app.save', 'fake content')
-    await expect(ref.scripts.runDev()).rejects.toThrow('cannot save .env, please make sure to restore and delete /.env.app.save')
+    await expect(ref.scripts.runDev()).rejects.toThrow(`cannot save .env, please make sure to restore and delete ${r('/.env.app.save')}`)
     expect(vol.readFileSync('/.env.app.save').toString()).toEqual('fake content')
   })
 

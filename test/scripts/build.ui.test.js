@@ -66,13 +66,13 @@ test('should build static files from web-src/index.html', async () => {
     'action-sequence': expect.any(String)
   }))
 
-  expect(Bundler.mockConstructor).toHaveBeenCalledWith('/web-src/index.html', expect.objectContaining({
+  expect(Bundler.mockConstructor).toHaveBeenCalledWith(r('/web-src/index.html'), expect.objectContaining({
     publicUrl: './',
-    outDir: '/dist/web-src-prod'
+    outDir: r('/dist/web-src-prod')
   }))
   expect(Bundler.mockBundle).toHaveBeenCalledTimes(1)
-  expect(mockOnProgress).toHaveBeenCalledWith('dist/web-src-prod/fake.js')
-  expect(mockOnProgress).toHaveBeenCalledWith('dist/web-src-prod/fake.js.map')
+  expect(mockOnProgress).toHaveBeenCalledWith(n('dist/web-src-prod/fake.js'))
+  expect(mockOnProgress).toHaveBeenCalledWith(n('dist/web-src-prod/fake.js.map'))
 })
 
 test('should generate and inject web action Urls into web-src/src/config.json, including action sequence url', async () => {

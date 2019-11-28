@@ -74,7 +74,7 @@ test('Deploy 1 zip and 1 js action', async () => {
   expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedDistManifest.packages, {}, {}, {})
 
   expect(ioruntime.syncProject).toHaveBeenCalledTimes(1)
-  expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', '/manifest.yml', expectedDistManifest, { fake: 'entities' }, { fake: 'ow' }, expect.anything())
+  expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, { fake: 'entities' }, { fake: 'ow' }, expect.anything())
 })
 
 test('Deploy actions should fail if there are no build files', async () => {
