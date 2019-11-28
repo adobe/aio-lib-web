@@ -31,6 +31,10 @@ beforeEach(() => {
 
 const fixturePath = path.join(__dirname, '__fixtures__')
 
+// quick normalization to test windows paths
+global.n = p => path.normalize(p)
+global.r = p => path.resolve(p)
+
 /**
  * reads a dir or a file to a json
  * if filePath is a dir at /a/b/c/ and contains d/e.txt f/g/h.txt and toDir is /adir/ will return a json:
