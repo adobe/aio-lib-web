@@ -198,6 +198,12 @@ describe('lib/utils.zip', () => {
     expect(archiver.mockDirectory).toHaveBeenCalledTimes(0)
     expect(vol.existsSync('/out.zip')).toEqual(false)
   })
+
+  test('should fail if there is a stream error', async () => {
+    global.addFakeFiles(vol, '/indir', ['fake1.js'])
+    archiver.setFakeError(new Error('fake stream error'))
+    await expect(utils.zip('/indir/fake1.js', '/out.zip')).rejects.toThrow('fake stream error')
+  })
 })
 
 // todo test utils independently + mock utils in scripts once it is exposed as a library

@@ -14,10 +14,14 @@ const Readable = require('stream').Readable
 const mockConstructor = jest.fn()
 const mockDirectory = jest.fn()
 const mockFile = jest.fn()
+let fakeError = false
+
 const mockArchive = () => {
   let done = false
   const ret = new Readable({
-    read: function () { if (done) this.push(null); else this.push('a') }
+    read: fakeError
+      ? function () { this.push(null); this.emit('error', fakeError); this.destroy() }
+      : function () { if (done) this.push(null); else this.push('a') }
   })
   ret.file = mockFile
   ret.directory = mockDirectory
@@ -33,12 +37,12 @@ const archiver = function (...args) {
 archiver.mockFile = mockFile
 archiver.mockDirectory = mockDirectory
 archiver.mockConstructor = mockConstructor
+archiver.setFakeError = function (e) { fakeError = e }
 archiver.mockReset = () => {
   mockConstructor.mockReset()
   mockDirectory.mockReset()
   mockFile.mockReset()
+  fakeError = false
 }
-
-// todo mock errors to be able to run error cb registered by on('error', cb)
 
 module.exports = archiver
