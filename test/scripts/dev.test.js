@@ -148,7 +148,7 @@ function expectUIServer (fakeMiddleware, port) {
   expect(express.mockApp.use).toHaveBeenCalledWith(fakeMiddleware)
   expect(Bundler.mockConstructor).toHaveBeenCalledWith(r('/web-src/index.html'), expect.objectContaining({
     watch: true,
-    outDir: '/dist/web-src-dev'
+    outDir: r('/dist/web-src-dev')
   }))
 
   expect(express.mockApp.listen).toHaveBeenCalledWith(port)
@@ -205,9 +205,9 @@ const getExpectedActionVSCodeDebugConfig = actionName =>
     type: 'node',
     request: 'launch',
     name: 'Action:' + actionName,
-    runtimeExecutable: '/node_modules/.bin/wskdebug',
-    env: { WSK_CONFIG_FILE: '/.wskdebug.props.tmp' },
-    localRoot: '/',
+    runtimeExecutable: r('/node_modules/.bin/wskdebug'),
+    env: { WSK_CONFIG_FILE: r('/.wskdebug.props.tmp') },
+    localRoot: r('/'),
     remoteRoot: '/code'
   })
 
@@ -216,10 +216,10 @@ const getExpectedUIVSCodeDebugConfig = uiPort => expect.objectContaining({
   request: 'launch',
   name: 'Web',
   url: `http://localhost:${uiPort}`,
-  webRoot: '/web-src',
+  webRoot: r('/web-src'),
   breakOnLoad: true,
   sourceMapPathOverrides: {
-    '*': '/dist/web-src-dev/*'
+    '*': r('/dist/web-src-dev/*')
   }
 })
 
