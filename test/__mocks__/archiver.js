@@ -17,15 +17,15 @@ const mockFile = jest.fn()
 let fakeError = false
 
 const mockArchive = () => {
-  let done = false
+  // this hacky, make sure the fake read stream works as expected and that there are no corner cases
   const ret = new Readable({
     read: fakeError
-      ? function () { this.push(null); this.emit('error', fakeError); this.destroy() }
-      : function () { if (done) this.push(null); else this.push('a') }
+      ? function () { ret.push(null); this.emit('error', fakeError); this.destroy() }
+      : function () { this.push('a') }
   })
   ret.file = mockFile
   ret.directory = mockDirectory
-  ret.finalize = () => { done = true; ret.destroy() }
+  ret.finalize = () => { if (!fakeError) { ret.push(null) } }
   return ret
 }
 

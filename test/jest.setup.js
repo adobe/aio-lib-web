@@ -18,7 +18,7 @@ const path = require('path')
 // beforeEach(() => { stdout.start(); stderr.start() })
 // afterEach(() => { stdout.stop(); stderr.stop() })
 
-jest.setTimeout(20000)
+jest.setTimeout(10000)
 
 process.on('unhandledRejection', error => {
   throw error
