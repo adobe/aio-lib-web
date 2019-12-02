@@ -13,6 +13,7 @@ const { vol, fs } = global.mockFs()
 
 const AppScripts = require('../..')
 const yaml = require('js-yaml')
+const cloneDeep = require('lodash.clonedeep')
 
 // mocks
 const mockAIOConfig = require('@adobe/aio-lib-core-config')
@@ -27,17 +28,12 @@ beforeEach(async () => {
 
 afterEach(() => global.cleanFs(vol))
 
-test('Should add config into manifest for ims_auth_type=code', async () => {
-  mockAIOConfig.get.mockReturnValue({ runtime: global.fakeConfig.tvm.runtime, cna: global.fakeConfig.tvm.cna, ims_auth_type: 'code', oauth: { persistence: 'yes' } })
-  await scripts.addAuth()
-
-  // expect the source manifest to contain auth config
-  const manifest = yaml.safeLoad(fs.readFileSync(scripts._config.manifest.src, 'utf8'))
-  expect(manifest.packages).toEqual(expect.objectContaining({
+describe('manifest generation for oauth', () => {
+  const defaultExpectedConfig = {
     myauthp: {
       sequences: {
         authenticate: {
-          actions: 'myauthp-shared/login,mycachep-shared/encrypt,mycachep-shared/persist,myauthp-shared/success',
+          actions: 'myauthp-shared/login,mycachep-shared/encrypt,myauthp-shared/success',
           web: 'yes'
         }
       },
@@ -50,7 +46,7 @@ test('Should add config into manifest for ims_auth_type=code', async () => {
             client_id: 'change-me',
             client_secret: 'change-me',
             scopes: 'openid,AdobeID',
-            persistence: true,
+            persistence: false,
             callback_url: 'https://adobeioruntime.net/api/v1/web/fake_ns/myauthp/authenticate',
             redirect_url: 'https://www.adobe.com',
             cookie_path: 'fake_ns',
@@ -59,24 +55,56 @@ test('Should add config into manifest for ims_auth_type=code', async () => {
           }
         },
         'mycachep-shared': {
-          'location': '/adobeio/cache'
+          location: '/adobeio/cache'
         }
       }
     }
-  }))
+  }
+
+  test('persistence=undef', async () => {
+    mockAIOConfig.get.mockReturnValue({ runtime: global.fakeConfig.tvm.runtime, cna: global.fakeConfig.tvm.cna, ims_auth_type: 'code', oauth: {} })
+    await scripts.addAuth()
+    // expect the source manifest to contain auth config
+    const manifest = yaml.safeLoad(fs.readFileSync(scripts._config.manifest.src, 'utf8'))
+    expect(manifest.packages).toEqual(expect.objectContaining(defaultExpectedConfig))
+  })
+
+  test('persistence=false', async () => {
+    mockAIOConfig.get.mockReturnValue({ runtime: global.fakeConfig.tvm.runtime, cna: global.fakeConfig.tvm.cna, ims_auth_type: 'code', oauth: { persistence: 'false' } })
+    await scripts.addAuth()
+    // expect the source manifest to contain auth config
+    const manifest = yaml.safeLoad(fs.readFileSync(scripts._config.manifest.src, 'utf8'))
+    expect(manifest.packages).toEqual(expect.objectContaining(defaultExpectedConfig))
+  })
+
+  test('persistence=true', async () => {
+    mockAIOConfig.get.mockReturnValue({ runtime: global.fakeConfig.tvm.runtime, cna: global.fakeConfig.tvm.cna, ims_auth_type: 'code', oauth: { persistence: 'true' } })
+    const expectedConfig = cloneDeep(defaultExpectedConfig)
+    await scripts.addAuth()
+    // add persist action
+    expectedConfig.myauthp.sequences.authenticate.actions = 'myauthp-shared/login,mycachep-shared/encrypt,mycachep-shared/persist,myauthp-shared/success'
+    expectedConfig.myauthp.dependencies['myauthp-shared'].inputs.persistence = true
+    const manifest = yaml.safeLoad(fs.readFileSync(scripts._config.manifest.src, 'utf8'))
+    expect(manifest.packages).toEqual(expect.objectContaining(expectedConfig))
+  })
+  test('persistence=yes', async () => {
+    mockAIOConfig.get.mockReturnValue({ runtime: global.fakeConfig.tvm.runtime, cna: global.fakeConfig.tvm.cna, ims_auth_type: 'code', oauth: { persistence: 'yes' } })
+    const expectedConfig = cloneDeep(defaultExpectedConfig)
+    await scripts.addAuth()
+    // add persist action
+    expectedConfig.myauthp.sequences.authenticate.actions = 'myauthp-shared/login,mycachep-shared/encrypt,mycachep-shared/persist,myauthp-shared/success'
+    expectedConfig.myauthp.dependencies['myauthp-shared'].inputs.persistence = true
+    const manifest = yaml.safeLoad(fs.readFileSync(scripts._config.manifest.src, 'utf8'))
+    expect(manifest.packages).toEqual(expect.objectContaining(expectedConfig))
+  })
 })
 
-test('jwt', async () => {
-  mockAIOConfig.get.mockReturnValue({ runtime: global.fakeConfig.tvm.runtime, cna: global.fakeConfig.tvm.cna, ims_auth_type: 'jwt', 'jwt-auth': { persistence: 'yes', jwt_payload: { http: true } } })
-  await scripts.addAuth()
-
-  // expect the source manifest to contain auth config
-  const manifest = yaml.safeLoad(fs.readFileSync(scripts._config.manifest.src, 'utf8'))
-  expect(manifest.packages).toEqual(expect.objectContaining({
+describe('jwt', () => {
+  const defaultExpectedConfig = {
     myjwtauthp: {
       sequences: {
         authenticate: {
-          actions: 'myjwtauthp-shared/jwtauth,myjwtcachep-shared/persist',
+          actions: 'myjwtauthp-shared/jwtauth',
           web: 'yes'
         }
       },
@@ -90,17 +118,87 @@ test('jwt', async () => {
             org_id: 'change-me',
             meta_scopes: '["http"]',
             private_key: '["change-me"]',
-            persistence: true,
+            persistence: false,
             cache_namespace: 'fake_ns',
             cache_package: 'myjwtcachep-shared'
           }
         },
         'myjwtcachep-shared': {
-          'location': '/adobeio/cache'
+          location: '/adobeio/cache'
         }
       }
     }
-  }))
+  }
+
+  test('persistance=undef && jwt_payload=undef', async () => {
+    mockAIOConfig.get.mockReturnValue({ runtime: global.fakeConfig.tvm.runtime, cna: global.fakeConfig.tvm.cna, ims_auth_type: 'jwt', 'jwt-auth': {} })
+    const expectedConfig = cloneDeep(defaultExpectedConfig)
+    await scripts.addAuth()
+    // add persist action
+    const manifest = yaml.safeLoad(fs.readFileSync(scripts._config.manifest.src, 'utf8'))
+    expectedConfig.myjwtauthp.dependencies['myjwtauthp-shared'].inputs.meta_scopes = '[]'
+    expect(manifest.packages).toEqual(expect.objectContaining(expectedConfig))
+  })
+
+  test('persistance=undef && jwt_payload.http=false', async () => {
+    mockAIOConfig.get.mockReturnValue({ runtime: global.fakeConfig.tvm.runtime, cna: global.fakeConfig.tvm.cna, ims_auth_type: 'jwt', 'jwt-auth': { jwt_payload: { http: false } } })
+    const expectedConfig = cloneDeep(defaultExpectedConfig)
+    await scripts.addAuth()
+    // add persist action
+    const manifest = yaml.safeLoad(fs.readFileSync(scripts._config.manifest.src, 'utf8'))
+    expectedConfig.myjwtauthp.dependencies['myjwtauthp-shared'].inputs.meta_scopes = '[]'
+    expect(manifest.packages).toEqual(expect.objectContaining(expectedConfig))
+  })
+
+  test('persistance=undef && jwt_payload.__UNEXISTINGKEYKEYKEY=true', async () => {
+    mockAIOConfig.get.mockReturnValue({ runtime: global.fakeConfig.tvm.runtime, cna: global.fakeConfig.tvm.cna, ims_auth_type: 'jwt', 'jwt-auth': { jwt_payload: { __UNEXISTINGKEYKEYKEY: false } } })
+    const expectedConfig = cloneDeep(defaultExpectedConfig)
+    await scripts.addAuth()
+    // add persist action
+    const manifest = yaml.safeLoad(fs.readFileSync(scripts._config.manifest.src, 'utf8'))
+    expectedConfig.myjwtauthp.dependencies['myjwtauthp-shared'].inputs.meta_scopes = '[]'
+    expect(manifest.packages).toEqual(expect.objectContaining(expectedConfig))
+  })
+
+  test('persistance=undef && jwt_payload.http=true', async () => {
+    mockAIOConfig.get.mockReturnValue({ runtime: global.fakeConfig.tvm.runtime, cna: global.fakeConfig.tvm.cna, ims_auth_type: 'jwt', 'jwt-auth': { jwt_payload: { http: true } } })
+    const expectedConfig = cloneDeep(defaultExpectedConfig)
+    await scripts.addAuth()
+    // add persist action
+    const manifest = yaml.safeLoad(fs.readFileSync(scripts._config.manifest.src, 'utf8'))
+    expect(manifest.packages).toEqual(expect.objectContaining(expectedConfig))
+  })
+
+  test('persistance=false && jwt_payload.http=true', async () => {
+    mockAIOConfig.get.mockReturnValue({ runtime: global.fakeConfig.tvm.runtime, cna: global.fakeConfig.tvm.cna, ims_auth_type: 'jwt', 'jwt-auth': { persistence: 'false', jwt_payload: { http: true } } })
+    const expectedConfig = cloneDeep(defaultExpectedConfig)
+    await scripts.addAuth()
+    // add persist action
+    const manifest = yaml.safeLoad(fs.readFileSync(scripts._config.manifest.src, 'utf8'))
+    expect(manifest.packages).toEqual(expect.objectContaining(expectedConfig))
+  })
+
+  test('persistance=true && jwt_payload.http=true', async () => {
+    mockAIOConfig.get.mockReturnValue({ runtime: global.fakeConfig.tvm.runtime, cna: global.fakeConfig.tvm.cna, ims_auth_type: 'jwt', 'jwt-auth': { persistence: 'true', jwt_payload: { http: true } } })
+    const expectedConfig = cloneDeep(defaultExpectedConfig)
+    await scripts.addAuth()
+    // add persist action
+    expectedConfig.myjwtauthp.sequences.authenticate.actions = 'myjwtauthp-shared/jwtauth,myjwtcachep-shared/persist'
+    expectedConfig.myjwtauthp.dependencies['myjwtauthp-shared'].inputs.persistence = true
+    const manifest = yaml.safeLoad(fs.readFileSync(scripts._config.manifest.src, 'utf8'))
+    expect(manifest.packages).toEqual(expect.objectContaining(expectedConfig))
+  })
+
+  test('persistance=yes && jwt_payload.http=true', async () => {
+    mockAIOConfig.get.mockReturnValue({ runtime: global.fakeConfig.tvm.runtime, cna: global.fakeConfig.tvm.cna, ims_auth_type: 'jwt', 'jwt-auth': { persistence: 'true', jwt_payload: { http: true } } })
+    const expectedConfig = cloneDeep(defaultExpectedConfig)
+    await scripts.addAuth()
+    // add persist action
+    expectedConfig.myjwtauthp.sequences.authenticate.actions = 'myjwtauthp-shared/jwtauth,myjwtcachep-shared/persist'
+    expectedConfig.myjwtauthp.dependencies['myjwtauthp-shared'].inputs.persistence = true
+    const manifest = yaml.safeLoad(fs.readFileSync(scripts._config.manifest.src, 'utf8'))
+    expect(manifest.packages).toEqual(expect.objectContaining(expectedConfig))
+  })
 })
 
 test('invalid ims_auth_type', async () => {

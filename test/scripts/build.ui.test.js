@@ -14,8 +14,18 @@ const { vol } = global.mockFs()
 const AppScripts = require('../..')
 const mockAIOConfig = require('@adobe/aio-lib-core-config')
 
+const Bundler = require('parcel-bundler')
 jest.mock('parcel-bundler')
-afterEach(() => global.cleanFs(vol))
+
+const mockOnProgress = jest.fn()
+
+beforeEach(() => {
+  // those are defined in __mocks__
+  Bundler.mockConstructor.mockReset()
+  Bundler.mockBundle.mockReset()
+  mockOnProgress.mockReset()
+  global.cleanFs(vol)
+})
 
 test('Should fail build if app has no frontend', async () => {
   global.loadFs(vol, 'sample-app')
@@ -27,12 +37,24 @@ test('Should fail build if app has no frontend', async () => {
   await expect(scripts.buildUI()).rejects.toEqual(expect.objectContaining({ message: expect.stringContaining('app has no frontend') }))
 })
 
-test('Build static files index.html', async () => {
+test('should send a warning if namespace is not configured (for action urls)', async () => {
+  global.loadFs(vol, 'sample-app')
+  mockAIOConfig.get.mockReturnValue(global.configWithMissing(global.fakeConfig.tvm, 'runtime.namespace'))
+  const warningMock = jest.fn()
+  const scripts = await AppScripts({ listeners: { onWarning: warningMock } })
+  await scripts.buildUI()
+
+  expect(warningMock).toHaveBeenCalledWith(expect.stringContaining('injected urls to backend actions are invalid'))
+})
+
+test('should build static files from web-src/index.html', async () => {
   global.loadFs(vol, 'sample-app')
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
+  Bundler.mockBundle.mockImplementation(async () => {
+    global.addFakeFiles(vol, '/dist/web-src-prod/', ['fake.js', 'fake.js.map'])
+  })
 
-  const scripts = await AppScripts()
-  const buildDir = scripts._config.web.distProd
+  const scripts = await AppScripts({ listeners: { onProgress: mockOnProgress } })
 
   await scripts.buildUI()
 
@@ -43,6 +65,49 @@ test('Build static files index.html', async () => {
     'action-zip': expect.any(String),
     'action-sequence': expect.any(String)
   }))
-  const buildFiles = vol.readdirSync(buildDir)
-  expect(buildFiles.sort()).toEqual(['index.html'])
+
+  expect(Bundler.mockConstructor).toHaveBeenCalledWith(r('/web-src/index.html'), expect.objectContaining({
+    publicUrl: './',
+    outDir: r('/dist/web-src-prod')
+  }))
+  expect(Bundler.mockBundle).toHaveBeenCalledTimes(1)
+  expect(mockOnProgress).toHaveBeenCalledWith(n('dist/web-src-prod/fake.js'))
+  expect(mockOnProgress).toHaveBeenCalledWith(n('dist/web-src-prod/fake.js.map'))
+})
+
+test('should generate and inject web action Urls into web-src/src/config.json, including action sequence url', async () => {
+  global.loadFs(vol, 'sample-app')
+  mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
+
+  const scripts = await AppScripts()
+
+  await scripts.buildUI()
+  const remoteOWCredentials = global.fakeConfig.tvm.runtime
+  expect(vol.existsSync('/web-src/src/config.json')).toBe(true)
+  const baseUrl = 'https://' + remoteOWCredentials.namespace + '.' + remoteOWCredentials.apihost.split('https://')[1] + '/api/v1/web/sample-app-1.0.0/'
+  expect(JSON.parse(vol.readFileSync('/web-src/src/config.json').toString())).toEqual({
+    action: baseUrl + 'action',
+    'action-zip': baseUrl + 'action-zip',
+    'action-sequence': baseUrl + 'action-sequence'
+  })
+})
+
+test('should generate and inject web and non web action urls into web-src/src/config.json', async () => {
+  global.loadFs(vol, 'sample-app')
+  mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
+
+  const scripts = await AppScripts()
+  // delete sequence action to make sure url generation works without sequences as well
+  delete scripts._config.manifest.package.sequences
+  // also make sure to test urls for non web actions
+  delete scripts._config.manifest.package.actions.action.web
+
+  await scripts.buildUI()
+  const remoteOWCredentials = global.fakeConfig.tvm.runtime
+  expect(vol.existsSync('/web-src/src/config.json')).toBe(true)
+  const baseUrl = 'https://' + remoteOWCredentials.namespace + '.' + remoteOWCredentials.apihost.split('https://')[1] + '/api/v1/web/sample-app-1.0.0/'
+  expect(JSON.parse(vol.readFileSync('/web-src/src/config.json').toString())).toEqual({
+    action: baseUrl.replace('/web', '') + 'action', // fake non web action
+    'action-zip': baseUrl + 'action-zip'
+  })
 })

@@ -34,10 +34,11 @@ class BuildUI extends BaseScript {
 
     // 1. inject web config
     if (!this.config.ow.namespace || !this.config.ow.apihost) {
-      // todo don't warn if UI only
-      this.emit('warning', 'injected urls to backend actions will be invalid because of missing Adobe I/O Runtime apihost and/or namespace')
+      // todo don't warn if UI only, don't inject?
+      this.emit('warning', 'injected urls to backend actions are invalid because of missing Adobe I/O Runtime apihost and/or namespace')
     }
-    await utils.writeConfig(this.config.web.injectedConfig, this.config.actions.urls)
+    const urls = await utils.getActionUrls(this.config.ow, this.config.manifest.package, false)
+    await utils.writeConfig(this.config.web.injectedConfig, urls)
 
     // 2. build UI files
     const bundler = new Bundler(path.join(src, 'index.html'), {
