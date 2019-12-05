@@ -10,6 +10,7 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
+const cloneDeep = require('lodash.clonedeep')
 const path = require('path')
 // const { stdout, stderr } = require('stdout-stderr')
 
@@ -17,7 +18,7 @@ const path = require('path')
 // beforeEach(() => { stdout.start(); stderr.start() })
 // afterEach(() => { stdout.stop(); stderr.stop() })
 
-jest.setTimeout(30000)
+jest.setTimeout(10000)
 
 process.on('unhandledRejection', error => {
   throw error
@@ -29,6 +30,10 @@ beforeEach(() => {
 })
 
 const fixturePath = path.join(__dirname, '__fixtures__')
+
+// quick normalization to test windows paths
+global.n = p => path.normalize(p)
+global.r = p => path.resolve(p)
 
 /**
  * reads a dir or a file to a json
@@ -92,26 +97,47 @@ global.loadFs = (vol, fixtures) => {
 
 global.cleanFs = vol => vol.reset()
 
-global.addFakeFiles = async (vol, dir, files) => {
+global.addFakeFiles = (vol, dir, files) => {
   if (typeof files === 'string') files = [files]
+  if (Array.isArray(files)) files = files.reduce((obj, curr) => { obj[curr] = 'fake-content'; return obj }, {})
   vol.mkdirpSync(dir)
-  files.forEach(f => {
-    vol.writeFileSync(path.join(dir, f), 'fake content')
+  Object.keys(files).forEach(f => {
+    vol.writeFileSync(path.join(dir, f), files[f])
   })
+}
+
+global.configWithMissing = (config, members) => {
+  if (typeof members === 'string') members = [members]
+  config = cloneDeep(config)
+  members.forEach(m => {
+    // a config member can be hierarchical e.g. 'my.config.that.i.want.to.remove'
+    const split = m.split('.')
+    const last = split.pop()
+    const traverse = split.reduce((_traverse, next) => _traverse[next], config)
+    delete traverse[last]
+  })
+  return config
 }
 
 global.fakeS3Bucket = 'fake-bucket'
 global.fakeConfig = {
   tvm: {
     runtime: {
-      apihost: 'https://example.com',
+      apihost: 'https://example.com', // must start with https
       namespace: 'fake_ns',
       auth: 'fake:auth',
       apiversion: 'v1'
     },
     cna: {
-      tvmurl: 'https://example.com/api/v1/web/fakens/tvm/get-s3-upload-token',
-      hostname: 'fake-domain.net'
+      tvmurl: 'https://example.com/api/v1/web/fakens/tvm/get-s3-upload-token'
+    }
+  },
+  local: {
+    runtime: {
+      // those must match the once set by dev cmd
+      apihost: 'http://localhost:3233',
+      namespace: 'guest',
+      auth: '23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP'
     }
   },
   creds: {
@@ -121,12 +147,10 @@ global.fakeConfig = {
       auth: 'fake:auth'
     },
     cna: {
-      s3bucket: global.fakeS3Bucket,
+      s3bucket: 'customBucket',
       awsaccesskeyid: 'fakeAwsKeyId',
       awssecretaccesskey: 'fakeAwsSecretKey'
     }
-  },
-  config_defaults: {
   }
 }
 
@@ -162,6 +186,8 @@ global.expectedS3TVMCreds = expect.objectContaining({
   secretAccessKey: expect.any(String),
   params: { Bucket: expect.any(String) }
 })
+
+global.default_app_host = 'adobeio-static.net'
 
 expect.extend({
   async toThrowWithMessageContaining (received, args) {

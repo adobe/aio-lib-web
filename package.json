@@ -10,7 +10,7 @@
   "author": "Adobe Inc.",
   "license": "Apache-2.0",
   "engines": {
-    "node": ">=8.0.0"
+    "node": ">=10.0.0"
   },
   "repository": "adobe/aio-app-scripts",
   "homepage": "https://github.com/adobe/aio-app-scripts",

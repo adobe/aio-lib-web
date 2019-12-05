@@ -13,3 +13,4 @@ packages:
     sequences:
       action-sequence:
         actions: action, action-zip
+        web: yes

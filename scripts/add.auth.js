@@ -12,11 +12,11 @@ class AddAuth extends BaseScript {
     const taskName = 'Add Auth'
     this.emit('start', taskName)
 
-    // check runtime credentials
+    // check runtime credentials - expect those to be defined
     utils.checkOpenWhiskCredentials(this.config)
 
     // todo this is already done in config-loader
-    this.aioConfig = aioConfig.get() || {}
+    this.aioConfig = aioConfig.get()
 
     switch (utils.getCustomConfig(this.aioConfig, 'ims_auth_type', 'code')) {
       case 'code':
@@ -35,9 +35,9 @@ class AddAuth extends BaseScript {
 
   async addAuth (manifestFile) {
     logger.debug('Adding Auth to manifest')
-    // todo refactorr config loading this is all done in config-loader
+    // todo refactor config loading this is all done in config-loader
     const manifest = yaml.safeLoad(fs.readFileSync(manifestFile, 'utf8'))
-    const runtimeParams = utils.getCustomConfig(this.aioConfig, 'runtime') || { namespace: 'change-me' }
+    const runtimeParams = utils.getCustomConfig(this.aioConfig, 'runtime')
     const namespace = runtimeParams.namespace // same as this.config.ow.namespace
     const shared_namespace = utils.getCustomConfig(this.aioConfig, 'shared_namespace', 'adobeio')
     const {
@@ -99,7 +99,7 @@ class AddAuth extends BaseScript {
   async addJWTAuth (manifestFile) {
     logger.debug('Adding JWT Auth to manifest')
     const manifest = yaml.safeLoad(fs.readFileSync(manifestFile, 'utf8'))
-    const runtime = utils.getCustomConfig(this.aioConfig, 'runtime') || { namespace: 'change-me' }
+    const runtime = utils.getCustomConfig(this.aioConfig, 'runtime')
     const namespace = runtime.namespace
     const shared_namespace = utils.getCustomConfig(this.aioConfig, 'shared_namespace', 'adobeio')
     const {
@@ -114,7 +114,7 @@ class AddAuth extends BaseScript {
     } = utils.getCustomConfig(this.aioConfig, 'jwt-auth', {})
     const technical_account_id = jwt_payload.sub || 'change-me'
     const org_id = jwt_payload.iss || 'change-me'
-    const meta_scopes = Object.keys(jwt_payload).filter(key => key.startsWith('http') && jwt_payload[key] === true) || []
+    const meta_scopes = Object.keys(jwt_payload).filter(key => key.startsWith('http') && jwt_payload[key] === true)
     const persistenceBool = persistence && (persistence.toString().toLowerCase() === 'true' || persistence.toString().toLowerCase() === 'yes')
 
     // Adding sequence

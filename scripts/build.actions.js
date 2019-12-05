@@ -38,13 +38,19 @@ class BuildActions extends BaseScript {
       if (!actionFileStats.isDirectory() && !actionFileStats.isFile()) throw new Error(`${action.function} is not a valid file or directory`)
 
       if (actionFileStats.isDirectory()) {
-        // make sure package.json.main||index.js exists
-        const expectedActionName = (fs.existsSync(path.join(actionPath, 'package.json')) && fs.readJsonSync(path.join(actionPath, 'package.json')).main) || 'index.js'
-        if (expectedActionName && !fs.existsSync(path.join(actionPath, expectedActionName))) {
+        // make sure package.json exists
+        const packageJsonPath = path.join(actionPath, 'package.json')
+        if (!fs.existsSync(packageJsonPath)) {
+          throw new Error(`missing required ${this._relApp(packageJsonPath)} for folder actions`)
+        }
+        // make sure package.json exposes main or there is an index.js
+        const expectedActionName = utils.getActionEntryFile(packageJsonPath)
+        if (!fs.existsSync(path.join(actionPath, expectedActionName))) {
           throw new Error(`the directory ${action.function} must contain either a package.json with a 'main' flag or an index.js file at its root`)
         }
-        // if directory install dependencies
+        // install dependencies
         await utils.installDeps(actionPath)
+        // zip the action
         await utils.zip(actionPath, outPath)
       } else {
         const outBuildFilename = `${name}.tmp.js`
@@ -81,7 +87,7 @@ class BuildActions extends BaseScript {
           // stats must be defined at this point
           const info = stats.toJson()
           if (stats.hasWarnings()) debug(`webpack compilation warnings:\n${info.warnings}`)
-          else if (stats.hasErrors()) reject(new Error(`action build failed, webpack compilation errors:\n${info.errors}`))
+          if (stats.hasErrors()) reject(new Error(`action build failed, webpack compilation errors:\n${info.errors}`))
           return resolve(stats)
         }))
 
@@ -92,7 +98,7 @@ class BuildActions extends BaseScript {
           await utils.zip(zipSrcPath, outPath, 'index.js')
           fs.removeSync(zipSrcPath) // remove the build file
         } else {
-          throw new Error(`the path ${zipSrcPath} does not exist, building action '${name}' has failed`)
+          throw new Error(`could not find bundled output ${zipSrcPath}, building action '${name}' has likely failed`)
         }
       }
       return outPath

@@ -43,68 +43,127 @@ beforeEach(async () => {
   scripts = await AppScripts()
 })
 
+const setOwGetPackageMockResponse = (packageName, actions) => {
+  owGetPackageMock.mockResolvedValue({
+    actions: actions.map(actionName => ({
+      // annotations: [{ key: 'fake', value: true }],
+      name: actionName // ,
+      // version: '0.0.42'
+    })),
+    annotations: [],
+    binding: {},
+    feeds: [],
+    name: packageName,
+    namespace: global.fakeConfig.tvm.runtime.namespace,
+    parameters: [],
+    publish: false,
+    version: '0.0.17'
+  })
+}
+
+const setRuntimeGetProjectEntitiesMock = (packageName, actions) => {
+  ioruntime.getProjectEntities.mockResolvedValue({
+    actions: actions.map(actionName => ({
+      // annotations: [{ key: 'fake', value: true }],
+      // exec: { binary: true },
+      // limits: { concurrency: 200, logs: 10, memory: 256, timeout: 60000 },
+      name: packageName + '/' + actionName // ,
+      // namespace: global.fakeConfig.tvm.runtime.namespace + '/' + packageName, // weird but this is what it returns
+      // publish: false,
+      // updated: 626569200000,
+      // version: '0.0.42'
+    })),
+    triggers: [],
+    rules: [],
+    pkgAndDeps: [], // does not include the name of current package (only dependencies)
+    apis: [] // always empty as apis have not the whisk-managed annotation
+  })
+}
+
 afterEach(() => global.cleanFs(vol))
 
-test('Undeploy should fail if the app package is not deployed', async () => {
+test('should fail if the app package is not deployed', async () => {
   owGetPackageMock.mockRejectedValue({ statusCode: 404 })
   await expect(scripts.undeployActions()).rejects.toEqual(expect.objectContaining({
     message: expect.stringContaining('cannot undeploy actions for package sample-app-1.0.0, as it was not deployed')
   }))
 })
 
-test('Undeploy should fail if openwhisk.package.get fails', async () => {
+test('should fail if openwhisk.package.get fails', async () => {
   owGetPackageMock.mockRejectedValue(new Error('fake'))
   await expect(scripts.undeployActions()).rejects.toEqual(expect.objectContaining({
     message: expect.stringContaining('fake')
   }))
 })
 
-test('Undeploy 1 zip and 1 js action', async () => {
-  owGetPackageMock.mockResolvedValue({ actions: ['action', 'action-zip'] })
-  const returnedEntities = {
-    actions: [{ name: 'sample-app-1.0.0/action' }, { name: 'sample-app-1.0.0/action' }],
-    packages: ['sample-app-1.0.0'],
+test('should undeploy two already deployed actions', async () => {
+  setOwGetPackageMockResponse('sample-app-1.0.0', ['action', 'action-zip'])
+  setRuntimeGetProjectEntitiesMock('sample-app-1.0.0', ['action', 'action-zip'])
+  ioruntime.processPackage.mockReturnValue({ apis: [] })
+
+  const expectedEntities = {
+    actions: [{ name: 'sample-app-1.0.0/action' }, { name: 'sample-app-1.0.0/action-zip' }],
+    pkgAndDeps: [],
     triggers: [],
     rules: [],
     apis: []
   }
-  ioruntime.getProjectEntities.mockResolvedValue(returnedEntities)
-  ioruntime.processPackage.mockReturnValue({ apis: [] })
+
   await scripts.undeployActions()
   expect(ioruntime.undeployPackage).toHaveBeenCalledTimes(1)
-  expect(ioruntime.undeployPackage).toHaveBeenCalledWith(returnedEntities, owMock, expect.anything())
+  expect(ioruntime.undeployPackage).toHaveBeenCalledWith(expectedEntities, owMock, expect.anything())
 })
 
-test('Undeploy 1 zip and 1 js actions + junk actions in main package', async () => {
-  owGetPackageMock.mockResolvedValue({ actions: ['action', 'action-zip', 'wskdebug-action'] })
-  const returnedEntities = {
-    actions: [{ name: 'sample-app-1.0.0/action' }, { name: 'sample-app-1.0.0/action' }],
-    packages: ['sample-app-1.0.0'],
+test('should undeploy actions that are not managed but part of a deployed app package (e.g. junk wskdebug action)', async () => {
+  setOwGetPackageMockResponse('sample-app-1.0.0', ['action', 'action-zip', 'fake-wskdebug-action'])
+  setRuntimeGetProjectEntitiesMock('sample-app-1.0.0', ['action', 'action-zip'])
+  ioruntime.processPackage.mockReturnValue({ apis: [] })
+
+  const expectedEntities = {
+    actions: [{ name: 'sample-app-1.0.0/action' }, { name: 'sample-app-1.0.0/action-zip' }, { name: 'sample-app-1.0.0/fake-wskdebug-action' }],
+    pkgAndDeps: [],
     triggers: [],
     rules: [],
     apis: []
   }
-  ioruntime.getProjectEntities.mockResolvedValue(returnedEntities)
-  ioruntime.processPackage.mockReturnValue({ apis: [] })
+
   await scripts.undeployActions()
   expect(ioruntime.undeployPackage).toHaveBeenCalledTimes(1)
-  returnedEntities.actions.push('sample-app-1.0.0/wskdebug-action')
-  expect(ioruntime.undeployPackage).toHaveBeenCalledWith(returnedEntities, owMock, expect.anything())
+  expect(ioruntime.undeployPackage).toHaveBeenCalledWith(expectedEntities, owMock, expect.anything())
 })
 
-test('Undeploy 1 zip and 1 js actions + apis', async () => {
-  owGetPackageMock.mockResolvedValue({ actions: ['action', 'action-zip', 'wskdebug-action'] })
-  const returnedEntities = {
-    actions: [{ name: 'sample-app-1.0.0/action' }, { name: 'sample-app-1.0.0/action' }],
-    packages: ['sample-app-1.0.0'],
-    triggers: [],
-    rules: [],
-    apis: []
-  }
-  ioruntime.getProjectEntities.mockResolvedValue(returnedEntities)
+test('should undeploy apis defined in the manifest', async () => {
+  setOwGetPackageMockResponse('sample-app-1.0.0', [])
+  setRuntimeGetProjectEntitiesMock('sample-app-1.0.0', [])
   ioruntime.processPackage.mockReturnValue({ apis: [{ name: 'fake', basepath: '/fake', relpath: '/path/to/endpoint' }] })
+
+  const expectedEntities = {
+    actions: [],
+    pkgAndDeps: [],
+    triggers: [],
+    rules: [],
+    apis: [{ name: 'fake', basepath: '/fake', relpath: '/path/to/endpoint' }]
+  }
+
   await scripts.undeployActions()
   expect(ioruntime.undeployPackage).toHaveBeenCalledTimes(1)
-  returnedEntities.apis = [{ name: 'fake', basepath: '/fake', relpath: '/path/to/endpoint' }]
-  expect(ioruntime.undeployPackage).toHaveBeenCalledWith(returnedEntities, owMock, expect.anything())
+  expect(ioruntime.undeployPackage).toHaveBeenCalledWith(expectedEntities, owMock, expect.anything())
+})
+
+test('should not attempt to undeploy actions that are defined in manifest but not deployed', async () => {
+  setOwGetPackageMockResponse('sample-app-1.0.0', [])
+  setRuntimeGetProjectEntitiesMock('sample-app-1.0.0', [])
+  ioruntime.processPackage.mockReturnValue({ apis: [], actions: [{ name: 'fake-action' }] })
+
+  const expectedEntities = {
+    actions: [],
+    pkgAndDeps: [],
+    triggers: [],
+    rules: [],
+    apis: []
+  }
+
+  await scripts.undeployActions()
+  expect(ioruntime.undeployPackage).toHaveBeenCalledTimes(1)
+  expect(ioruntime.undeployPackage).toHaveBeenCalledWith(expectedEntities, owMock, expect.anything())
 })
