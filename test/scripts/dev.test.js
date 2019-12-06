@@ -75,7 +75,8 @@ const localOWCredentials = {
 }
 
 const remoteOWCredentials = {
-  ...global.fakeConfig.tvm.runtime
+  ...global.fakeConfig.tvm.runtime,
+  apihost: global.defaultOwApiHost
 }
 
 const expectedLocalOWConfig = expect.objectContaining({
@@ -242,10 +243,6 @@ describe('config fail if', () => {
   test('missing runtime namespace and REMOTE_ACTIONS=true', () => failMissingRuntimeConfig('namespace', 'true'))
   test('missing runtime namespace and REMOTE_ACTIONS=yes', () => failMissingRuntimeConfig('namespace', 'yes'))
   test('missing runtime namespace and REMOTE_ACTIONS=1', () => failMissingRuntimeConfig('namespace', '1'))
-
-  test('missing runtime apihost and REMOTE_ACTIONS=true', () => failMissingRuntimeConfig('apihost', 'true'))
-  test('missing runtime apihost and REMOTE_ACTIONS=yes', () => failMissingRuntimeConfig('apihost', 'yes'))
-  test('missing runtime apihost and REMOTE_ACTIONS=1', () => failMissingRuntimeConfig('apihost', '1'))
 
   test('missing runtime auth and REMOTE_ACTIONS=true', () => failMissingRuntimeConfig('auth', 'true'))
   test('missing runtime auth and REMOTE_ACTIONS=yes', () => failMissingRuntimeConfig('auth', 'yes'))
@@ -728,7 +725,7 @@ describe('with remote actions and frontend', () => {
   test('should inject remote action urls into the UI', async () => {
     await ref.scripts.runDev()
     expect(vol.existsSync('/web-src/src/config.json')).toEqual(true)
-    const baseUrl = 'https://' + remoteOWCredentials.namespace + '.' + global.default_app_host + '/api/v1/web/sample-app-1.0.0/'
+    const baseUrl = 'https://' + remoteOWCredentials.namespace + '.' + global.defaultAppHostName + '/api/v1/web/sample-app-1.0.0/'
     expect(JSON.parse(vol.readFileSync('/web-src/src/config.json').toString())).toEqual({
       action: baseUrl + 'action',
       'action-zip': baseUrl + 'action-zip',

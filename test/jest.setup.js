@@ -123,13 +123,8 @@ global.fakeS3Bucket = 'fake-bucket'
 global.fakeConfig = {
   tvm: {
     runtime: {
-      apihost: 'https://example.com', // must start with https
       namespace: 'fake_ns',
-      auth: 'fake:auth',
-      apiversion: 'v1'
-    },
-    cna: {
-      tvmurl: 'https://example.com/api/v1/web/fakens/tvm/get-s3-upload-token'
+      auth: 'fake:auth'
     }
   },
   local: {
@@ -142,7 +137,6 @@ global.fakeConfig = {
   },
   creds: {
     runtime: {
-      apihost: 'https://example.com',
       namespace: 'fake_ns',
       auth: 'fake:auth'
     },
@@ -187,7 +181,9 @@ global.expectedS3TVMCreds = expect.objectContaining({
   params: { Bucket: expect.any(String) }
 })
 
-global.default_app_host = 'adobeio-static.net'
+global.defaultAppHostName = 'adobeio-static.net'
+global.defaultTvmUrl = 'https://adobeio.adobeioruntime.net/apis/tvm/'
+global.defaultOwApiHost = 'https://adobeioruntime.net'
 
 expect.extend({
   async toThrowWithMessageContaining (received, args) {
