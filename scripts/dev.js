@@ -139,7 +139,7 @@ class ActionServer extends BaseScript {
         // inject backend urls into ui
         this.emit('progress', 'injecting backend urls into frontend config')
 
-        const urls = await utils.getActionUrls(devConfig, isLocal)
+        const urls = await utils.getActionUrls(devConfig, true, isLocal)
 
         await utils.writeConfig(devConfig.web.injectedConfig, urls)
 

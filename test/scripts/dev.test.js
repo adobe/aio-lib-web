@@ -725,7 +725,7 @@ describe('with remote actions and frontend', () => {
   test('should inject remote action urls into the UI', async () => {
     await ref.scripts.runDev()
     expect(vol.existsSync('/web-src/src/config.json')).toEqual(true)
-    const baseUrl = 'https://' + remoteOWCredentials.namespace + '.' + global.defaultAppHostName + '/api/v1/web/sample-app-1.0.0/'
+    const baseUrl = 'https://' + remoteOWCredentials.namespace + '.' + global.defaultOwApiHost.split('https://')[1] + '/api/v1/web/sample-app-1.0.0/'
     expect(JSON.parse(vol.readFileSync('/web-src/src/config.json').toString())).toEqual({
       action: baseUrl + 'action',
       'action-zip': baseUrl + 'action-zip',
