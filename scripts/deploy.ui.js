@@ -27,9 +27,7 @@ class DeployUI extends BaseScript {
     // checks
     /// a. has frontend
     if (!this.config.app.hasFrontend) throw new Error('cannot deploy UI, app has no frontend')
-    /// b. credentials
-    utils.checkS3Credentials(this.config)
-    /// c. build files
+    /// b. build files
     const dist = this.config.web.distProd
     if (!(fs.existsSync(dist)) ||
         !(fs.lstatSync(dist)).isDirectory() ||

@@ -84,7 +84,7 @@ test('should generate and inject web action Urls into web-src/src/config.json, i
   await scripts.buildUI()
   const remoteOWCredentials = global.fakeConfig.tvm.runtime
   expect(vol.existsSync('/web-src/src/config.json')).toBe(true)
-  const baseUrl = 'https://' + remoteOWCredentials.namespace + '.' + remoteOWCredentials.apihost.split('https://')[1] + '/api/v1/web/sample-app-1.0.0/'
+  const baseUrl = 'https://' + remoteOWCredentials.namespace + '.' + global.defaultAppHostName + '/api/v1/web/sample-app-1.0.0/'
   expect(JSON.parse(vol.readFileSync('/web-src/src/config.json').toString())).toEqual({
     action: baseUrl + 'action',
     'action-zip': baseUrl + 'action-zip',
@@ -105,7 +105,7 @@ test('should generate and inject web and non web action urls into web-src/src/co
   await scripts.buildUI()
   const remoteOWCredentials = global.fakeConfig.tvm.runtime
   expect(vol.existsSync('/web-src/src/config.json')).toBe(true)
-  const baseUrl = 'https://' + remoteOWCredentials.namespace + '.' + remoteOWCredentials.apihost.split('https://')[1] + '/api/v1/web/sample-app-1.0.0/'
+  const baseUrl = 'https://' + remoteOWCredentials.namespace + '.' + global.defaultAppHostName + '/api/v1/web/sample-app-1.0.0/'
   expect(JSON.parse(vol.readFileSync('/web-src/src/config.json').toString())).toEqual({
     action: baseUrl.replace('/web', '') + 'action', // fake non web action
     'action-zip': baseUrl + 'action-zip'

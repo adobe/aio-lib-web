@@ -45,8 +45,6 @@ describe('lib/utils', () => {
     expect(typeof utils.checkOpenWhiskCredentials).toBe('function')
     expect(utils.checkFile).toBeDefined()
     expect(typeof utils.checkFile).toBe('function')
-    expect(utils.checkS3Credentials).toBeDefined()
-    expect(typeof utils.checkS3Credentials).toBe('function')
     expect(utils.getUIDevExpressApp).toBeDefined()
     expect(typeof utils.getUIDevExpressApp).toBe('function')
     expect(utils.downloadOWJar).toBeDefined()

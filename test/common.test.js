@@ -17,8 +17,6 @@ const path = require('path')
 const AppScripts = require('../')
 const mockAIOConfig = require('@adobe/aio-lib-core-config')
 
-const defaultAppHostName = 'adobeio-static.net'
-
 beforeEach(async () => {
   // create test app and switch cwd
   global.loadFs(vol, 'sample-app')
@@ -67,16 +65,22 @@ test('Fail load AppScripts with symlink package.json', async () => {
   expect(AppScripts.bind(this)).toThrowWithMessageContaining([`${r('/package.json')} is not a valid file (e.g. cannot be a dir or a symlink)`])
 })
 
-test('should use default hostname if app uses tvm but there is no cna.hostname configuration', async () => {
+test('should use default hostname there is no cna.hostname configuration', async () => {
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
   const scripts = AppScripts()
-  expect(scripts._config.app.hostname).toBe(defaultAppHostName)
+  expect(scripts._config.app.hostname).toBe(global.defaultAppHostName)
 })
 
-test('should use no custom hostname if app uses provided s3 credentials and no hostname was configured', async () => {
-  mockAIOConfig.get.mockReturnValue(global.fakeConfig.creds)
+test('should use default ow apihost if not configured', async () => {
+  mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
   const scripts = AppScripts()
-  expect(scripts._config.app.hostname).toBe(undefined)
+  expect(scripts._config.ow.apihost).toBe(global.defaultOwApiHost)
+})
+
+test('should use default tvm url if not configured', async () => {
+  mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
+  const scripts = AppScripts()
+  expect(scripts._config.s3.tvmUrl).toBe(global.defaultTvmUrl)
 })
 
 test('should use configured cna.hostname if app uses provided s3 credentials', async () => {
