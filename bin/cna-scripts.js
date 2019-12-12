@@ -62,7 +62,7 @@ switch (scriptName) {
       }) // result on stdout stream
       script.on('warning', warning => console.error(warning))
 
-      script.run(process.argv.slice(2))
+      script.run(args.slice(1))
     } catch (e) {
       console.error(e.message)
       process.exit(1)

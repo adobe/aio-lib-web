@@ -55,7 +55,7 @@ class ActionServer extends BaseScript {
 
     // todo take port for ow server as well
     // port for UI
-    const uiPort = args[0] || process.env.PORT || 9080
+    const uiPort = parseInt(args[0]) || parseInt(process.env.PORT) || 9080
 
     // state
     const resources = {}
@@ -81,7 +81,7 @@ class ActionServer extends BaseScript {
         }
 
         this.emit('progress', 'starting local OpenWhisk stack..')
-        const res = await utils.runOpenWhiskJar(OW_JAR_FILE, OW_LOCAL_APIHOST, owWaitInitTime, owWaitPeriodTime, owTimeout, { stdio: 'inherit' })
+        const res = await utils.runOpenWhiskJar(OW_JAR_FILE, OW_LOCAL_APIHOST, owWaitInitTime, owWaitPeriodTime, owTimeout, { stderr: 'inherit' })
         resources.owProc = res.proc
 
         // case1: no dotenv file => expose local credentials in .env, delete on cleanup
@@ -147,6 +147,7 @@ class ActionServer extends BaseScript {
         // todo: does it have to be index.html?
         const entryFile = path.join(devConfig.web.src, 'index.html')
 
+        // todo move to utils.runUIDevServer
         // our defaults here can be overridden by the bundleOptions passed in
         // bundleOptions.https are also passed to bundler.serve
         const parcelBundleOptions = {
@@ -155,10 +156,9 @@ class ActionServer extends BaseScript {
           contentHash: false,
           watch: true,
           minify: false,
-          logLevel: 3,
+          logLevel: 1,
           ...bundleOptions
         }
-
         const bundler = new Bundler(entryFile, parcelBundleOptions)
         if (bundleOptions.https && bundleOptions.https.cert) {
           // caller is responsible for ensuring key&cert files exist
@@ -183,7 +183,7 @@ class ActionServer extends BaseScript {
   // todo make util not instance function
   async generateVSCodeDebugConfig (devConfig, hasFrontend, uiPort, wskdebugProps) {
     const packageName = devConfig.ow.package
-    const manifestActions = devConfig.manifest.package.actions // yaml.safeLoad(await fs.readFile(devConfig.manifest.dist, 'utf8')).packages[packageName].actions //
+    const manifestActions = devConfig.manifest.package.actions
 
     const actionConfigNames = []
     const actionConfigs = Object.keys(manifestActions).map(an => {
