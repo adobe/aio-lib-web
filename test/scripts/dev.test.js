@@ -156,12 +156,11 @@ function expectUIServer (fakeMiddleware, port) {
 }
 
 function expectAppFiles (expectedFiles) {
-  // also allow the /Users (win and osx) and /home (linux) which is created to contain the openwhisk standalone jar
-  // todo mock the ow jar download/file save?
   expectedFiles = new Set(expectedFiles)
   const files = new Set(vol.readdirSync('/'))
-  if (files.has('Users')) files.delete('Users')
-  if (files.has('home')) files.delete('home')
+  // in run local, the openwhisk standalone jar is created at __dirname,
+  // but as we store the app in the root of the memfs, we need to ignore the extra created folder
+  files.delete(owJarPath.split(path.sep)[1])
   expect(files).toEqual(expectedFiles)
 }
 
