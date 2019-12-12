@@ -22,6 +22,7 @@ const BuildActions = require('./build.actions')
 const DeployActions = require('./deploy.actions')
 const utils = require('../lib/utils')
 const execa = require('execa')
+const Bundler = require('parcel-bundler')
 
 // TODO: this jar should become part of the distro, OR it should be pulled from bintray or similar.
 const OW_JAR_URL = 'https://github.com/adobe/aio-app-scripts/raw/binaries/bin/openwhisk-standalone-0.10.jar'
@@ -38,10 +39,9 @@ const owWaitPeriodTime = 500
 const owTimeout = 60000
 
 class ActionServer extends BaseScript {
-  async run (args = []) {
+  async run (args = [], bundleOptions = {}) {
     const taskName = 'Local Dev Server'
     this.emit('start', taskName)
-
     // files
     // const OW_LOG_FILE = '.openwhisk-standalone.log'
     const DOTENV_SAVE = this._absApp('.env.app.save')
@@ -146,10 +146,28 @@ class ActionServer extends BaseScript {
         this.emit('progress', 'starting local frontend server..')
         // todo: does it have to be index.html?
         const entryFile = path.join(devConfig.web.src, 'index.html')
-        const app = utils.getUIDevExpressApp(entryFile, devConfig.web.distDev)
-        resources.uiServer = app.listen(uiPort)
 
-        this.emit('progress', `local frontend server running at http://localhost:${uiPort}`)
+        // our defaults here can be overridden by the bundleOptions passed in
+        // bundleOptions.https are also passed to bundler.serve
+        const parcelBundleOptions = {
+          cache: false,
+          outDir: devConfig.web.distDev,
+          contentHash: false,
+          watch: true,
+          minify: false,
+          logLevel: 3,
+          ...bundleOptions
+        }
+
+        const bundler = new Bundler(entryFile, parcelBundleOptions)
+        if (bundleOptions.https && bundleOptions.https.cert) {
+          // caller is responsible for ensuring key&cert files exist
+          this.emit('progress', `local frontend server running at https://localhost:${uiPort}`)
+          resources.uiServer = bundler.serve(uiPort, bundleOptions.https)
+        } else {
+          this.emit('progress', `local frontend server running at http://localhost:${uiPort}`)
+          resources.uiServer = bundler.serve(uiPort)
+        }
       }
       if (!resources.owProc && !resources.uiServer) {
         // not local + ow is not running => need to explicitely wait for CTRL+C
@@ -267,11 +285,6 @@ function cleanup (err, resources) {
     console.error('restoring previous .vscode/launch.json...')
     fs.moveSync(resources.vscodeDebugConfigSave, resources.vscodeDebugConfig, { overwrite: true })
   }
-  if (resources.uiServer) {
-    console.error('killing ui dev server...')
-    resources.uiServer.close()
-  }
-
   if (resources.dummyProc) {
     console.error('closing sigint waiter...')
     resources.dummyProc.kill()

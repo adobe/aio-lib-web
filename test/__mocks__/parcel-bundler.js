@@ -14,20 +14,29 @@ governing permissions and limitations under the License.
 // /Users/mraho/work/aio-app-scripts/node_modules/grapheme-breaker/src/classes.trie which conflicts with fs mocking
 
 const mockBundle = jest.fn()
-
 const mockMiddleware = jest.fn()
-
 const mockConstructor = jest.fn()
+const mockServe = jest.fn()
+
 // hack to expose constructor, somehow returning a jest.fn doesn't work as expected for commonjs (only es6)
-const Bundler = function (...args) { mockConstructor(...args); return { bundle: mockBundle, middleware: mockMiddleware } }
+const Bundler = function (...args) {
+  mockConstructor(...args)
+  return {
+    bundle: mockBundle,
+    middleware: mockMiddleware,
+    serve: mockServe
+  }
+}
 Bundler.mockBundle = mockBundle
 Bundler.mockConstructor = mockConstructor
 Bundler.mockMiddleware = mockMiddleware
+Bundler.mockServe = mockServe
 // alias
 Bundler.mockReset = () => {
   Bundler.mockConstructor.mockReset()
   Bundler.mockBundle.mockReset()
   Bundler.mockMiddleware.mockReset()
+  Bundler.mockServe.mockReset()
 }
 
 module.exports = Bundler

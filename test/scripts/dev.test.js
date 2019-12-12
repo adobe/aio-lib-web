@@ -20,9 +20,6 @@ const mockAIOConfig = require('@adobe/aio-lib-core-config')
 const execa = require('execa')
 jest.mock('execa')
 
-const express = require('express')
-jest.mock('express')
-
 const fetch = require('node-fetch')
 jest.mock('node-fetch')
 
@@ -51,7 +48,6 @@ beforeEach(() => {
   fetch.mockReset()
   execa.mockReset()
 
-  express.mockReset()
   Bundler.mockReset()
 
   process.exit.mockReset()
@@ -143,16 +139,13 @@ function expectDevActionBuildAndDeploy (expectedBuildDeployConfig) {
 }
 
 function expectUIServer (fakeMiddleware, port) {
-  expect(express.mockConstructor).toHaveBeenCalledTimes(1)
   expect(Bundler.mockConstructor).toHaveBeenCalledTimes(1)
 
-  expect(express.mockApp.use).toHaveBeenCalledWith(fakeMiddleware)
-  expect(Bundler.mockConstructor).toHaveBeenCalledWith(r('/web-src/index.html'), expect.objectContaining({
-    watch: true,
-    outDir: r('/dist/web-src-dev')
-  }))
-
-  expect(express.mockApp.listen).toHaveBeenCalledWith(port)
+  expect(Bundler.mockConstructor).toHaveBeenCalledWith(r('/web-src/index.html'),
+    expect.objectContaining({
+      watch: true,
+      outDir: r('/dist/web-src-dev')
+    }))
 }
 
 function expectAppFiles (expectedFiles) {
@@ -352,7 +345,6 @@ function runCommonRemoteTests (ref) {
 function runCommonBackendOnlyTests (ref) {
   test('should not start a ui server', async () => {
     await ref.scripts.runDev()
-    expect(express.mockConstructor).toHaveBeenCalledTimes(0)
     expect(Bundler.mockConstructor).toHaveBeenCalledTimes(0)
   })
 
@@ -386,20 +378,6 @@ function runCommonWithFrontendTests (ref) {
         getExpectedUIVSCodeDebugConfig(9080)
       ]
     }))
-  })
-
-  test('should close the express server on sigint', async () => {
-    const mockClose = jest.fn()
-    express.mockApp.listen.mockReturnValue({ close: mockClose })
-    return new Promise(resolve => {
-      testCleanupNoErrors(resolve, ref.scripts, () => expect(mockClose).toHaveBeenCalledTimes(1))
-    })
-  })
-
-  test('should close the express server on error', async () => {
-    const mockClose = jest.fn()
-    express.mockApp.listen.mockReturnValue({ close: mockClose })
-    await testCleanupOnError(ref.scripts, () => expect(mockClose).toHaveBeenCalledTimes(1))
   })
 }
 
@@ -750,6 +728,13 @@ describe('with remote actions and frontend', () => {
       'action-zip': baseUrl + 'action-zip',
       'action-sequence': baseUrl + 'action-sequence'
     })
+  })
+
+  test('should use https cert/key if passed', async () => {
+    const httpsConfig = { https: { cert: 'cert.cert', key: 'key.key' } }
+    const port = 8888
+    await ref.scripts.runDev([port], httpsConfig)
+    expect(Bundler.mockServe).toHaveBeenCalledWith(port, httpsConfig.https)
   })
 })
 
