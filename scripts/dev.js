@@ -40,10 +40,8 @@ const owTimeout = 60000
 
 class ActionServer extends BaseScript {
   async run (args = [], bundleOptions = {}) {
-
     const taskName = 'Local Dev Server'
     this.emit('start', taskName)
-
     // files
     // const OW_LOG_FILE = '.openwhisk-standalone.log'
     const DOTENV_SAVE = this._absApp('.env.app.save')
@@ -151,7 +149,7 @@ class ActionServer extends BaseScript {
 
         // our defaults here can be overridden by the bundleOptions passed in
         // bundleOptions.https are also passed to bundler.serve
-        let parcelBundleOptions = {
+        const parcelBundleOptions = {
           cache: false,
           outDir: devConfig.web.distDev,
           contentHash: false,
@@ -162,11 +160,12 @@ class ActionServer extends BaseScript {
         }
 
         const bundler = new Bundler(entryFile, parcelBundleOptions)
-        this.emit('progress', `local frontend server running at https://localhost:${uiPort}`)
         if (bundleOptions.https && bundleOptions.https.cert) {
           // caller is responsible for ensuring key&cert files exist
+          this.emit('progress', `local frontend server running at https://localhost:${uiPort}`)
           resources.uiServer = bundler.serve(uiPort, bundleOptions.https)
         } else {
+          this.emit('progress', `local frontend server running at http://localhost:${uiPort}`)
           resources.uiServer = bundler.serve(uiPort)
         }
       }
