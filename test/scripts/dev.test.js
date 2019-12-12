@@ -232,13 +232,14 @@ describe('config fail if', () => {
     const scripts = await loadEnvScripts('sample-app', config)
     await expect(scripts.runDev()).rejects.toEqual(expect.objectContaining({ message: expect.stringContaining(`missing Adobe I/O Runtime ${configVarName}`) }))
   }
-  test('missing runtime namespace and REMOTE_ACTIONS=true', () => failMissingRuntimeConfig('namespace', 'true'))
-  test('missing runtime namespace and REMOTE_ACTIONS=yes', () => failMissingRuntimeConfig('namespace', 'yes'))
-  test('missing runtime namespace and REMOTE_ACTIONS=1', () => failMissingRuntimeConfig('namespace', '1'))
 
-  test('missing runtime auth and REMOTE_ACTIONS=true', () => failMissingRuntimeConfig('auth', 'true'))
-  test('missing runtime auth and REMOTE_ACTIONS=yes', () => failMissingRuntimeConfig('auth', 'yes'))
-  test('missing runtime auth and REMOTE_ACTIONS=1', () => failMissingRuntimeConfig('auth', '1'))
+  test('missing runtime namespace and REMOTE_ACTIONS=true', () => failMissingRuntimeConfig('namespace', 'true')) // eslint-disable-line jest/expect-expect
+  test('missing runtime namespace and REMOTE_ACTIONS=yes', () => failMissingRuntimeConfig('namespace', 'yes')) // eslint-disable-line jest/expect-expect
+  test('missing runtime namespace and REMOTE_ACTIONS=1', () => failMissingRuntimeConfig('namespace', '1')) // eslint-disable-line jest/expect-expect
+
+  test('missing runtime auth and REMOTE_ACTIONS=true', () => failMissingRuntimeConfig('auth', 'true')) // eslint-disable-line jest/expect-expect
+  test('missing runtime auth and REMOTE_ACTIONS=yes', () => failMissingRuntimeConfig('auth', 'yes')) // eslint-disable-line jest/expect-expect
+  test('missing runtime auth and REMOTE_ACTIONS=1', () => failMissingRuntimeConfig('auth', '1')) // eslint-disable-line jest/expect-expect
 })
 
 function runCommonTests (ref) {
@@ -263,23 +264,29 @@ function runCommonTests (ref) {
     expect(vol.readFileSync('/.vscode/launch.json.save').toString()).toEqual('fakecontentsaved')
   })
 
-  test('should cleanup generated files on SIGINT', async done => {
-    await testCleanupNoErrors(done, ref.scripts, () => { expectAppFiles(['manifest.yml', 'package.json', 'web-src', 'actions']) })
+  // eslint-disable-next-line jest/expect-expect
+  test('should cleanup generated files on SIGINT', async () => {
+    return new Promise(resolve => {
+      testCleanupNoErrors(resolve, ref.scripts, () => { expectAppFiles(['manifest.yml', 'package.json', 'web-src', 'actions']) })
+    })
   })
 
+  // eslint-disable-next-line jest/expect-expect
   test('should cleanup generated files on error', async () => {
     await testCleanupOnError(ref.scripts, () => {
       expectAppFiles(['manifest.yml', 'package.json', 'web-src', 'actions'])
     })
   })
 
-  test('should cleanup and restore previous existing .vscode/config.json on SIGINT', async done => {
+  test('should cleanup and restore previous existing .vscode/config.json on SIGINT', async () => {
     global.addFakeFiles(vol, '.vscode', { 'launch.json': 'fakecontent' })
-    await testCleanupNoErrors(done, ref.scripts, () => {
-      expectAppFiles(['manifest.yml', 'package.json', 'web-src', 'actions', '.vscode'])
-      expect(vol.existsSync('/.vscode/launch.json.save')).toEqual(false)
-      expect(vol.existsSync('/.vscode/launch.json')).toEqual(true)
-      expect(vol.readFileSync('/.vscode/launch.json').toString()).toEqual('fakecontent')
+    return new Promise(resolve => {
+      testCleanupNoErrors(resolve, ref.scripts, () => {
+        expectAppFiles(['manifest.yml', 'package.json', 'web-src', 'actions', '.vscode'])
+        expect(vol.existsSync('/.vscode/launch.json.save')).toEqual(false)
+        expect(vol.existsSync('/.vscode/launch.json')).toEqual(true)
+        expect(vol.readFileSync('/.vscode/launch.json').toString()).toEqual('fakecontent')
+      })
     })
   })
 
@@ -293,12 +300,14 @@ function runCommonTests (ref) {
     })
   })
 
-  test('should not remove previously existing ./vscode/launch.json.save on SIGINT', async done => {
+  test('should not remove previously existing ./vscode/launch.json.save on SIGINT', async () => {
     global.addFakeFiles(vol, '.vscode', { 'launch.json': 'fakecontent' })
     global.addFakeFiles(vol, '.vscode', { 'launch.json.save': 'fakecontentsaved' })
-    await testCleanupNoErrors(done, ref.scripts, () => {
-      expect(vol.existsSync('/.vscode/launch.json.save')).toEqual(true)
-      expect(vol.readFileSync('/.vscode/launch.json.save').toString()).toEqual('fakecontentsaved')
+    return new Promise(resolve => {
+      testCleanupNoErrors(resolve, ref.scripts, () => {
+        expect(vol.existsSync('/.vscode/launch.json.save')).toEqual(true)
+        expect(vol.readFileSync('/.vscode/launch.json.save').toString()).toEqual('fakecontentsaved')
+      })
     })
   })
 
@@ -313,6 +322,7 @@ function runCommonTests (ref) {
 }
 
 function runCommonRemoteTests (ref) {
+  // eslint-disable-next-line jest/expect-expect
   test('should build and deploy actions to remote', async () => {
     await ref.scripts.runDev()
     expectDevActionBuildAndDeploy(expectedRemoteOWConfig)
@@ -351,6 +361,7 @@ function runCommonBackendOnlyTests (ref) {
 }
 
 function runCommonWithFrontendTests (ref) {
+  // eslint-disable-next-line jest/expect-expect
   test('should start a ui server', async () => {
     const fakeMiddleware = Symbol('fake middleware')
     Bundler.mockMiddleware.mockReturnValue(fakeMiddleware)
@@ -464,6 +475,7 @@ function runCommonLocalTests (ref) {
     await expect(ref.scripts.runDev()).rejects.toEqual(expect.objectContaining({ message: `unexpected response while downloading '${owJarUrl}': 404` }))
   })
 
+  // eslint-disable-next-line jest/expect-expect
   test('should build and deploy actions to local ow', async () => {
     await ref.scripts.runDev()
     expectDevActionBuildAndDeploy(expectedLocalOWConfig)
@@ -519,7 +531,7 @@ MORE_VAR_1=hello2
     expect(dotenvSaveContent).toEqual(dotenvOldContent)
   })
 
-  test('should restore .env file on SIGINT', async done => {
+  test('should restore .env file on SIGINT', async () => {
     const dotenvOldContent = generateDotenvContent(remoteOWCredentials) + `
 AIO_RUNTIME_MORE=hello
 AIO_CNA_TVMURL=yolo
@@ -527,11 +539,13 @@ MORE_VAR_1=hello2
 `
     vol.writeFileSync('/.env', dotenvOldContent)
 
-    await testCleanupNoErrors(done, ref.scripts, () => {
-      expect(vol.existsSync('/.env.app.save')).toBe(false)
-      expect(vol.existsSync('/.env')).toBe(true)
-      const dotenvContent = vol.readFileSync('/.env').toString()
-      expect(dotenvContent).toEqual(dotenvOldContent)
+    return new Promise(resolve => {
+      testCleanupNoErrors(resolve, ref.scripts, () => {
+        expect(vol.existsSync('/.env.app.save')).toBe(false)
+        expect(vol.existsSync('/.env')).toBe(true)
+        const dotenvContent = vol.readFileSync('/.env').toString()
+        expect(dotenvContent).toEqual(dotenvOldContent)
+      })
     })
   })
 
@@ -556,7 +570,7 @@ MORE_VAR_1=hello2
     expect(execa).toHaveBeenCalledWith(...execaLocalOWArgs)
   })
 
-  test('should kill openwhisk-standalone subprocess on SIGINT', async done => {
+  test('should kill openwhisk-standalone subprocess on SIGINT', async () => {
     const owProcessMockKill = jest.fn()
     execa.mockImplementation((cmd, args) => {
       if (cmd === 'java' && args.includes('-jar') && args.includes(owJarPath)) {
@@ -570,9 +584,11 @@ MORE_VAR_1=hello2
         kill: jest.fn()
       }
     })
-    await testCleanupNoErrors(done, ref.scripts, () => {
-      expect(execa).toHaveBeenCalledWith(...execaLocalOWArgs)
-      expect(owProcessMockKill).toHaveBeenCalledTimes(1)
+    return new Promise(resolve => {
+      testCleanupNoErrors(resolve, ref.scripts, () => {
+        expect(execa).toHaveBeenCalledWith(...execaLocalOWArgs)
+        expect(owProcessMockKill).toHaveBeenCalledTimes(1)
+      })
     })
   })
 
@@ -671,12 +687,14 @@ describe('with remote actions and no frontend', () => {
     expect(execa).toHaveBeenCalledWith('node')
   })
 
-  test('should kill dummy node background process on sigint', async done => {
+  test('should kill dummy node background process on sigint', async () => {
     const mockKill = jest.fn()
     execa.mockReturnValue({ kill: mockKill })
     await ref.scripts.runDev()
-    await testCleanupNoErrors(done, ref.scripts, () => {
-      expect(mockKill).toHaveBeenCalledTimes(1)
+    return new Promise(resolve => {
+      testCleanupNoErrors(resolve, ref.scripts, () => {
+        expect(mockKill).toHaveBeenCalledTimes(1)
+      })
     })
   })
 

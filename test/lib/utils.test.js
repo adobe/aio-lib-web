@@ -93,6 +93,7 @@ describe('lib/utils', () => {
     // TODO: more?
   })
 
+  // eslint-disable-next-line jest/no-commented-out-tests
   // test('hasWskDebugInstalled', async () => {
   //   mockResult = () => {
   //     return { stdout: 'wskdebug version 8.132.3' }
@@ -101,6 +102,7 @@ describe('lib/utils', () => {
   //   expect(hasWskDbg).toBe(true)
   // })
 
+  // eslint-disable-next-line jest/no-commented-out-tests
   // test('hasWskDebugInstalled mock false', async () => {
   //   mockResult = () => {
   //     throw Error('fake exception')
