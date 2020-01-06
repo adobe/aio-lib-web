@@ -14,15 +14,11 @@ governing permissions and limitations under the License.
 const BaseScript = require('../lib/abstract-script')
 const TvmClient = require('@adobe/aio-lib-core-tvm')
 const RemoteStorage = require('../lib/remote-storage')
-const utils = require('../lib/utils')
 
 class UndeployUI extends BaseScript {
   async run () {
     const taskName = 'Undeploy static files'
     this.emit('start', taskName)
-
-    // check credentials
-    utils.checkS3Credentials(this.config)
 
     const creds = this.config.s3.creds ||
         await (await TvmClient.init({

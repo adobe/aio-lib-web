@@ -22,6 +22,7 @@ const BuildActions = require('./build.actions')
 const DeployActions = require('./deploy.actions')
 const utils = require('../lib/utils')
 const execa = require('execa')
+const Bundler = require('parcel-bundler')
 
 // TODO: this jar should become part of the distro, OR it should be pulled from bintray or similar.
 const OW_JAR_URL = 'https://github.com/adobe/aio-app-scripts/raw/binaries/bin/openwhisk-standalone-0.10.jar'
@@ -38,10 +39,9 @@ const owWaitPeriodTime = 500
 const owTimeout = 60000
 
 class ActionServer extends BaseScript {
-  async run (args = []) {
+  async run (args = [], bundleOptions = {}) {
     const taskName = 'Local Dev Server'
     this.emit('start', taskName)
-
     // files
     // const OW_LOG_FILE = '.openwhisk-standalone.log'
     const DOTENV_SAVE = this._absApp('.env.app.save')
@@ -55,7 +55,7 @@ class ActionServer extends BaseScript {
 
     // todo take port for ow server as well
     // port for UI
-    const uiPort = args[0] || process.env.PORT || 9080
+    const uiPort = parseInt(args[0]) || parseInt(process.env.PORT) || 9080
 
     // state
     const resources = {}
@@ -81,7 +81,7 @@ class ActionServer extends BaseScript {
         }
 
         this.emit('progress', 'starting local OpenWhisk stack..')
-        const res = await utils.runOpenWhiskJar(OW_JAR_FILE, OW_LOCAL_APIHOST, owWaitInitTime, owWaitPeriodTime, owTimeout, { stdio: 'inherit' })
+        const res = await utils.runOpenWhiskJar(OW_JAR_FILE, OW_LOCAL_APIHOST, owWaitInitTime, owWaitPeriodTime, owTimeout, { stderr: 'inherit' })
         resources.owProc = res.proc
 
         // case1: no dotenv file => expose local credentials in .env, delete on cleanup
@@ -138,16 +138,36 @@ class ActionServer extends BaseScript {
       if (hasFrontend) {
         // inject backend urls into ui
         this.emit('progress', 'injecting backend urls into frontend config')
-        const urls = await utils.getActionUrls(devConfig.ow, devConfig.manifest.package, isLocal)
+
+        const urls = await utils.getActionUrls(devConfig, true, isLocal)
+
         await utils.writeConfig(devConfig.web.injectedConfig, urls)
 
         this.emit('progress', 'starting local frontend server..')
         // todo: does it have to be index.html?
         const entryFile = path.join(devConfig.web.src, 'index.html')
-        const app = utils.getUIDevExpressApp(entryFile, devConfig.web.distDev)
-        resources.uiServer = app.listen(uiPort)
 
-        this.emit('progress', `local frontend server running at http://localhost:${uiPort}`)
+        // todo move to utils.runUIDevServer
+        // our defaults here can be overridden by the bundleOptions passed in
+        // bundleOptions.https are also passed to bundler.serve
+        const parcelBundleOptions = {
+          cache: false,
+          outDir: devConfig.web.distDev,
+          contentHash: false,
+          watch: true,
+          minify: false,
+          logLevel: 1,
+          ...bundleOptions
+        }
+        const bundler = new Bundler(entryFile, parcelBundleOptions)
+        if (bundleOptions.https && bundleOptions.https.cert) {
+          // caller is responsible for ensuring key&cert files exist
+          this.emit('progress', `local frontend server running at https://localhost:${uiPort}`)
+          resources.uiServer = bundler.serve(uiPort, bundleOptions.https)
+        } else {
+          this.emit('progress', `local frontend server running at http://localhost:${uiPort}`)
+          resources.uiServer = bundler.serve(uiPort)
+        }
       }
       if (!resources.owProc && !resources.uiServer) {
         // not local + ow is not running => need to explicitely wait for CTRL+C
@@ -163,7 +183,7 @@ class ActionServer extends BaseScript {
   // todo make util not instance function
   async generateVSCodeDebugConfig (devConfig, hasFrontend, uiPort, wskdebugProps) {
     const packageName = devConfig.ow.package
-    const manifestActions = devConfig.manifest.package.actions // yaml.safeLoad(await fs.readFile(devConfig.manifest.dist, 'utf8')).packages[packageName].actions //
+    const manifestActions = devConfig.manifest.package.actions
 
     const actionConfigNames = []
     const actionConfigs = Object.keys(manifestActions).map(an => {
@@ -265,11 +285,6 @@ function cleanup (err, resources) {
     console.error('restoring previous .vscode/launch.json...')
     fs.moveSync(resources.vscodeDebugConfigSave, resources.vscodeDebugConfig, { overwrite: true })
   }
-  if (resources.uiServer) {
-    console.error('killing ui dev server...')
-    resources.uiServer.close()
-  }
-
   if (resources.dummyProc) {
     console.error('closing sigint waiter...')
     resources.dummyProc.kill()

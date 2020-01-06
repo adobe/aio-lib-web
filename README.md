@@ -63,8 +63,7 @@ aio-app-scripts undeploy.ui
 
 ## Using aio-app-scripts for local dev
 
-- run dev server, this will spin up a local OpenWhisk stack and run a small
-  express server for the frontend
+- run dev server, this will spin up a local OpenWhisk stack and run a server for the frontend
 
 > **Requires docker!**
 > **Requires Java!**

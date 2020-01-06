@@ -41,39 +41,38 @@ beforeEach(() => {
 afterEach(() => global.cleanFs(vol))
 
 describe('missing credentials/tvm url', () => {
-  const errorMessage = 'missing Adobe I/O TVM url or s3 credentials, did you set the `AIO_CNA_TVMURL` OR `[AIO_CNA_AWSACCESSKEYID, AIO_CNA_AWSSECRETACCESSKEY, AIO_CNA_S3BUCKET]` environment variables?'
   beforeEach(async () => {
     // create test app
     global.loadFs(vol, 'sample-app')
   })
-  test('should fail if there is no tvm url nor s3 credentials configured', async () => {
+  test('should use default tvm url is no tvm url nor s3 credentials configured', async () => {
     mockAIOConfig.get.mockReturnValue({})
     const scripts = await AppScripts()
-    await expect(scripts.deployUI()).rejects.toThrow(errorMessage)
+    expect(scripts._config.s3.tvmUrl).toEqual(global.defaultTvmUrl)
   })
 
-  test('should fail if there is no tvm url and missing cna.awsaccesskeyid', async () => {
+  test('should use default tvm url if there is no tvm url configured and missing cna.awsaccesskeyid', async () => {
     const config = cloneDeep(global.fakeConfig.creds)
     delete config.cna.awsaccesskeyid
     mockAIOConfig.get.mockReturnValue(config)
     const scripts = await AppScripts()
-    await expect(scripts.deployUI()).rejects.toThrow(errorMessage)
+    expect(scripts._config.s3.tvmUrl).toEqual(global.defaultTvmUrl)
   })
 
-  test('should fail if there is no tvm url and missing cna.s3bucket', async () => {
+  test('should use default tvm url if there is no tvm url configured and missing cna.s3bucket', async () => {
     const config = cloneDeep(global.fakeConfig.creds)
     delete config.cna.s3bucket
     mockAIOConfig.get.mockReturnValue(config)
     const scripts = await AppScripts()
-    await expect(scripts.deployUI()).rejects.toThrow(errorMessage)
+    expect(scripts._config.s3.tvmUrl).toEqual(global.defaultTvmUrl)
   })
 
-  test('should fail if there is no tvm url and missing cna.awssecretaccesskey', async () => {
+  test('should use default tvm url if there is no tvm url configured and missing cna.awssecretaccesskey', async () => {
     const config = cloneDeep(global.fakeConfig.creds)
     delete config.cna.awssecretaccesskey
     mockAIOConfig.get.mockReturnValue(config)
     const scripts = await AppScripts()
-    await expect(scripts.deployUI()).rejects.toThrow(errorMessage)
+    expect(scripts._config.s3.tvmUrl).toEqual(global.defaultTvmUrl)
   })
 })
 
@@ -175,12 +174,5 @@ describe('Deploy static files with env credentials', () => {
     await global.addFakeFiles(vol, buildDir, ['index.html'])
     await scripts.deployUI()
     expect(RemoteStorage).toHaveBeenCalledWith(global.expectedS3ENVCreds)
-  })
-
-  test('should return with the s3 url (no cdn / custom domain ootb)', async () => {
-    // spies can be restored
-    await global.addFakeFiles(vol, buildDir, ['index.html'])
-    const url = await scripts.deployUI()
-    expect(url).toBe(`https://s3.amazonaws.com/${global.fakeConfig.creds.cna.s3bucket}/${global.fakeConfig.creds.runtime.namespace}/sample-app-1.0.0/index.html`)
   })
 })
