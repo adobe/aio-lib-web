@@ -39,7 +39,7 @@ const Logs = require('./scripts/logs')
  * @property {function(object):Promise<undefined>} runDev - runs the app in a local development server, set env
  * REMOTE_ACTIONS=true to use remotely deployed actions
  * @property {function(object):Promise<undefined>} addAuth - adds auth capabilities to the application
- * @property {function(object, object):Promise<undefined>} Logs - shows action logs
+ * @property {function(object, object):Promise<undefined>} logs - shows action logs
  */
 
 /**
