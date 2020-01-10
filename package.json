@@ -1,6 +1,6 @@
 {
   "name": "@adobe/aio-app-scripts",
-  "version": "0.6.6",
+  "version": "0.7.0",
   "description": "Utility tooling scripts to build, deploy and run an Adobe I/O App",
   "main": "index.js",
   "directories": {
@@ -32,8 +32,8 @@
     "aio-app-scripts": "./bin/cna-scripts.js"
   },
   "dependencies": {
-    "@adobe/aio-cli-plugin-runtime": "^1.2.0",
-    "@adobe/aio-lib-core-config": "^1.0.15",
+    "@adobe/aio-cli-plugin-runtime": "^1.3.0",
+    "@adobe/aio-lib-core-config": "^1.1.0",
     "@adobe/aio-lib-core-logging": "^1.0.0",
     "@adobe/aio-lib-core-tvm": "^1.0.1",
     "@hapi/joi": "^16.1.7",
@@ -59,7 +59,7 @@
     "eslint-config-standard": "^14.1.0",
     "eslint-plugin-import": "^2.18.2",
     "eslint-plugin-jest": "^23.1.1",
-    "eslint-plugin-node": "^10.0.0",
+    "eslint-plugin-node": "^11.0.0",
     "eslint-plugin-promise": "^4.2.1",
     "eslint-plugin-standard": "^4.0.1",
     "jest": "^24.9.0",
