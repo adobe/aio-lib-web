@@ -13,7 +13,7 @@ governing permissions and limitations under the License.
 /* eslint-disable no-template-curly-in-string */
 const BaseScript = require('../lib/abstract-script')
 
-const debug = require('debug')('aio-app-scripts:dev')
+const aioLogger = require('@adobe/aio-lib-core-logging')('aio-app-scripts:dev', { provider: 'debug' })
 
 const path = require('path')
 const fs = require('fs-extra')
@@ -176,6 +176,7 @@ class ActionServer extends BaseScript {
       }
       this.emit('progress', 'press CTRL+C to terminate dev environment')
     } catch (e) {
+      aioLogger.error('Unexpected error. Cleaning up.')
       cleanup(e, resources)
     }
   }
@@ -258,23 +259,23 @@ class ActionServer extends BaseScript {
 
 function cleanup (err, resources) {
   if (resources.dotenv && resources.dotenvSave && fs.existsSync(resources.dotenvSave)) {
-    console.error('restoring .env file...')
+    aioLogger.info('restoring .env file...')
     fs.moveSync(resources.dotenvSave, resources.dotenv, { overwrite: true })
   } else if (resources.dotenv && !resources.dotenvSave) {
     // if there was no save file it means .env was created
-    console.error('deleting tmp .env file...')
+    aioLogger.info('deleting tmp .env file...')
     fs.removeSync(resources.dotenv)
   }
   if (resources.owProc) {
-    console.error('killing local OpenWhisk process...')
+    aioLogger.info('killing local OpenWhisk process...')
     resources.owProc.kill()
   }
   if (resources.wskdebugProps) {
-    console.error('removing wskdebug tmp credentials file...')
+    aioLogger.info('removing wskdebug tmp credentials file...')
     fs.unlinkSync(resources.wskdebugProps)
   }
   if (resources.vscodeDebugConfig && !resources.vscodeDebugConfigSave) {
-    console.error('removing .vscode/launch.json...')
+    aioLogger.info('removing .vscode/launch.json...')
     const vscodeDir = path.dirname(resources.vscodeDebugConfig)
     fs.unlinkSync(resources.vscodeDebugConfig)
     if (fs.readdirSync(vscodeDir).length === 0) {
@@ -282,15 +283,15 @@ function cleanup (err, resources) {
     }
   }
   if (resources.vscodeDebugConfigSave) {
-    console.error('restoring previous .vscode/launch.json...')
+    aioLogger.info('restoring previous .vscode/launch.json...')
     fs.moveSync(resources.vscodeDebugConfigSave, resources.vscodeDebugConfig, { overwrite: true })
   }
   if (resources.dummyProc) {
-    console.error('closing sigint waiter...')
+    aioLogger.info('closing sigint waiter...')
     resources.dummyProc.kill()
   }
   if (err) {
-    debug('cleaning up because of dev error', err)
+    aioLogger.info('cleaning up because of dev error', err)
     throw err // exits with 1
   }
   process.exit(0) // todo don't exit just make sure we get out of waiting, unregister sigint and return properly (e.g. not waiting on stdin.resume anymore)

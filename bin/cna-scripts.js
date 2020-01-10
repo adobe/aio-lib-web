@@ -13,7 +13,7 @@ governing permissions and limitations under the License.
 
 const path = require('path')
 const fs = require('fs')
-const debug = require('debug')('aio-app-scripts:bin')
+const aioLogger = require('@adobe/aio-lib-core-logging')('aio-app-scripts:bin', { provider: 'debug' })
 
 const args = process.argv.slice(2)
 
@@ -31,7 +31,7 @@ if (!args[0]) {
 const scriptDir = path.join(__dirname, '..', 'scripts')
 const scriptName = args[0]
 
-debug('Running script : ', scriptName)
+aioLogger.debug('Running script : ', scriptName)
 
 switch (scriptName) {
   case 'add.auth' : // intentional fallthroughs
@@ -48,7 +48,7 @@ switch (scriptName) {
 
       const config = require('../lib/config-loader')()
 
-      debug('loaded config')
+      aioLogger.debug('loaded config')
 
       const ScriptClass = require(scriptPath)
       const script = new ScriptClass(config)

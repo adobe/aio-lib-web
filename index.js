@@ -11,7 +11,7 @@ governing permissions and limitations under the License.
 */
 const loadConfig = require('./lib/config-loader')
 
-const debug = require('debug')('aio-app-scripts:index')
+const aioLogger = require('@adobe/aio-lib-core-logging')('aio-app-scripts:index', { provider: 'debug' })
 const BuildUI = require('./scripts/build.ui')
 const BuildActions = require('./scripts/build.actions')
 const DeployUI = require('./scripts/deploy.ui')
@@ -53,7 +53,7 @@ const AddAuth = require('./scripts/add.auth')
  * @returns {AppScripts} With all script functions
  */
 module.exports = function (options) {
-  debug('exportScripts')
+  aioLogger.debug('exportScripts')
 
   options = options || {}
   const listeners = options.listeners || {}
