@@ -10,7 +10,7 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-const Openwhisk = require('Openwhisk')
+const Openwhisk = require('openwhisk')
 const BaseScript = require('../lib/abstract-script')
 const utils = require('../lib/utils')
 
@@ -23,7 +23,9 @@ class Logs extends BaseScript {
     let limit = logsOptions.limit
     // remove this bit if app-scripts becomes a lib
     const i = args.indexOf('-l')
+    /* istanbul ignore next */
     if (i >= 0) {
+      /* istanbul ignore next */
       limit = args[i + 1]
     }
     limit = limit || 1
@@ -51,7 +53,7 @@ class Logs extends BaseScript {
       const activation = activations[i]
       const results = await ow.activations.logs({ activationId: activation.activationId })
       // send fetched logs to console
-      if (results.logs && results.logs.length > 0) {
+      if (results.logs.length > 0) {
         hasLogs = true
         logger(activation.name + ':' + activation.activationId)
         results.logs.forEach(function (log) {
