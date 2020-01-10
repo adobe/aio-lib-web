@@ -31,46 +31,36 @@ if (!args[0]) {
 const scriptDir = path.join(__dirname, '..', 'scripts')
 const scriptName = args[0]
 
+const scripts = fs.readdirSync(scriptDir).map(f => path.parse(f).name).join(', ')
+
 debug('Running script : ', scriptName)
 
-switch (scriptName) {
-  case 'add.auth' : // intentional fallthroughs
-  case 'build.actions' :
-  case 'build.ui' :
-  case 'deploy.actions' :
-  case 'deploy.ui' :
-  case 'dev' :
-  case 'undeploy.actions' :
-  case 'undeploy.ui' : {
-    try {
-      const scriptPath = path.join(scriptDir, scriptName + '.js')
-      // execa.sync(scriptPath, args.slice(1), { stdio: 'inherit' })
+if (!scripts.includes(scriptName)) {
+  console.error(`script '${scriptName}' is not supported, choose one of: ${scripts}`)
+}
 
-      const config = require('../lib/config-loader')()
+try {
+  const scriptPath = path.join(scriptDir, scriptName + '.js')
+  // execa.sync(scriptPath, args.slice(1), { stdio: 'inherit' })
 
-      debug('loaded config')
+  const config = require('../lib/config-loader')()
 
-      const ScriptClass = require(scriptPath)
-      const script = new ScriptClass(config)
-      script.on('start', taskName => console.error(`${taskName}...`))
-      script.on('progress', item => console.error(`  > ${item}`))
-      script.on('end', (taskName, res) => {
-        console.error(`${taskName} done!`)
-        if (res) {
-          console.log(res)
-        }
-      }) // result on stdout stream
-      script.on('warning', warning => console.error(warning))
+  debug('loaded config')
 
-      script.run(args.slice(1))
-    } catch (e) {
-      console.error(e.message)
-      process.exit(1)
+  const ScriptClass = require(scriptPath)
+  const script = new ScriptClass(config)
+  script.on('start', taskName => console.error(`${taskName}...`))
+  script.on('progress', item => console.error(`  > ${item}`))
+  script.on('end', (taskName, res) => {
+    console.error(`${taskName} done!`)
+    if (res) {
+      console.log(res)
     }
-    break
-  }
-  default : {
-    console.error(`script '${scriptName}' is not supported, choose one of: ${fs.readdirSync(scriptDir).map(f => path.parse(f).name).join(', ')}`)
-    break
-  }
+  }) // result on stdout stream
+  script.on('warning', warning => console.error(warning))
+
+  script.run(args.slice(1))
+} catch (e) {
+  console.error(e.message)
+  process.exit(1)
 }
