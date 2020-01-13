@@ -17,8 +17,7 @@ const utils = require('../../lib/utils')
 const execa = require('execa')
 jest.mock('execa')
 
-const debug = require('debug')
-jest.mock('debug')
+const aioLogger = require('@adobe/aio-lib-core-logging')('test', { provider: 'debug' })
 
 // zip implementation is complex to test => tested in utils.test.js
 utils.zip = jest.fn()
@@ -50,7 +49,6 @@ beforeEach(() => {
   webpackMock.run.mockImplementation(cb => cb(null, webpackStatsMock))
 
   execa.mockReset()
-  debug.mockReset()
 
   utils.zip.mockReset()
 })
@@ -222,7 +220,7 @@ describe('build by bundling js action file with webpack', () => {
       warnings: 'fake warnings'
     })
     await scripts.buildActions()
-    expect(debug.mockDebug).toHaveBeenCalledWith('webpack compilation warnings:\nfake warnings')
+    expect(aioLogger.debug).toHaveBeenCalledWith('webpack compilation warnings:\nfake warnings')
   })
 
   test('should throw if webpack returns an error ', async () => {
@@ -241,7 +239,7 @@ describe('build by bundling js action file with webpack', () => {
       warnings: 'fake warnings'
     })
     await expect(scripts.buildActions()).rejects.toThrow('action build failed, webpack compilation errors:\nfake errors')
-    expect(debug.mockDebug).toHaveBeenCalledWith('webpack compilation warnings:\nfake warnings')
+    expect(aioLogger.debug).toHaveBeenCalledWith('webpack compilation warnings:\nfake warnings')
   })
 
   test('should fail if webpack did not generated the js file for the bundled action', async () => {

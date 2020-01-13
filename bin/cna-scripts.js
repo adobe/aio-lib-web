@@ -13,7 +13,7 @@ governing permissions and limitations under the License.
 
 const path = require('path')
 const fs = require('fs')
-const debug = require('debug')('aio-app-scripts:bin')
+const aioLogger = require('@adobe/aio-lib-core-logging')('@adobe/aio-app-scripts:bin', { provider: 'debug' })
 
 const args = process.argv.slice(2)
 
@@ -33,10 +33,10 @@ const scriptName = args[0]
 
 const scripts = fs.readdirSync(scriptDir).map(f => path.parse(f).name).join(', ')
 
-debug('Running script : ', scriptName)
+aioLogger.debug('Running script : ', scriptName)
 
 if (!scripts.includes(scriptName)) {
-  console.error(`script '${scriptName}' is not supported, choose one of: ${scripts}`)
+  aioLogger.error(`script '${scriptName}' is not supported, choose one of: ${scripts}`)
 }
 
 try {
@@ -45,22 +45,22 @@ try {
 
   const config = require('../lib/config-loader')()
 
-  debug('loaded config')
+  aioLogger.debug('loaded config')
 
   const ScriptClass = require(scriptPath)
   const script = new ScriptClass(config)
-  script.on('start', taskName => console.error(`${taskName}...`))
-  script.on('progress', item => console.error(`  > ${item}`))
+  script.on('start', taskName => aioLogger.error(`${taskName}...`))
+  script.on('progress', item => aioLogger.error(`  > ${item}`))
   script.on('end', (taskName, res) => {
-    console.error(`${taskName} done!`)
+    aioLogger.error(`${taskName} done!`)
     if (res) {
-      console.log(res)
+      aioLogger.info(res)
     }
   }) // result on stdout stream
-  script.on('warning', warning => console.error(warning))
+  script.on('warning', warning => aioLogger.error(warning))
 
   script.run(args.slice(1))
 } catch (e) {
-  console.error(e.message)
+  aioLogger.error(e.message)
   process.exit(1)
 }
