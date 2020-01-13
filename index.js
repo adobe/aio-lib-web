@@ -11,7 +11,7 @@ governing permissions and limitations under the License.
 */
 const loadConfig = require('./lib/config-loader')
 
-const aioLogger = require('@adobe/aio-lib-core-logging')('aio-app-scripts:index', { provider: 'debug' })
+const aioLogger = require('@adobe/aio-lib-core-logging')('@adobe/aio-app-scripts:index', { provider: 'debug' })
 const BuildUI = require('./scripts/build.ui')
 const BuildActions = require('./scripts/build.actions')
 const DeployUI = require('./scripts/deploy.ui')

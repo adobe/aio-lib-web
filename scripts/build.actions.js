@@ -19,7 +19,7 @@ const path = require('path')
 
 const webpack = require('webpack')
 
-const aioLogger = require('@adobe/aio-lib-core-logging')('aio-app-scripts:build.actions', { provider: 'debug' })
+const aioLogger = require('@adobe/aio-lib-core-logging')('@adobe/aio-app-scripts:build.actions', { provider: 'debug' })
 
 // const Bundler = require('parcel-bundler')
 

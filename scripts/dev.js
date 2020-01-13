@@ -13,7 +13,7 @@ governing permissions and limitations under the License.
 /* eslint-disable no-template-curly-in-string */
 const BaseScript = require('../lib/abstract-script')
 
-const aioLogger = require('@adobe/aio-lib-core-logging')('aio-app-scripts:dev', { provider: 'debug' })
+const aioLogger = require('@adobe/aio-lib-core-logging')('@adobe/aio-app-scripts:dev', { provider: 'debug' })
 
 const path = require('path')
 const fs = require('fs-extra')

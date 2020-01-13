@@ -13,7 +13,7 @@ governing permissions and limitations under the License.
 
 const path = require('path')
 const fs = require('fs')
-const aioLogger = require('@adobe/aio-lib-core-logging')('aio-app-scripts:bin', { provider: 'debug' })
+const aioLogger = require('@adobe/aio-lib-core-logging')('@adobe/aio-app-scripts:bin', { provider: 'debug' })
 
 const args = process.argv.slice(2)
 

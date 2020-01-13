@@ -4,7 +4,7 @@ const BaseScript = require('../lib/abstract-script')
 const fs = require('fs-extra')
 const yaml = require('js-yaml')
 const aioConfig = require('@adobe/aio-lib-core-config')
-const aioLogger = require('@adobe/aio-lib-core-logging')('aio-app-scripts:add-auth', { provider: 'debug' })
+const aioLogger = require('@adobe/aio-lib-core-logging')('@adobe/aio-app-scripts:add-auth', { provider: 'debug' })
 const utils = require('../lib/utils')
 
 class AddAuth extends BaseScript {
