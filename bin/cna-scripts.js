@@ -13,7 +13,7 @@ governing permissions and limitations under the License.
 
 const path = require('path')
 const fs = require('fs')
-const debug = require('debug')('aio-app-scripts:bin')
+const aioLogger = require('@adobe/aio-lib-core-logging')('@adobe/aio-app-scripts:bin', { provider: 'debug' })
 
 const args = process.argv.slice(2)
 
@@ -31,46 +31,36 @@ if (!args[0]) {
 const scriptDir = path.join(__dirname, '..', 'scripts')
 const scriptName = args[0]
 
-debug('Running script : ', scriptName)
+const scripts = fs.readdirSync(scriptDir).map(f => path.parse(f).name).join(', ')
 
-switch (scriptName) {
-  case 'add.auth' : // intentional fallthroughs
-  case 'build.actions' :
-  case 'build.ui' :
-  case 'deploy.actions' :
-  case 'deploy.ui' :
-  case 'dev' :
-  case 'undeploy.actions' :
-  case 'undeploy.ui' : {
-    try {
-      const scriptPath = path.join(scriptDir, scriptName + '.js')
-      // execa.sync(scriptPath, args.slice(1), { stdio: 'inherit' })
+aioLogger.debug('Running script : ', scriptName)
 
-      const config = require('../lib/config-loader')()
+if (!scripts.includes(scriptName)) {
+  aioLogger.error(`script '${scriptName}' is not supported, choose one of: ${scripts}`)
+}
 
-      debug('loaded config')
+try {
+  const scriptPath = path.join(scriptDir, scriptName + '.js')
+  // execa.sync(scriptPath, args.slice(1), { stdio: 'inherit' })
 
-      const ScriptClass = require(scriptPath)
-      const script = new ScriptClass(config)
-      script.on('start', taskName => console.error(`${taskName}...`))
-      script.on('progress', item => console.error(`  > ${item}`))
-      script.on('end', (taskName, res) => {
-        console.error(`${taskName} done!`)
-        if (res) {
-          console.log(res)
-        }
-      }) // result on stdout stream
-      script.on('warning', warning => console.error(warning))
+  const config = require('../lib/config-loader')()
 
-      script.run(args.slice(1))
-    } catch (e) {
-      console.error(e.message)
-      process.exit(1)
+  aioLogger.debug('loaded config')
+
+  const ScriptClass = require(scriptPath)
+  const script = new ScriptClass(config)
+  script.on('start', taskName => aioLogger.error(`${taskName}...`))
+  script.on('progress', item => aioLogger.error(`  > ${item}`))
+  script.on('end', (taskName, res) => {
+    aioLogger.error(`${taskName} done!`)
+    if (res) {
+      aioLogger.info(res)
     }
-    break
-  }
-  default : {
-    console.error(`script '${scriptName}' is not supported, choose one of: ${fs.readdirSync(scriptDir).map(f => path.parse(f).name).join(', ')}`)
-    break
-  }
+  }) // result on stdout stream
+  script.on('warning', warning => aioLogger.error(warning))
+
+  script.run(args.slice(1))
+} catch (e) {
+  aioLogger.error(e.message)
+  process.exit(1)
 }
