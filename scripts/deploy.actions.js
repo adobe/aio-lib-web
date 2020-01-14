@@ -59,7 +59,7 @@ class DeployActions extends BaseScript {
       namespace: this.config.ow.namespace
     })
     await utils.deployWsk(this.config.ow.package, this.config.manifest.src, manifest, owClient, this.emit.bind(this, 'progress'),
-  deployConfig)
+      deployConfig)
     this.emit('end', taskName)
   }
 }
