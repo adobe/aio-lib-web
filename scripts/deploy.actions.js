@@ -23,7 +23,7 @@ const OpenWhisk = require('openwhisk')
 
 // This should eventually be fully covered by `aio runtime deploy`
 class DeployActions extends BaseScript {
-  async run () {
+  async run (deployConfig) {
     const taskName = 'Deploy actions'
     this.emit('start', taskName)
 
@@ -58,7 +58,8 @@ class DeployActions extends BaseScript {
       api_key: this.config.ow.auth,
       namespace: this.config.ow.namespace
     })
-    await utils.deployWsk(this.config.ow.package, this.config.manifest.src, manifest, owClient, this.emit.bind(this, 'progress'))
+    await utils.deployWsk(this.config.ow.package, this.config.manifest.src, manifest, owClient, this.emit.bind(this, 'progress'),
+  deployConfig)
     this.emit('end', taskName)
   }
 }
