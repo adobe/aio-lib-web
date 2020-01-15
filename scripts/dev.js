@@ -57,6 +57,8 @@ class ActionServer extends BaseScript {
     // port for UI
     const uiPort = parseInt(args[0]) || parseInt(process.env.PORT) || 9080
 
+    let frontEndUrl = null
+
     // state
     const resources = {}
     let devConfig // config will be different if local or remote
@@ -122,19 +124,6 @@ class ActionServer extends BaseScript {
       fs.writeFileSync(WSK_DEBUG_PROPS, `NAMESPACE=${devConfig.ow.namespace}\nAUTH=${devConfig.ow.auth}\nAPIHOST=${devConfig.ow.apihost}`)
       resources.wskdebugProps = WSK_DEBUG_PROPS
 
-      this.emit('progress', 'setting up vscode debug configuration files..')
-      // todo refactor the whole .vscode/launch.json piece into utils
-      // todo 2 don't enforce vscode config to non vscode dev
-      fs.ensureDirSync(path.dirname(CODE_DEBUG))
-      if (fs.existsSync(CODE_DEBUG)) {
-        if (!fs.existsSync(CODE_DEBUG_SAVE)) {
-          fs.moveSync(CODE_DEBUG, CODE_DEBUG_SAVE)
-          resources.vscodeDebugConfigSave = CODE_DEBUG_SAVE
-        }
-      }
-      fs.writeFileSync(CODE_DEBUG, JSON.stringify(await this.generateVSCodeDebugConfig(devConfig, hasFrontend, uiPort, WSK_DEBUG_PROPS), null, 2))
-      resources.vscodeDebugConfig = CODE_DEBUG
-
       if (hasFrontend) {
         // inject backend urls into ui
         this.emit('progress', 'injecting backend urls into frontend config')
@@ -143,7 +132,7 @@ class ActionServer extends BaseScript {
 
         await utils.writeConfig(devConfig.web.injectedConfig, urls)
 
-        this.emit('progress', 'starting local frontend server..')
+        this.emit('progress', 'starting local frontend server ..')
         // todo: does it have to be index.html?
         const entryFile = path.join(devConfig.web.src, 'index.html')
 
@@ -159,16 +148,35 @@ class ActionServer extends BaseScript {
           logLevel: 1,
           ...bundleOptions
         }
+        let actualPort = uiPort
         const bundler = new Bundler(entryFile, parcelBundleOptions)
-        if (bundleOptions.https && bundleOptions.https.cert) {
-          // caller is responsible for ensuring key&cert files exist
-          this.emit('progress', `local frontend server running at https://localhost:${uiPort}`)
-          resources.uiServer = bundler.serve(uiPort, bundleOptions.https)
-        } else {
-          this.emit('progress', `local frontend server running at http://localhost:${uiPort}`)
-          resources.uiServer = bundler.serve(uiPort)
+        resources.uiServer = await bundler.serve(uiPort, bundleOptions.https)
+        if (resources.uiServer) {
+          actualPort = resources.uiServer.address().port
+        }
+        if (actualPort !== uiPort) {
+          this.emit('progress', `Could not use port:${uiPort}, using port:${actualPort} instead`)
+        }
+        frontEndUrl = `${bundleOptions.https ? 'https:' : 'http:'}//localhost:${actualPort}`
+        this.emit('progress', `local frontend server running at ${frontEndUrl}`)
+      }
+
+      this.emit('progress', 'setting up vscode debug configuration files..')
+      // todo refactor the whole .vscode/launch.json piece into utils
+      // todo 2 don't enforce vscode config to non vscode dev
+      fs.ensureDirSync(path.dirname(CODE_DEBUG))
+      if (fs.existsSync(CODE_DEBUG)) {
+        if (!fs.existsSync(CODE_DEBUG_SAVE)) {
+          fs.moveSync(CODE_DEBUG, CODE_DEBUG_SAVE)
+          resources.vscodeDebugConfigSave = CODE_DEBUG_SAVE
         }
       }
+      fs.writeJSONSync(CODE_DEBUG,
+        await this.generateVSCodeDebugConfig(devConfig, hasFrontend, frontEndUrl, WSK_DEBUG_PROPS),
+        { spaces: 2 })
+
+      resources.vscodeDebugConfig = CODE_DEBUG
+
       if (!resources.owProc && !resources.uiServer) {
         // not local + ow is not running => need to explicitely wait for CTRL+C
         // trick to avoid termination
@@ -178,10 +186,11 @@ class ActionServer extends BaseScript {
     } catch (e) {
       cleanup(e, resources)
     }
+    return frontEndUrl
   }
 
   // todo make util not instance function
-  async generateVSCodeDebugConfig (devConfig, hasFrontend, uiPort, wskdebugProps) {
+  async generateVSCodeDebugConfig (devConfig, hasFrontend, frontUrl, wskdebugProps) {
     const packageName = devConfig.ow.package
     const manifestActions = devConfig.manifest.package.actions
 
@@ -208,8 +217,9 @@ class ActionServer extends BaseScript {
 
       const actionFileStats = fs.lstatSync(actionPath)
       if (actionFileStats.isFile()) {
-
-      } if (actionFileStats.isDirectory()) {
+        // why is this condition here?
+      }
+      if (actionFileStats.isDirectory()) {
         // take package.json.main or 'index.js'
         const zipMain = utils.getActionEntryFile(path.join(actionPath, 'package.json'))
         config.runtimeArgs = [
@@ -240,7 +250,7 @@ class ActionServer extends BaseScript {
         type: 'chrome',
         request: 'launch',
         name: 'Web',
-        url: `http://localhost:${uiPort}`,
+        url: frontUrl,
         webRoot: devConfig.web.src,
         breakOnLoad: true,
         sourceMapPathOverrides: {
