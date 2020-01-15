@@ -23,6 +23,21 @@ const OpenWhisk = require('openwhisk')
 
 // This should eventually be fully covered by `aio runtime deploy`
 class DeployActions extends BaseScript {
+
+  /**
+   *
+   *
+   * @param {Array} [args=[]]
+   * @param {object} [deployConfig={}]
+   * @param {object} [deployConfig.filterEntities] add filters to deploy only specified OpenWhisk entities
+   * @param {Array} [deployConfig.filterEntities.actions] filter list of actions to deploy, e.g. ['name1', ..]
+   * @param {Array} [deployConfig.filterEntities.triggers] filter list of triggers to deploy, e.g. ['name1', ..]
+   * @param {Array} [deployConfig.filterEntities.rules] filter list of rules to deploy, e.g. ['name1', ..]
+   * @param {Array} [deployConfig.filterEntities.apis] filter list of apis to deploy, e.g. ['name1', ..]
+   * @param {Array} [deployConfig.filterEntities.deps] filter list of package bindings to deploy, e.g. ['name1', ..]
+   * @returns
+   * @memberof DeployActions
+   */
   async run (args = [], deployConfig = {}) {
     const taskName = 'Deploy actions'
     this.emit('start', taskName)

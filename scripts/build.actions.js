@@ -16,7 +16,6 @@ const utils = require('../lib/utils')
 
 const fs = require('fs-extra')
 const path = require('path')
-
 const webpack = require('webpack')
 
 const debug = require('debug')('aio-app-scripts:build.actions')
@@ -24,7 +23,7 @@ const debug = require('debug')('aio-app-scripts:build.actions')
 // const Bundler = require('parcel-bundler')
 
 class BuildActions extends BaseScript {
-  async run () {
+  async run (args = [], buildConfig = {}) {
     const taskName = 'Build actions'
     this.emit('start', taskName)
 
@@ -104,8 +103,12 @@ class BuildActions extends BaseScript {
       return outPath
     }
 
+    // which actions to build, check filter
+    let actions = Object.entries(this.config.manifest.package.actions)
+    if (Array.isArray(buildConfig.filterActions)) actions = actions.filter(([name, value]) => buildConfig.filterActions.includes(name))
+
     // build all sequentially (todo make bundler execution parallel)
-    for (const [name, action] of Object.entries(this.config.manifest.package.actions)) {
+    for (const [name, action] of actions) {
       const out = await build(name, action)
       this.emit('progress', `${this._relApp(out)}`)
     }

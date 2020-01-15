@@ -137,7 +137,7 @@ test('use deployConfig.filterEntities to deploy only one action', async () => {
 
   expect(ioruntime.syncProject).toHaveBeenCalledTimes(1)
   expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest,
-    { actions: [{ name: 'sample-app-1.0.0/action' }], apis: [], rules: [], triggers: [], pkgAndDeps: [] },
+    { actions: [{ name: 'sample-app-1.0.0/action' }], apis: [], rules: [], triggers: [], pkgAndDeps: [{ name: 'sample-app-1.0.0' }] }, // should always deploy package
     { fake: 'ow' }, expect.anything(), false)
 })
 
@@ -165,7 +165,7 @@ test('use deployConfig.filterEntities to deploy only one trigger and one action'
 
   expect(ioruntime.syncProject).toHaveBeenCalledTimes(1)
   expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest,
-    { actions: [{ name: 'sample-app-1.0.0/action' }], apis: [], rules: [], triggers: [{ name: 'trigger' }], pkgAndDeps: [] },
+    { actions: [{ name: 'sample-app-1.0.0/action' }], apis: [], rules: [], triggers: [{ name: 'trigger' }], pkgAndDeps: [{ name: 'sample-app-1.0.0' }] },
     { fake: 'ow' }, expect.anything(), false)
 })
 
@@ -194,7 +194,7 @@ test('use deployConfig.filterEntities to deploy only one trigger and one action 
 
   expect(ioruntime.syncProject).toHaveBeenCalledTimes(1)
   expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest,
-    { actions: [{ name: 'sample-app-1.0.0/action' }], apis: [], rules: [{ name: 'rule' }], triggers: [{ name: 'trigger' }], pkgAndDeps: [] },
+    { actions: [{ name: 'sample-app-1.0.0/action' }], apis: [], rules: [{ name: 'rule' }], triggers: [{ name: 'trigger' }], pkgAndDeps: [{ name: 'sample-app-1.0.0' }] },
     { fake: 'ow' }, expect.anything(), false)
 })
 
@@ -222,7 +222,7 @@ test('use deployConfig.filterEntities to deploy only one action and one api', as
 
   expect(ioruntime.syncProject).toHaveBeenCalledTimes(1)
   expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest,
-    { actions: [{ name: 'sample-app-1.0.0/action' }], apis: [{ name: 'api' }], rules: [], triggers: [], pkgAndDeps: [] },
+    { actions: [{ name: 'sample-app-1.0.0/action' }], apis: [{ name: 'api' }], rules: [], triggers: [], pkgAndDeps: [{ name: 'sample-app-1.0.0' }] },
     { fake: 'ow' }, expect.anything(), false)
 })
 
@@ -240,7 +240,7 @@ test('use deployConfig.filterEntities to deploy only one pkg dependency', async 
 
   await scripts.deployActions([], {
     filterEntities: {
-      pkgAndDeps: ['dep']
+      deps: ['dep']
     }
   })
 
@@ -249,7 +249,7 @@ test('use deployConfig.filterEntities to deploy only one pkg dependency', async 
 
   expect(ioruntime.syncProject).toHaveBeenCalledTimes(1)
   expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest,
-    { actions: [], apis: [], rules: [], triggers: [], pkgAndDeps: [{ name: 'dep' }] },
+    { actions: [], apis: [], rules: [], triggers: [], pkgAndDeps: [{ name: 'sample-app-1.0.0' }, { name: 'dep' }] },
     { fake: 'ow' }, expect.anything(), false)
 })
 
