@@ -23,9 +23,8 @@ const OpenWhisk = require('openwhisk')
 
 // This should eventually be fully covered by `aio runtime deploy`
 class DeployActions extends BaseScript {
-
   /**
-   *
+   * runs the command
    *
    * @param {Array} [args=[]]
    * @param {object} [deployConfig={}]

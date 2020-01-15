@@ -23,6 +23,15 @@ const aioLogger = require('@adobe/aio-lib-core-logging')('@adobe/aio-app-scripts
 // const Bundler = require('parcel-bundler')
 
 class BuildActions extends BaseScript {
+  /**
+   * runs the command
+   *
+   * @param {Array} [args=[]]
+   * @param {object} [deployConfig={}]
+   * @param {Array} [deployConfig.filterActions] only build actions specified by this array, e.g. ['name1', ..]
+   * @returns
+   * @memberof DeployActions
+   */
   async run (args = [], buildConfig = {}) {
     const taskName = 'Build actions'
     this.emit('start', taskName)
