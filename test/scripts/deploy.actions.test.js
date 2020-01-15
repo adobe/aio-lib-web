@@ -39,12 +39,12 @@ const expectedDistManifest = {
       version: '1.0.0',
       actions: {
         action: {
-          function: 'dist/actions/action.zip',
+          function: n('dist/actions/action.zip'),
           runtime: 'nodejs:10',
           web: 'yes'
         },
         'action-zip': {
-          function: 'dist/actions/action-zip.zip',
+          function: n('dist/actions/action-zip.zip'),
           runtime: 'nodejs:10',
           web: 'yes'
         }
