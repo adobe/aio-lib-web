@@ -18,7 +18,7 @@ const fs = require('fs-extra')
 const path = require('path')
 const webpack = require('webpack')
 
-const debug = require('debug')('aio-app-scripts:build.actions')
+const aioLogger = require('@adobe/aio-lib-core-logging')('@adobe/aio-app-scripts:build.actions', { provider: 'debug' })
 
 // const Bundler = require('parcel-bundler')
 
@@ -85,7 +85,7 @@ class BuildActions extends BaseScript {
           if (err) reject(err)
           // stats must be defined at this point
           const info = stats.toJson()
-          if (stats.hasWarnings()) debug(`webpack compilation warnings:\n${info.warnings}`)
+          if (stats.hasWarnings()) aioLogger.debug(`webpack compilation warnings:\n${info.warnings}`)
           if (stats.hasErrors()) reject(new Error(`action build failed, webpack compilation errors:\n${info.errors}`))
           return resolve(stats)
         }))
