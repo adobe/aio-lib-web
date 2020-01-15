@@ -11,7 +11,6 @@ governing permissions and limitations under the License.
 */
 
 const { vol } = global.mockFs()
-
 const AppScripts = require('../..')
 
 const mockAIOConfig = require('@adobe/aio-lib-core-config')
@@ -85,13 +84,13 @@ const expectedDistManifest = {
   }
 }
 
-const mockEntities = {
-  pkgAndDeps: [{ name: 'sample-app-1.0.0' }, { name: 'dep' }],
-  actions: [{ name: 'sample-app-1.0.0/action' }],
-  triggers: [{ name: 'trigger' }],
-  apis: [{ name: 'api' }],
-  rules: [{ name: 'rule' }]
-}
+const mockEntities = { fake: true }
+//   pkgAndDeps: [{ name: 'sample-app-1.0.0' }, { name: 'dep' }],
+//   actions: [{ name: 'sample-app-1.0.0/action' }],
+//   triggers: [{ name: 'trigger' }],
+//   apis: [{ name: 'api' }],
+//   rules: [{ name: 'rule' }]
+// }
 
 test('deploy full manifest', async () => {
   global.loadFs(vol, 'sample-app')
@@ -132,13 +131,25 @@ test('use deployConfig.filterEntities to deploy only one action', async () => {
     }
   })
 
+  const expectedDistPackagesFiltered = {
+    'sample-app-1.0.0': {
+      license: 'Apache-2.0',
+      version: '1.0.0',
+      actions: {
+        action: {
+          function: n('dist/actions/action.zip'),
+          runtime: 'nodejs:10',
+          web: 'yes'
+        }
+      }
+    }
+  }
+
   expect(ioruntime.processPackage).toHaveBeenCalledTimes(1)
-  expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedDistManifest.packages, {}, {}, {})
+  expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedDistPackagesFiltered, {}, {}, {})
 
   expect(ioruntime.syncProject).toHaveBeenCalledTimes(1)
-  expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest,
-    { actions: [{ name: 'sample-app-1.0.0/action' }], apis: [], rules: [], triggers: [], pkgAndDeps: [{ name: 'sample-app-1.0.0' }] }, // should always deploy package
-    { fake: 'ow' }, expect.anything(), false)
+  expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, mockEntities, { fake: 'ow' }, expect.anything(), false)
 })
 
 test('use deployConfig.filterEntities to deploy only one trigger and one action', async () => {
@@ -156,17 +167,32 @@ test('use deployConfig.filterEntities to deploy only one trigger and one action'
   await scripts.deployActions([], {
     filterEntities: {
       actions: ['action'],
-      triggers: ['trigger']
+      triggers: ['trigger1']
     }
   })
 
+  const expectedDistPackagesFiltered = {
+    'sample-app-1.0.0': {
+      license: 'Apache-2.0',
+      version: '1.0.0',
+      actions: {
+        action: {
+          function: n('dist/actions/action.zip'),
+          runtime: 'nodejs:10',
+          web: 'yes'
+        }
+      },
+      triggers: {
+        trigger1: null
+      }
+    }
+  }
+
   expect(ioruntime.processPackage).toHaveBeenCalledTimes(1)
-  expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedDistManifest.packages, {}, {}, {})
+  expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedDistPackagesFiltered, {}, {}, {})
 
   expect(ioruntime.syncProject).toHaveBeenCalledTimes(1)
-  expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest,
-    { actions: [{ name: 'sample-app-1.0.0/action' }], apis: [], rules: [], triggers: [{ name: 'trigger' }], pkgAndDeps: [{ name: 'sample-app-1.0.0' }] },
-    { fake: 'ow' }, expect.anything(), false)
+  expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, mockEntities, { fake: 'ow' }, expect.anything(), false)
 })
 
 test('use deployConfig.filterEntities to deploy only one trigger and one action and one rule', async () => {
@@ -184,18 +210,40 @@ test('use deployConfig.filterEntities to deploy only one trigger and one action 
   await scripts.deployActions([], {
     filterEntities: {
       actions: ['action'],
-      triggers: ['trigger'],
-      rules: ['rule']
+      triggers: ['trigger1'],
+      rules: ['rule1']
     }
   })
 
+  const expectedDistPackagesFiltered = {
+    'sample-app-1.0.0': {
+      license: 'Apache-2.0',
+      version: '1.0.0',
+      actions: {
+        action: {
+          function: n('dist/actions/action.zip'),
+          runtime: 'nodejs:10',
+          web: 'yes'
+        }
+      },
+      triggers: {
+        trigger1: null
+      },
+      rules: {
+        rule1: {
+          trigger: 'trigger1',
+          action: 'action',
+          rule: true
+        }
+      }
+    }
+  }
+
   expect(ioruntime.processPackage).toHaveBeenCalledTimes(1)
-  expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedDistManifest.packages, {}, {}, {})
+  expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedDistPackagesFiltered, {}, {}, {})
 
   expect(ioruntime.syncProject).toHaveBeenCalledTimes(1)
-  expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest,
-    { actions: [{ name: 'sample-app-1.0.0/action' }], apis: [], rules: [{ name: 'rule' }], triggers: [{ name: 'trigger' }], pkgAndDeps: [{ name: 'sample-app-1.0.0' }] },
-    { fake: 'ow' }, expect.anything(), false)
+  expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, mockEntities, { fake: 'ow' }, expect.anything(), false)
 })
 
 test('use deployConfig.filterEntities to deploy only one action and one api', async () => {
@@ -213,17 +261,91 @@ test('use deployConfig.filterEntities to deploy only one action and one api', as
   await scripts.deployActions([], {
     filterEntities: {
       actions: ['action'],
-      apis: ['api']
+      apis: ['api1']
     }
   })
 
+  const expectedDistPackagesFiltered = {
+    'sample-app-1.0.0': {
+      license: 'Apache-2.0',
+      version: '1.0.0',
+      actions: {
+        action: {
+          function: n('dist/actions/action.zip'),
+          runtime: 'nodejs:10',
+          web: 'yes'
+        }
+      },
+      apis: {
+        api1: {
+          base: {
+            path: {
+              action: {
+                method: 'get'
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
   expect(ioruntime.processPackage).toHaveBeenCalledTimes(1)
-  expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedDistManifest.packages, {}, {}, {})
+  expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedDistPackagesFiltered, {}, {}, {})
 
   expect(ioruntime.syncProject).toHaveBeenCalledTimes(1)
-  expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest,
-    { actions: [{ name: 'sample-app-1.0.0/action' }], apis: [{ name: 'api' }], rules: [], triggers: [], pkgAndDeps: [{ name: 'sample-app-1.0.0' }] },
-    { fake: 'ow' }, expect.anything(), false)
+  expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, mockEntities, { fake: 'ow' }, expect.anything(), false)
+})
+
+test('use deployConfig.filterEntities to deploy only two actions and one sequence', async () => {
+  global.loadFs(vol, 'sample-app')
+
+  mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
+  ioruntime.processPackage.mockReturnValue(deepCopy(mockEntities))
+  openwhisk.mockReturnValue({ fake: 'ow' })
+
+  const scripts = await AppScripts()
+  const buildDir = scripts._config.actions.dist
+  // fake a previous build
+  await global.addFakeFiles(vol, buildDir, ['action.js', 'action-zip.zip'])
+
+  await scripts.deployActions([], {
+    filterEntities: {
+      actions: ['action', 'action-zip'],
+      sequences: ['action-sequence']
+    }
+  })
+
+  const expectedDistPackagesFiltered = {
+    'sample-app-1.0.0': {
+      license: 'Apache-2.0',
+      version: '1.0.0',
+      actions: {
+        action: {
+          function: n('dist/actions/action.zip'),
+          runtime: 'nodejs:10',
+          web: 'yes'
+        },
+        'action-zip': {
+          function: n('dist/actions/action-zip.zip'),
+          runtime: 'nodejs:10',
+          web: 'yes'
+        }
+      },
+      sequences: {
+        'action-sequence': {
+          actions: 'action, action-zip',
+          web: 'yes'
+        }
+      }
+    }
+  }
+
+  expect(ioruntime.processPackage).toHaveBeenCalledTimes(1)
+  expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedDistPackagesFiltered, {}, {}, {})
+
+  expect(ioruntime.syncProject).toHaveBeenCalledTimes(1)
+  expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, mockEntities, { fake: 'ow' }, expect.anything(), false)
 })
 
 test('use deployConfig.filterEntities to deploy only one pkg dependency', async () => {
@@ -240,23 +362,105 @@ test('use deployConfig.filterEntities to deploy only one pkg dependency', async 
 
   await scripts.deployActions([], {
     filterEntities: {
-      deps: ['dep']
+      dependencies: ['dependency1']
     }
   })
 
+  const expectedDistPackagesFiltered = {
+    'sample-app-1.0.0': {
+      license: 'Apache-2.0',
+      version: '1.0.0',
+      dependencies: {
+        dependency1: {
+          location: 'fake.com/package'
+        }
+      }
+    }
+  }
+
   expect(ioruntime.processPackage).toHaveBeenCalledTimes(1)
-  expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedDistManifest.packages, {}, {}, {})
+  expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedDistPackagesFiltered, {}, {}, {})
 
   expect(ioruntime.syncProject).toHaveBeenCalledTimes(1)
-  expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest,
-    { actions: [], apis: [], rules: [], triggers: [], pkgAndDeps: [{ name: 'sample-app-1.0.0' }, { name: 'dep' }] },
-    { fake: 'ow' }, expect.anything(), false)
+  expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, mockEntities, { fake: 'ow' }, expect.anything(), false)
 })
 
-test('Deploy actions should fail if there are no build files', async () => {
+test('use deployConfig.filterEntities on non existing pkgEntity should work', async () => {
+  global.loadFs(vol, 'sample-app-reduced')
+
+  mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
+  ioruntime.processPackage.mockReturnValue(deepCopy(mockEntities))
+  openwhisk.mockReturnValue({ fake: 'ow' })
+
+  const scripts = await AppScripts()
+  const buildDir = scripts._config.actions.dist
+  // fake a previous build
+  await global.addFakeFiles(vol, buildDir, ['action.js', 'action-zip.zip'])
+
+  await scripts.deployActions([], {
+    filterEntities: {
+      triggers: ['trigger1'],
+      sequences: ['notexisting']
+    }
+  })
+
+  const expectedDistReducedManifest = {
+    packages: {
+      'sample-app-reduced-1.0.0': {
+        license: 'Apache-2.0',
+        version: '1.0.0',
+        actions: {
+          action: {
+            function: n('dist/actions/action.zip'),
+            runtime: 'nodejs:10',
+            web: 'yes'
+          }
+        },
+        triggers: {
+          trigger1: null
+        }
+      }
+    }
+  }
+  const expectedDistPackagesFiltered = {
+    'sample-app-reduced-1.0.0': {
+      license: 'Apache-2.0',
+      version: '1.0.0',
+      triggers: {
+        trigger1: null
+      }
+    }
+  }
+
+  expect(ioruntime.processPackage).toHaveBeenCalledTimes(1)
+  expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedDistPackagesFiltered, {}, {}, {})
+
+  expect(ioruntime.syncProject).toHaveBeenCalledTimes(1)
+  expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-reduced-1.0.0', r('/manifest.yml'), expectedDistReducedManifest, mockEntities, { fake: 'ow' }, expect.anything(), false)
+})
+
+test('Deploy actions should fail if there are no build files and no filters', async () => {
   global.loadFs(vol, 'sample-app')
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
 
   const scripts = await AppScripts()
-  expect(scripts.deployActions.bind(this)).toThrowWithMessageContaining(['build', 'missing'])
+  await expect(scripts.deployActions())
+    .rejects.toThrow('missing files in dist/actions, maybe you forgot to build your actions ?')
+})
+
+test('Deploy actions should fail if there are no build files and action filter', async () => {
+  global.loadFs(vol, 'sample-app')
+  mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
+
+  const scripts = await AppScripts()
+  await expect(scripts.deployActions([], { filterEntities: { actions: ['action', 'action-zip'] } }))
+    .rejects.toThrow('missing files in dist/actions, maybe you forgot to build your actions ?')
+})
+
+test('Deploy actions should pass if there are no build files and filter does not include actions', async () => {
+  global.loadFs(vol, 'sample-app')
+  mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
+
+  const scripts = await AppScripts()
+  await expect(scripts.deployActions([], { filterEntities: { triggers: ['trigger1'] } })).resolves.toEqual({})
 })
