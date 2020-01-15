@@ -445,7 +445,7 @@ test('Deploy actions should fail if there are no build files and no filters', as
 
   const scripts = await AppScripts()
   await expect(scripts.deployActions())
-    .rejects.toThrow('missing files in dist/actions, maybe you forgot to build your actions ?')
+    .rejects.toThrow('missing files in dist')
 })
 
 test('Deploy actions should fail if there are no build files and action filter', async () => {
