@@ -17,8 +17,7 @@ const utils = require('../../lib/utils')
 const execa = require('execa')
 jest.mock('execa')
 
-const debug = require('debug')
-jest.mock('debug')
+const aioLogger = require('@adobe/aio-lib-core-logging')('test', { provider: 'debug' })
 
 // zip implementation is complex to test => tested in utils.test.js
 utils.zip = jest.fn()
@@ -50,7 +49,6 @@ beforeEach(() => {
   webpackMock.run.mockImplementation(cb => cb(null, webpackStatsMock))
 
   execa.mockReset()
-  debug.mockReset()
 
   utils.zip.mockReset()
 })
@@ -222,7 +220,7 @@ describe('build by bundling js action file with webpack', () => {
       warnings: 'fake warnings'
     })
     await scripts.buildActions()
-    expect(debug.mockDebug).toHaveBeenCalledWith('webpack compilation warnings:\nfake warnings')
+    expect(aioLogger.debug).toHaveBeenCalledWith('webpack compilation warnings:\nfake warnings')
   })
 
   test('should throw if webpack returns an error ', async () => {
@@ -241,7 +239,7 @@ describe('build by bundling js action file with webpack', () => {
       warnings: 'fake warnings'
     })
     await expect(scripts.buildActions()).rejects.toThrow('action build failed, webpack compilation errors:\nfake errors')
-    expect(debug.mockDebug).toHaveBeenCalledWith('webpack compilation warnings:\nfake warnings')
+    expect(aioLogger.debug).toHaveBeenCalledWith('webpack compilation warnings:\nfake warnings')
   })
 
   test('should fail if webpack did not generated the js file for the bundled action', async () => {
@@ -277,4 +275,41 @@ test('should build 1 zip action and 1 bundled action in one go', async () => {
   expect(execa).toHaveBeenCalledWith(...getExpectedExecaNPMInstallArgs(r('/actions/action-zip')))
   expect(utils.zip).toHaveBeenCalledWith(r('/actions/action-zip'), r('/dist/actions/action-zip.zip'))
   expect(utils.zip).toHaveBeenCalledWith(r('/dist/actions/action.tmp.js'), r('/dist/actions/action.zip'), 'index.js')
+})
+
+test('use buildConfig.filterActions to build only action called `action`', async () => {
+  global.loadFs(vol, 'sample-app')
+  mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
+  webpackMock.run.mockImplementation(cb => {
+    // fake the build files
+    vol.writeFileSync('/dist/actions/action.tmp.js', 'fake')
+    cb(null, webpackStatsMock)
+  })
+
+  const scripts = await AppScripts()
+
+  await scripts.buildActions([], { filterActions: ['action'] })
+
+  expect(webpackMock.run).toHaveBeenCalledTimes(1)
+  expect(webpack).toHaveBeenCalledWith(expect.objectContaining({
+    entry: [r('/actions/action.js')],
+    output: expect.objectContaining({
+      path: r('/dist/actions'),
+      filename: 'action.tmp.js'
+    })
+  }))
+  expect(utils.zip).toHaveBeenCalledTimes(1)
+  expect(utils.zip).toHaveBeenCalledWith(r('/dist/actions/action.tmp.js'), r('/dist/actions/action.zip'), 'index.js')
+})
+
+test('use buildConfig.filterActions to build only action called `action-zip`', async () => {
+  global.loadFs(vol, 'sample-app')
+  mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
+
+  const scripts = await AppScripts()
+  await scripts.buildActions([], { filterActions: ['action-zip'] })
+
+  expect(execa).toHaveBeenCalledWith(...getExpectedExecaNPMInstallArgs(r('/actions/action-zip')))
+  expect(utils.zip).toHaveBeenCalledTimes(1)
+  expect(utils.zip).toHaveBeenCalledWith(r('/actions/action-zip'), r('/dist/actions/action-zip.zip'))
 })
