@@ -9,23 +9,7 @@ the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTA
 OF ANY KIND, either express or implied. See the License for the specific language
 governing permissions and limitations under the License.
 */
-
-module.exports = {
-  testEnvironment: 'node',
-  verbose: true,
-  setupFilesAfterEnv: ['./test/jest.setup.js'],
-  collectCoverage: true,
-  collectCoverageFrom: [
-    'index.js',
-    'lib/**/*.js',
-    'scripts/**/*.js'
-  ],
-  coverageThreshold: {
-    global: {
-      branches: 100,
-      lines: 100,
-      statements: 100
-    }
-  },
-  coverageReporters: ['json', 'lcovonly', 'text', 'clover']
+function main (args) {
+  return 'hello'
 }
+exports.main = main

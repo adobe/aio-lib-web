@@ -16,7 +16,6 @@ const utils = require('../lib/utils')
 
 const fs = require('fs-extra')
 const path = require('path')
-
 const webpack = require('webpack')
 
 const aioLogger = require('@adobe/aio-lib-core-logging')('@adobe/aio-app-scripts:build.actions', { provider: 'debug' })
@@ -24,7 +23,16 @@ const aioLogger = require('@adobe/aio-lib-core-logging')('@adobe/aio-app-scripts
 // const Bundler = require('parcel-bundler')
 
 class BuildActions extends BaseScript {
-  async run () {
+  /**
+   * runs the command
+   *
+   * @param {Array} [args=[]]
+   * @param {object} [deployConfig={}]
+   * @param {Array} [deployConfig.filterActions] only build actions specified by this array, e.g. ['name1', ..]
+   * @returns
+   * @memberof DeployActions
+   */
+  async run (args = [], buildConfig = {}) {
     const taskName = 'Build actions'
     this.emit('start', taskName)
 
@@ -104,8 +112,12 @@ class BuildActions extends BaseScript {
       return outPath
     }
 
+    // which actions to build, check filter
+    let actions = Object.entries(this.config.manifest.package.actions)
+    if (Array.isArray(buildConfig.filterActions)) actions = actions.filter(([name, value]) => buildConfig.filterActions.includes(name))
+
     // build all sequentially (todo make bundler execution parallel)
-    for (const [name, action] of Object.entries(this.config.manifest.package.actions)) {
+    for (const [name, action] of actions) {
       const out = await build(name, action)
       this.emit('progress', `${this._relApp(out)}`)
     }
