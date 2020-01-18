@@ -11,7 +11,7 @@ governing permissions and limitations under the License.
 */
 const loadConfig = require('./lib/config-loader')
 
-const debug = require('debug')('aio-app-scripts:index')
+const aioLogger = require('@adobe/aio-lib-core-logging')('@adobe/aio-app-scripts:index', { provider: 'debug' })
 const BuildUI = require('./scripts/build.ui')
 const BuildActions = require('./scripts/build.actions')
 const DeployUI = require('./scripts/deploy.ui')
@@ -20,6 +20,7 @@ const UndeployUI = require('./scripts/undeploy.ui')
 const UndeployActions = require('./scripts/undeploy.actions')
 const RunDev = require('./scripts/dev')
 const AddAuth = require('./scripts/add.auth')
+const Logs = require('./scripts/logs')
 
 /**
  * Adobe I/O application scripts
@@ -38,6 +39,7 @@ const AddAuth = require('./scripts/add.auth')
  * @property {function(object):Promise<undefined>} runDev - runs the app in a local development server, set env
  * REMOTE_ACTIONS=true to use remotely deployed actions
  * @property {function(object):Promise<undefined>} addAuth - adds auth capabilities to the application
+ * @property {function(object, object):Promise<boolean>} logs - shows action logs
  */
 
 /**
@@ -53,7 +55,7 @@ const AddAuth = require('./scripts/add.auth')
  * @returns {AppScripts} With all script functions
  */
 module.exports = function (options) {
-  debug('exportScripts')
+  aioLogger.debug('exportScripts')
 
   options = options || {}
   const listeners = options.listeners || {}
@@ -91,6 +93,7 @@ module.exports = function (options) {
     undeployActions: instantiate(UndeployActions),
     runDev: instantiate(RunDev),
     addAuth: instantiate(AddAuth),
+    logs: instantiate(Logs),
     // for unit testing
     _config: appConfig
   }

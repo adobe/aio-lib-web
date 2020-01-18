@@ -23,7 +23,22 @@ const OpenWhisk = require('openwhisk')
 
 // This should eventually be fully covered by `aio runtime deploy`
 class DeployActions extends BaseScript {
-  async run () {
+  /**
+   * runs the command
+   *
+   * @param {Array} [args=[]]
+   * @param {object} [deployConfig={}]
+   * @param {object} [deployConfig.filterEntities] add filters to deploy only specified OpenWhisk entities
+   * @param {Array} [deployConfig.filterEntities.actions] filter list of actions to deploy, e.g. ['name1', ..]
+   * @param {Array} [deployConfig.filterEntities.sequences] filter list of sequences to deploy, e.g. ['name1', ..]
+   * @param {Array} [deployConfig.filterEntities.triggers] filter list of triggers to deploy, e.g. ['name1', ..]
+   * @param {Array} [deployConfig.filterEntities.rules] filter list of rules to deploy, e.g. ['name1', ..]
+   * @param {Array} [deployConfig.filterEntities.apis] filter list of apis to deploy, e.g. ['name1', ..]
+   * @param {Array} [deployConfig.filterEntities.dependencies] filter list of package dependencies to deploy, e.g. ['name1', ..]
+   * @returns
+   * @memberof DeployActions
+   */
+  async run (args = [], deployConfig = {}) {
     const taskName = 'Deploy actions'
     this.emit('start', taskName)
 
@@ -32,9 +47,10 @@ class DeployActions extends BaseScript {
     utils.checkOpenWhiskCredentials(this.config)
     /// b. missing build files
     const dist = this.config.actions.dist
-    if (!(fs.pathExistsSync(dist)) ||
-        !(fs.lstatSync(dist)).isDirectory() ||
-        !(fs.readdirSync(dist)).length === 0) {
+    if (
+      (!deployConfig.filterEntities || deployConfig.filterEntities.actions) &&
+      (!fs.pathExistsSync(dist) || !fs.lstatSync(dist).isDirectory() || !fs.readdirSync(dist).length === 0)
+    ) {
       throw new Error(`missing files in ${this._relApp(dist)}, maybe you forgot to build your actions ?`)
     }
 
@@ -58,8 +74,17 @@ class DeployActions extends BaseScript {
       api_key: this.config.ow.auth,
       namespace: this.config.ow.namespace
     })
-    await utils.deployWsk(this.config.ow.package, this.config.manifest.src, manifest, owClient, this.emit.bind(this, 'progress'))
-    this.emit('end', taskName)
+    const deployedEntities = await utils.deployWsk(
+      this.config.ow.package,
+      this.config.manifest.src,
+      manifest,
+      owClient,
+      this.emit.bind(this, 'progress'),
+      deployConfig.filterEntities
+    )
+
+    this.emit('end', taskName, deployedEntities)
+    return deployedEntities || {}
   }
 }
 

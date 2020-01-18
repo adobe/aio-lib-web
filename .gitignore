@@ -11,9 +11,6 @@ bin/openwhisk-standalone.jar
 dist
 .manifest-dist.yml
 
-# test
-test/__fixtures__/sample-app-*
-
 # Config
 config.json
 .env
