@@ -144,7 +144,11 @@ global.fakeConfig = {
     cna: {
       s3bucket: 'customBucket',
       awsaccesskeyid: 'fakeAwsKeyId',
-      awssecretaccesskey: 'fakeAwsSecretKey'
+      awssecretaccesskey: 'fakeAwsSecretKey',
+      htmlCacheDuration: 60,
+      jsCacheDuration: 604800,
+      cssCacheDuration: 604800,
+      imagesCacheDuration: 604800
     }
   }
 }
