@@ -142,8 +142,9 @@ describe('deploy static files with tvm', () => {
 
   test('should call onProgress listener', async () => {
     await global.addFakeFiles(vol, buildDir, ['index.html'])
+    const scripts = await AppScripts()
     // spies can be restored
-    const spy = jest.spyOn(RemoteStorage.prototype, 'uploadDir').mockImplementation((dir, prefix, progressCb) => {
+    const spy = jest.spyOn(RemoteStorage.prototype, 'uploadDir').mockImplementation((dir, prefix, {}, progressCb) => {
       progressCb('index.html')
     })
     await scripts.deployUI()
