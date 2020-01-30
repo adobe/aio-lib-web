@@ -33,7 +33,7 @@
   },
   "dependencies": {
     "@adobe/aio-cli-plugin-runtime": "^1.4.0",
-    "@adobe/aio-lib-core-config": "^1.2.4",
+    "@adobe/aio-lib-core-config": "^1.2.8",
     "@adobe/aio-lib-core-logging": "^1.1.0",
     "@adobe/aio-lib-core-tvm": "^1.0.3",
     "@hapi/joi": "^16.1.7",
