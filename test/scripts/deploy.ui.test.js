@@ -10,6 +10,7 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 const { vol } = global.mockFs()
+const path = require('path')
 const cloneDeep = require('lodash.clonedeep')
 
 const RemoteStorage = require('../../lib/remote-storage')
@@ -144,7 +145,7 @@ describe('deploy static files with tvm', () => {
     await global.addFakeFiles(vol, buildDir, ['index.html'])
     // spies can be restored
     const spy = jest.spyOn(RemoteStorage.prototype, 'uploadDir').mockImplementation((dir, prefix, progressCb) => {
-      progressCb('index.html')
+      progressCb(path.join(buildDir, 'index.html'))
     })
     await scripts.deployUI()
     expect(mockOnProgress).toHaveBeenCalledWith('index.html')

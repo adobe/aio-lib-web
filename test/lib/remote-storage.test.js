@@ -153,7 +153,7 @@ test('uploadDir should call S3#upload one time per file', async () => {
 })
 
 test('uploadDir should call a callback once per uploaded file', async () => {
-  await global.addFakeFiles(vol, 'fakeDir', ['index.js', 'index.css', 'index.html'])
+  await global.addFakeFiles(vol, 'fakeDir', ['index.js', 'index.css', 'index.html', 'test/i.js'])
   const uploadMock = jest.fn()
   spyS3({
     upload: uploadMock
@@ -161,5 +161,5 @@ test('uploadDir should call a callback once per uploaded file', async () => {
   const cbMock = jest.fn()
   const rs = new RemoteStorage(global.fakeTVMResponse)
   await rs.uploadDir('fakeDir', 'fakeprefix', cbMock)
-  expect(cbMock).toHaveBeenCalledTimes(3)
+  expect(cbMock).toHaveBeenCalledTimes(4)
 })

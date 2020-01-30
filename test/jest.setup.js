@@ -12,6 +12,7 @@ governing permissions and limitations under the License.
 
 const cloneDeep = require('lodash.clonedeep')
 const path = require('path')
+
 // const { stdout, stderr } = require('stdout-stderr')
 
 // trap console log
@@ -102,7 +103,10 @@ global.addFakeFiles = (vol, dir, files) => {
   if (Array.isArray(files)) files = files.reduce((obj, curr) => { obj[curr] = 'fake-content'; return obj }, {})
   vol.mkdirpSync(dir)
   Object.keys(files).forEach(f => {
-    vol.writeFileSync(path.join(dir, f), files[f])
+    const filePath = path.join(dir, f)
+    // create intermediate directories if neccessary
+    vol.mkdirSync(path.dirname(filePath), { recursive: true })
+    vol.writeFileSync(filePath, files[f])
   })
 }
 
