@@ -51,7 +51,7 @@
     "open": "^7.0.0",
     "openwhisk": "^3.20.0",
     "parcel-bundler": "^1.12.4",
-    "webpack": "^4.41.2"
+    "webpack": "^4.41.5"
   },
   "devDependencies": {
     "@types/hapi__joi": "^16.0.2",
