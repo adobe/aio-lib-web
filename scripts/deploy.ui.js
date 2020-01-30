@@ -51,7 +51,7 @@ class DeployUI extends BaseScript {
       this.emit('warning', `an already existing deployment for version ${this.config.app.version} will be overwritten`)
       await remoteStorage.emptyFolder(this.config.s3.folder)
     }
-    await remoteStorage.uploadDir(dist, this.config.s3.folder, f => this.emit('progress', path.basename(f)))
+    await remoteStorage.uploadDir(dist, this.config.s3.folder, f => this.emit('progress', path.relative(dist, f)))
 
     const url = utils.getUIUrl(this.config, creds.params.Bucket)
     this.emit('end', taskName, url)
