@@ -33,7 +33,7 @@
   },
   "dependencies": {
     "@adobe/aio-cli-plugin-runtime": "^1.4.0",
-    "@adobe/aio-lib-core-config": "^1.2.4",
+    "@adobe/aio-lib-core-config": "^1.2.8",
     "@adobe/aio-lib-core-logging": "^1.1.0",
     "@adobe/aio-lib-core-tvm": "^1.0.3",
     "@hapi/joi": "^16.1.7",
@@ -41,7 +41,7 @@
     "aws-sdk": "^2.600.0",
     "debug": "^4.1.1",
     "dotenv": "^8.2.0",
-    "execa": "^3.2.0",
+    "execa": "^4.0.0",
     "fs-extra": "^8.1.0",
     "js-yaml": "^3.13.1",
     "klaw": "^3.0.0",
