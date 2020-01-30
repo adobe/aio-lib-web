@@ -44,6 +44,7 @@
     "execa": "^3.2.0",
     "fs-extra": "^8.1.0",
     "js-yaml": "^3.13.1",
+    "klaw": "^3.0.0",
     "lodash.clonedeep": "^4.5.0",
     "mime-types": "^2.1.24",
     "node-fetch": "^2.6.0",
@@ -54,7 +55,7 @@
   },
   "devDependencies": {
     "@types/hapi__joi": "^16.0.2",
-    "@types/jest": "^24.0.19",
+    "@types/jest": "^25.1.0",
     "eslint": "^6.5.1",
     "eslint-config-standard": "^14.1.0",
     "eslint-plugin-import": "^2.18.2",
