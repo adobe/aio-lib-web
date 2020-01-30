@@ -662,7 +662,7 @@ MORE_VAR_1=hello2
       }
       return { ok: true }
     })
-    await expect(ref.scripts.runDev()).resolves.toBe(undefined) // this would break if scripts does not return undefined anymore (replace with anything)
+    await ref.scripts.runDev()
     expect(execa).toHaveBeenCalledWith(...execaLocalOWArgs)
     expect(fetch).toHaveBeenCalledWith('http://localhost:3233/api/v1')
     expect(setTimeout).toHaveBeenCalledWith(expect.any(Function), waitInitTime) // initial wait
@@ -796,5 +796,39 @@ describe('with local actions and frontend', () => {
       'action-zip': baseUrl + 'action-zip',
       'action-sequence': baseUrl + 'action-sequence'
     })
+  })
+})
+
+describe('port unavailable', () => {
+  const ref = {}
+  beforeEach(async () => {
+    process.env.REMOTE_ACTIONS = 'false'
+    ref.scripts = await loadEnvScripts('sample-app', global.fakeConfig.tvm)
+    // default mocks
+    // assume ow jar is already downloaded
+    writeFakeOwJar()
+    execa.mockReturnValue({
+      stdout: jest.fn(),
+      kill: jest.fn()
+    })
+    Bundler.mockServe.mockReturnValue({
+      address: () => {
+        return { port: 99 }
+      }
+    })
+
+    fetch.mockResolvedValue({
+      ok: true
+    })
+    // should expose a new config with local credentials when reloaded in the dev cmd
+    // we could also not mock aioConfig and expect it to read from .env
+    mockAIOConfig.get.mockReturnValue(global.fakeConfig.local)
+  })
+
+  test('should return the used port', async () => {
+    const httpsConfig = { https: { cert: 'cert.cert', key: 'key.key' } }
+    const resultUrl = await ref.scripts.runDev([8888], httpsConfig)
+    expect(Bundler.mockServe).toHaveBeenCalledWith(8888, httpsConfig.https)
+    expect(resultUrl).toBe('https://localhost:99')
   })
 })
