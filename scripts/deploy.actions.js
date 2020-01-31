@@ -16,10 +16,11 @@ const utils = require('../lib/utils')
 
 const fs = require('fs-extra')
 const path = require('path')
-
 const cloneDeep = require('lodash.clonedeep')
-
 const OpenWhisk = require('openwhisk')
+const aioConfig = require('@adobe/aio-lib-core-config')
+
+const aioLogger = require('@adobe/aio-lib-core-logging')('@adobe/aio-app-scripts:deploy-actions', { provider: 'debug' })
 
 // This should eventually be fully covered by `aio runtime deploy`
 class DeployActions extends BaseScript {
@@ -59,10 +60,19 @@ class DeployActions extends BaseScript {
     const manifestPackage = manifest.packages[this.config.manifest.packagePlaceholder]
     manifestPackage.version = this.config.app.version
     const relDist = this._relApp(this.config.actions.dist)
-    await Promise.all(Object.entries(manifestPackage.actions).map(async ([name, action]) => {
+    Object.entries(manifestPackage.actions).forEach(([name, action]) => {
       // change path to built action
       action.function = path.join(relDist, name + '.zip')
-    }))
+      // attempt to parse config
+      if (action.inputs) {
+        Object.entries(action.inputs).forEach(([key, value]) => {
+          if (value.startsWith('$aio.')) {
+            action.inputs[key] = aioConfig.get(value.slice(5)) || ''
+            aioLogger.debug(`setting input value for ${key} from ${value} to ${JSON.stringify(action.inputs[key])}`)
+          }
+        })
+      }
+    })
     // replace package name
     manifest.packages[this.config.ow.package] = manifest.packages[this.config.manifest.packagePlaceholder]
     delete manifest.packages[this.config.manifest.packagePlaceholder]
