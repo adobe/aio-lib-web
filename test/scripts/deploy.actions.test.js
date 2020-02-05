@@ -488,7 +488,7 @@ test('Deploy actions with $aio.<key> input field should load aio config into man
 
   const expectedDistManifestWithAioConfig = {
     packages: {
-      'sample-app-1.0.0': {
+      'sample-app-no-web-input-aioconfig-1.0.0': {
         license: 'Apache-2.0',
         version: '1.0.0',
         actions: {
@@ -515,5 +515,5 @@ test('Deploy actions with $aio.<key> input field should load aio config into man
   expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedDistManifestWithAioConfig.packages, {}, {}, {})
 
   expect(ioruntime.syncProject).toHaveBeenCalledTimes(1)
-  expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifestWithAioConfig, mockEntities, { fake: 'ow' }, expect.anything(), true)
+  expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-no-web-input-aioconfig-1.0.0', r('/manifest.yml'), expectedDistManifestWithAioConfig, mockEntities, { fake: 'ow' }, expect.anything(), true)
 })
