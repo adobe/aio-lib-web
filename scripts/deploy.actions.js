@@ -22,6 +22,8 @@ const aioConfig = require('@adobe/aio-lib-core-config')
 
 const aioLogger = require('@adobe/aio-lib-core-logging')('@adobe/aio-app-scripts:deploy-actions', { provider: 'debug' })
 
+const AIO_INPUT_PLACEHOLDER = '$aio.'
+
 // This should eventually be fully covered by `aio runtime deploy`
 class DeployActions extends BaseScript {
   /**
@@ -66,8 +68,8 @@ class DeployActions extends BaseScript {
       // attempt to parse config
       if (action.inputs) {
         Object.entries(action.inputs).forEach(([key, value]) => {
-          if (value.startsWith('$aio.')) {
-            action.inputs[key] = aioConfig.get(value.slice(5)) || ''
+          if (value.startsWith(AIO_INPUT_PLACEHOLDER)) {
+            action.inputs[key] = aioConfig.get(value.slice(AIO_INPUT_PLACEHOLDER.length)) || ''
             aioLogger.debug(`setting input value for ${key} from ${value} to ${JSON.stringify(action.inputs[key])}`)
           }
         })

@@ -1,0 +1,7 @@
+{
+  $ims: {
+    jwt: {
+      key: 'value'
+    }
+  }
+}

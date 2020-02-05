@@ -31,7 +31,7 @@ beforeEach(() => {
   ioruntime.syncProject.mockReset()
 })
 
-const expectedDistManifest = {
+const expectedDistManifestSampleApp = {
   packages: {
     'sample-app-1.0.0': {
       license: 'Apache-2.0',
@@ -107,10 +107,10 @@ test('deploy full manifest', async () => {
   await scripts.deployActions()
 
   expect(ioruntime.processPackage).toHaveBeenCalledTimes(1)
-  expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedDistManifest.packages, {}, {}, {})
+  expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedDistManifestSampleApp.packages, {}, {}, {})
 
   expect(ioruntime.syncProject).toHaveBeenCalledTimes(1)
-  expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, mockEntities, { fake: 'ow' }, expect.anything(), true)
+  expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifestSampleApp, mockEntities, { fake: 'ow' }, expect.anything(), true)
 })
 
 test('use deployConfig.filterEntities to deploy only one action', async () => {
@@ -149,7 +149,7 @@ test('use deployConfig.filterEntities to deploy only one action', async () => {
   expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedDistPackagesFiltered, {}, {}, {})
 
   expect(ioruntime.syncProject).toHaveBeenCalledTimes(1)
-  expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, mockEntities, { fake: 'ow' }, expect.anything(), false)
+  expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifestSampleApp, mockEntities, { fake: 'ow' }, expect.anything(), false)
 })
 
 test('use deployConfig.filterEntities to deploy only one trigger and one action', async () => {
@@ -192,7 +192,7 @@ test('use deployConfig.filterEntities to deploy only one trigger and one action'
   expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedDistPackagesFiltered, {}, {}, {})
 
   expect(ioruntime.syncProject).toHaveBeenCalledTimes(1)
-  expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, mockEntities, { fake: 'ow' }, expect.anything(), false)
+  expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifestSampleApp, mockEntities, { fake: 'ow' }, expect.anything(), false)
 })
 
 test('use deployConfig.filterEntities to deploy only one trigger and one action and one rule', async () => {
@@ -243,7 +243,7 @@ test('use deployConfig.filterEntities to deploy only one trigger and one action 
   expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedDistPackagesFiltered, {}, {}, {})
 
   expect(ioruntime.syncProject).toHaveBeenCalledTimes(1)
-  expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, mockEntities, { fake: 'ow' }, expect.anything(), false)
+  expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifestSampleApp, mockEntities, { fake: 'ow' }, expect.anything(), false)
 })
 
 test('use deployConfig.filterEntities to deploy only one action and one api', async () => {
@@ -294,7 +294,7 @@ test('use deployConfig.filterEntities to deploy only one action and one api', as
   expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedDistPackagesFiltered, {}, {}, {})
 
   expect(ioruntime.syncProject).toHaveBeenCalledTimes(1)
-  expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, mockEntities, { fake: 'ow' }, expect.anything(), false)
+  expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifestSampleApp, mockEntities, { fake: 'ow' }, expect.anything(), false)
 })
 
 test('use deployConfig.filterEntities to deploy only two actions and one sequence', async () => {
@@ -345,7 +345,7 @@ test('use deployConfig.filterEntities to deploy only two actions and one sequenc
   expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedDistPackagesFiltered, {}, {}, {})
 
   expect(ioruntime.syncProject).toHaveBeenCalledTimes(1)
-  expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, mockEntities, { fake: 'ow' }, expect.anything(), false)
+  expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifestSampleApp, mockEntities, { fake: 'ow' }, expect.anything(), false)
 })
 
 test('use deployConfig.filterEntities to deploy only one pkg dependency', async () => {
@@ -382,7 +382,7 @@ test('use deployConfig.filterEntities to deploy only one pkg dependency', async 
   expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedDistPackagesFiltered, {}, {}, {})
 
   expect(ioruntime.syncProject).toHaveBeenCalledTimes(1)
-  expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, mockEntities, { fake: 'ow' }, expect.anything(), false)
+  expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifestSampleApp, mockEntities, { fake: 'ow' }, expect.anything(), false)
 })
 
 test('use deployConfig.filterEntities on non existing pkgEntity should work', async () => {
@@ -463,4 +463,57 @@ test('Deploy actions should pass if there are no build files and filter does not
 
   const scripts = await AppScripts()
   await expect(scripts.deployActions([], { filterEntities: { triggers: ['trigger1'] } })).resolves.toEqual({})
+})
+
+test('Deploy actions with $aio.<key> input field should load aio config into manifest', async () => {
+  global.loadFs(vol, 'sample-app-no-web-input-aioconfig')
+  mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
+  ioruntime.processPackage.mockReturnValue(deepCopy(mockEntities))
+  openwhisk.mockReturnValue({ fake: 'ow' })
+
+  const scripts = await AppScripts()
+  const buildDir = scripts._config.actions.dist
+
+  // fake a previous build
+  await global.addFakeFiles(vol, buildDir, ['action.js'])
+
+  // make sure the $aio. key is define in fixture
+  expect(scripts._config.manifest.package.actions.action.inputs.imsConfig).toEqual('$aio.$ims.jwt')
+
+  mockAIOConfig.get.mockClear()
+  // undefined to test empty: ''
+  mockAIOConfig.get.mockImplementation(k => k === '$ims.jwt' ? { key: 'value', secret: 'secret' } : undefined)
+
+  await scripts.deployActions()
+
+  const expectedDistManifestWithAioConfig = {
+    packages: {
+      'sample-app-1.0.0': {
+        license: 'Apache-2.0',
+        version: '1.0.0',
+        actions: {
+          action: {
+            function: n('dist/actions/action.zip'),
+            runtime: 'nodejs:10',
+            web: 'yes',
+            inputs: {
+              empty: '',
+              normal: 'hello',
+              imsConfig: {
+                key: 'value',
+                secret: 'secret'
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  expect(mockAIOConfig.get).toHaveBeenCalledWith('$ims.jwt')
+
+  expect(ioruntime.processPackage).toHaveBeenCalledTimes(1)
+  expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedDistManifestWithAioConfig.packages, {}, {}, {})
+
+  expect(ioruntime.syncProject).toHaveBeenCalledTimes(1)
+  expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifestWithAioConfig, mockEntities, { fake: 'ow' }, expect.anything(), true)
 })

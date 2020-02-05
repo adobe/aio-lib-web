@@ -1,0 +1,12 @@
+packages:
+  __APP_PACKAGE__:
+    license: Apache-2.0
+    actions:
+      action:
+        function: actions/action.js
+        web: yes
+        runtime: 'nodejs:10'
+        inputs:
+          imsConfig: $aio.$ims.jwt
+          empty: $aio.empty
+          normal: hello
