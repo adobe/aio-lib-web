@@ -133,10 +133,11 @@ describe('deploy static files with tvm', () => {
 
   test('should fail build if app has no frontend', async () => {
     global.loadFs(vol, 'sample-app')
-    vol.unlinkSync('/web-src/index.html')
+    await global.addFakeFiles(vol, buildDir, ['index.html'])
+
     mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
 
-    const scripts = await AppScripts()
+    scripts._config.app.hasFrontend = false
 
     await expect(scripts.deployUI()).rejects.toEqual(expect.objectContaining({ message: expect.stringContaining('app has no frontend') }))
   })
@@ -144,7 +145,8 @@ describe('deploy static files with tvm', () => {
   test('should call onProgress listener', async () => {
     await global.addFakeFiles(vol, buildDir, ['index.html'])
     // spies can be restored
-    const spy = jest.spyOn(RemoteStorage.prototype, 'uploadDir').mockImplementation((dir, prefix, progressCb) => {
+
+    const spy = jest.spyOn(RemoteStorage.prototype, 'uploadDir').mockImplementation((dir, prefix, config, progressCb) => {
       progressCb(path.join(buildDir, 'index.html'))
     })
     await scripts.deployUI()
