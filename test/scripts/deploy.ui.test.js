@@ -146,7 +146,7 @@ describe('deploy static files with tvm', () => {
     const scripts = await AppScripts()
     // spies can be restored
 
-    const spy = jest.spyOn(RemoteStorage.prototype, 'uploadDir').mockImplementation((dir, prefix, {}, progressCb) => {
+    const spy = jest.spyOn(RemoteStorage.prototype, 'uploadDir').mockImplementation((dir, prefix, config, progressCb) => {
       progressCb(path.join(buildDir, 'index.html'))
     })
     await scripts.deployUI()

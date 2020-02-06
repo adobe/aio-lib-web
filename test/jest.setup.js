@@ -154,7 +154,7 @@ global.fakeConfig = {
     htmlCacheDuration: 60,
     jsCacheDuration: 604800,
     cssCacheDuration: 604800,
-    imagesCacheDuration: 604800
+    imageCacheDuration: 604800
   }
 }
 

@@ -168,24 +168,30 @@ test('uploadDir should call a callback once per uploaded file', async () => {
 
 test('test cachecontrol string for html', async () => {
   const rs = new RemoteStorage(global.fakeTVMResponse)
-  let response = rs._getCacheControlConfig("text/html", global.fakeConfig.cna)
-  expect(response).toBe("s-maxage=0, max-age=60")
+  const response = rs._getCacheControlConfig('text/html', global.fakeConfig.cna)
+  expect(response).toBe('s-maxage=0, max-age=60')
 })
 
 test('test cachecontrol string for JS', async () => {
   const rs = new RemoteStorage(global.fakeTVMResponse)
-  let response = rs._getCacheControlConfig("application/javascript", global.fakeConfig.cna)
-  expect(response).toBe("s-maxage=0, max-age=604800")
+  const response = rs._getCacheControlConfig('application/javascript', global.fakeConfig.cna)
+  expect(response).toBe('s-maxage=0, max-age=604800')
 })
 
 test('test cachecontrol string for CSS', async () => {
   const rs = new RemoteStorage(global.fakeTVMResponse)
-  let response = rs._getCacheControlConfig("text/css", global.fakeConfig.cna)
-  expect(response).toBe("s-maxage=0, max-age=604800")
+  const response = rs._getCacheControlConfig('text/css', global.fakeConfig.cna)
+  expect(response).toBe('s-maxage=0, max-age=604800')
 })
 
 test('test cachecontrol string for Image', async () => {
   const rs = new RemoteStorage(global.fakeTVMResponse)
-  let response = rs._getCacheControlConfig("image/jpeg", global.fakeConfig.cna)
-  expect(response).toBe("s-maxage=0, max-age=604800")
+  const response = rs._getCacheControlConfig('image/jpeg', global.fakeConfig.cna)
+  expect(response).toBe('s-maxage=0, max-age=604800')
+})
+
+test('test cachecontrol string for default', async () => {
+  const rs = new RemoteStorage(global.fakeTVMResponse)
+  const response = rs._getCacheControlConfig('application/pdf', global.fakeConfig.cna)
+  expect(response).toBe('s-maxage=0')
 })
