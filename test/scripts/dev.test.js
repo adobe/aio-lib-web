@@ -17,6 +17,20 @@ const stream = require('stream')
 const mockAIOConfig = require('@adobe/aio-lib-core-config')
 
 /* ****************** Mocks & beforeEach ******************* */
+let onChangeFunc
+jest.mock('chokidar', () => {
+  return {
+    watch: (...watchArgs) => {
+      return {
+        on: (status, method) => {
+          onChangeFunc = method
+        },
+        close: jest.fn()
+      }
+    }
+  }
+})
+
 const execa = require('execa')
 jest.mock('execa')
 
@@ -349,6 +363,15 @@ function runCommonRemoteTests (ref) {
   test('should build and deploy actions to remote', async () => {
     await ref.scripts.runDev()
     expectDevActionBuildAndDeploy(expectedRemoteOWConfig)
+
+    BuildActions.mockClear()
+    DeployActions.mockClear()
+    await onChangeFunc('changed')
+
+    expect(BuildActions).toHaveBeenCalledTimes(1)
+    expect(BuildActions.mock.instances[0].run).toHaveBeenCalledTimes(1)
+    expect(DeployActions).toHaveBeenCalledTimes(1)
+    expect(DeployActions.mock.instances[0].run).toHaveBeenCalledTimes(1)
   })
 
   test('should not start the local openwhisk stack', async () => {
@@ -502,6 +525,15 @@ function runCommonLocalTests (ref) {
   test('should build and deploy actions to local ow', async () => {
     await ref.scripts.runDev()
     expectDevActionBuildAndDeploy(expectedLocalOWConfig)
+
+    BuildActions.mockClear()
+    DeployActions.mockClear()
+    await onChangeFunc('changed')
+
+    expect(BuildActions).toHaveBeenCalledTimes(1)
+    expect(BuildActions.mock.instances[0].run).toHaveBeenCalledTimes(1)
+    expect(DeployActions).toHaveBeenCalledTimes(1)
+    expect(DeployActions.mock.instances[0].run).toHaveBeenCalledTimes(1)
   })
 
   test('should create a tmp .env file with local openwhisk credentials if there is no existing .env', async () => {

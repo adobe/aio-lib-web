@@ -23,6 +23,8 @@ const DeployActions = require('./deploy.actions')
 const utils = require('../lib/utils')
 const execa = require('execa')
 const Bundler = require('parcel-bundler')
+const chokidar = require('chokidar')
+let watcher
 
 // TODO: this jar should become part of the distro, OR it should be pulled from bintray or similar.
 const OW_JAR_URL = 'https://github.com/adobe/aio-app-scripts/raw/binaries/bin/openwhisk-standalone-0.10.jar'
@@ -116,13 +118,14 @@ class ActionServer extends BaseScript {
       // build and deploy actions
       // todo support live reloading ?
       this.emit('progress', 'redeploying actions..')
-      await (new BuildActions(devConfig)).run()
-      const entities = await (new DeployActions(devConfig)).run()
-      if (entities.actions) {
-        entities.actions.forEach(a => {
-          this.emit('progress', `  -> ${a.url || a.name}`)
-        })
-      }
+      await this._buildAndDeploy(devConfig)
+
+      const self = this
+      watcher = chokidar.watch(devConfig.actions.src, { persistent: true })
+      watcher.on('change', (filePath) => {
+        aioLogger.debug(`${filePath} has changed. Redeploying actions.`)
+        self._buildAndDeploy(devConfig)
+      })
 
       this.emit('progress', `writing credentials to tmp wskdebug config '${this._relApp(WSK_DEBUG_PROPS)}'..`)
       // prepare wskprops for wskdebug
@@ -270,9 +273,20 @@ class ActionServer extends BaseScript {
     }
     return debugConfig
   }
+
+  async _buildAndDeploy (devConfig) {
+    await (new BuildActions(devConfig)).run()
+    const entities = await (new DeployActions(devConfig)).run()
+    if (entities.actions) {
+      entities.actions.forEach(a => {
+        this.emit('progress', `  -> ${a.url || a.name}`)
+      })
+    }
+  }
 }
 
 function cleanup (err, resources) {
+  if (watcher) { watcher.close() }
   if (resources.dotenv && resources.dotenvSave && fs.existsSync(resources.dotenvSave)) {
     aioLogger.info('restoring .env file...')
     fs.moveSync(resources.dotenvSave, resources.dotenv, { overwrite: true })
