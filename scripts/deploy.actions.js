@@ -39,52 +39,54 @@ class DeployActions extends BaseScript {
    * @memberof DeployActions
    */
   async run (args = [], deployConfig = {}) {
-    const taskName = 'Deploy actions'
-    this.emit('start', taskName)
+    if (this.config.app.hasBackend) {
+      const taskName = 'Deploy actions'
+      this.emit('start', taskName)
 
-    // checks
-    /// a. missing credentials
-    utils.checkOpenWhiskCredentials(this.config)
-    /// b. missing build files
-    const dist = this.config.actions.dist
-    if (
-      (!deployConfig.filterEntities || deployConfig.filterEntities.actions) &&
+      // checks
+      /// a. missing credentials
+      utils.checkOpenWhiskCredentials(this.config)
+      /// b. missing build files
+      const dist = this.config.actions.dist
+      if (
+        (!deployConfig.filterEntities || deployConfig.filterEntities.actions) &&
       (!fs.pathExistsSync(dist) || !fs.lstatSync(dist).isDirectory() || !fs.readdirSync(dist).length === 0)
-    ) {
-      throw new Error(`missing files in ${this._relApp(dist)}, maybe you forgot to build your actions ?`)
-    }
+      ) {
+        throw new Error(`missing files in ${this._relApp(dist)}, maybe you forgot to build your actions ?`)
+      }
 
-    // 1. rewrite wskManifest config
-    const manifest = cloneDeep(this.config.manifest.full)
-    const manifestPackage = manifest.packages[this.config.manifest.packagePlaceholder]
-    manifestPackage.version = this.config.app.version
-    const relDist = this._relApp(this.config.actions.dist)
-    await Promise.all(Object.entries(manifestPackage.actions).map(async ([name, action]) => {
+      // 1. rewrite wskManifest config
+      const manifest = cloneDeep(this.config.manifest.full)
+      const manifestPackage = manifest.packages[this.config.manifest.packagePlaceholder]
+      manifestPackage.version = this.config.app.version
+      const relDist = this._relApp(this.config.actions.dist)
+      await Promise.all(Object.entries(manifestPackage.actions).map(async ([name, action]) => {
       // change path to built action
-      action.function = path.join(relDist, name + '.zip')
-    }))
-    // replace package name
-    manifest.packages[this.config.ow.package] = manifest.packages[this.config.manifest.packagePlaceholder]
-    delete manifest.packages[this.config.manifest.packagePlaceholder]
+        action.function = path.join(relDist, name + '.zip')
+      }))
+      // replace package name
+      manifest.packages[this.config.ow.package] = manifest.packages[this.config.manifest.packagePlaceholder]
+      delete manifest.packages[this.config.manifest.packagePlaceholder]
 
-    // 2. deploy manifest
-    const owClient = OpenWhisk({
-      apihost: this.config.ow.apihost,
-      apiversion: this.config.ow.apiversion,
-      api_key: this.config.ow.auth,
-      namespace: this.config.ow.namespace
-    })
-    const deployedEntities = await utils.deployWsk(
-      this.config.ow.package,
-      this.config.manifest.src,
-      manifest,
-      owClient,
-      this.emit.bind(this, 'progress'),
-      deployConfig.filterEntities
-    )
+      // 2. deploy manifest
+      const owClient = OpenWhisk({
+        apihost: this.config.ow.apihost,
+        apiversion: this.config.ow.apiversion,
+        api_key: this.config.ow.auth,
+        namespace: this.config.ow.namespace
+      })
+      const deployedEntities = await utils.deployWsk(
+        this.config.ow.package,
+        this.config.manifest.src,
+        manifest,
+        owClient,
+        this.emit.bind(this, 'progress'),
+        deployConfig.filterEntities
+      )
 
-    this.emit('end', taskName, deployedEntities)
-    return deployedEntities || {}
+      this.emit('end', taskName, deployedEntities)
+      return deployedEntities || {}
+    }
   }
 }
 

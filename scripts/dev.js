@@ -127,10 +127,10 @@ class ActionServer extends BaseScript {
       if (hasFrontend) {
         // inject backend urls into ui
         this.emit('progress', 'injecting backend urls into frontend config')
-
-        const urls = await utils.getActionUrls(devConfig, true, isLocal)
-
-        await utils.writeConfig(devConfig.web.injectedConfig, urls)
+        if (devConfig.app.hasBackend) {
+          const urls = await utils.getActionUrls(devConfig, true, isLocal)
+          await utils.writeConfig(devConfig.web.injectedConfig, urls)
+        }
 
         this.emit('progress', 'starting local frontend server ..')
         // todo: does it have to be index.html?
@@ -193,59 +193,66 @@ class ActionServer extends BaseScript {
   // todo make util not instance function
   async generateVSCodeDebugConfig (devConfig, hasFrontend, frontUrl, wskdebugProps) {
     const packageName = devConfig.ow.package
-    const manifestActions = devConfig.manifest.package.actions
-
+    const debugConfig = {
+      configurations: [],
+      compounds: []
+    }
     const actionConfigNames = []
-    const actionConfigs = Object.keys(manifestActions).map(an => {
-      const name = `Action:${packageName}/${an}`
-      actionConfigNames.push(name)
-      const action = manifestActions[an]
-      const actionPath = this._absApp(action.function)
+    if (devConfig.app.hasBackend) {
+      const manifestActions = devConfig.manifest.package.actions
+      const actionConfigs = Object.keys(manifestActions).map(an => {
+        const name = `Action:${packageName}/${an}`
+        actionConfigNames.push(name)
+        const action = manifestActions[an]
+        const actionPath = this._absApp(action.function)
 
-      const config = {
-        type: 'node',
-        request: 'launch',
-        name: name,
-        // todo allow for global install aswell
-        runtimeExecutable: this._absApp('./node_modules/.bin/wskdebug'),
-        env: { WSK_CONFIG_FILE: wskdebugProps },
-        timeout: 30000,
-        // replaces remoteRoot with localRoot to get src files
-        localRoot: this._absApp('.'),
-        remoteRoot: '/code',
-        outputCapture: 'std'
-      }
+        const config = {
+          type: 'node',
+          request: 'launch',
+          name: name,
+          // todo allow for global install aswell
+          runtimeExecutable: this._absApp('./node_modules/.bin/wskdebug'),
+          env: { WSK_CONFIG_FILE: wskdebugProps },
+          timeout: 30000,
+          // replaces remoteRoot with localRoot to get src files
+          localRoot: this._absApp('.'),
+          remoteRoot: '/code',
+          outputCapture: 'std'
+        }
 
-      const actionFileStats = fs.lstatSync(actionPath)
-      if (actionFileStats.isFile()) {
+        const actionFileStats = fs.lstatSync(actionPath)
+        if (actionFileStats.isFile()) {
         // why is this condition here?
-      }
-      if (actionFileStats.isDirectory()) {
+        }
+        if (actionFileStats.isDirectory()) {
         // take package.json.main or 'index.js'
-        const zipMain = utils.getActionEntryFile(path.join(actionPath, 'package.json'))
-        config.runtimeArgs = [
+          const zipMain = utils.getActionEntryFile(path.join(actionPath, 'package.json'))
+          config.runtimeArgs = [
           `${packageName}/${an}`,
           path.join(actionPath, zipMain),
           '-v'
-        ]
-      } else {
+          ]
+        } else {
         // we assume its a file at this point
         // if symlink should have thrown an error during build stage, here we just ignore it
-        config.runtimeArgs = [
+          config.runtimeArgs = [
           `${packageName}/${an}`,
           actionPath,
           '-v'
-        ]
-      }
-      return config
-    })
-    const debugConfig = {
-      configurations: actionConfigs,
-      compounds: [{
-        name: 'Actions',
-        configurations: actionConfigNames
-      }]
+          ]
+        }
+        return config
+      })
+
+      debugConfig.configurations.push({
+        configurations: actionConfigs,
+        compounds: [{
+          name: 'Actions',
+          configurations: actionConfigNames
+        }]
+      })
     }
+
     if (hasFrontend) {
       debugConfig.configurations.push({
         type: 'chrome',
@@ -258,10 +265,12 @@ class ActionServer extends BaseScript {
           '*': path.join(devConfig.web.distDev, '*')
         }
       })
-      debugConfig.compounds.push({
-        name: 'WebAndActions',
-        configurations: ['Web'].concat(actionConfigNames)
-      })
+      if (devConfig.app.hasBackend) {
+        debugConfig.compounds.push({
+          name: 'WebAndActions',
+          configurations: ['Web'].concat(actionConfigNames)
+        })
+      }
     }
     return debugConfig
   }
