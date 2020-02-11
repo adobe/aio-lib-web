@@ -149,6 +149,12 @@ global.fakeConfig = {
       awsaccesskeyid: 'fakeAwsKeyId',
       awssecretaccesskey: 'fakeAwsSecretKey'
     }
+  },
+  cna: {
+    htmlCacheDuration: 60,
+    jsCacheDuration: 604800,
+    cssCacheDuration: 604800,
+    imageCacheDuration: 604800
   }
 }
 

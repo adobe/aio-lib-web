@@ -136,7 +136,8 @@ test('uploadFile should call S3#upload with the correct parameters', async () =>
     upload: uploadMock
   })
   const rs = new RemoteStorage(global.fakeTVMResponse)
-  await rs.uploadFile('fakeDir/index.js', 'fakeprefix')
+  const fakeConfig = {}
+  await rs.uploadFile('fakeDir/index.js', 'fakeprefix', fakeConfig)
   const body = Buffer.from('fake content', 'utf8')
   expect(uploadMock).toHaveBeenCalledWith(expect.objectContaining({ Key: 'fakeprefix/index.js', Body: body }))
 })
@@ -148,7 +149,7 @@ test('uploadDir should call S3#upload one time per file', async () => {
     upload: uploadMock
   })
   const rs = new RemoteStorage(global.fakeTVMResponse)
-  await rs.uploadDir('fakeDir', 'fakeprefix')
+  await rs.uploadDir('fakeDir', 'fakeprefix', global.fakeConfig.creds.cna)
   expect(uploadMock).toHaveBeenCalledTimes(3)
 })
 
@@ -160,6 +161,37 @@ test('uploadDir should call a callback once per uploaded file', async () => {
   })
   const cbMock = jest.fn()
   const rs = new RemoteStorage(global.fakeTVMResponse)
-  await rs.uploadDir('fakeDir', 'fakeprefix', cbMock)
+
+  await rs.uploadDir('fakeDir', 'fakeprefix', global.fakeConfig.cna, cbMock)
   expect(cbMock).toHaveBeenCalledTimes(4)
+})
+
+test('test cachecontrol string for html', async () => {
+  const rs = new RemoteStorage(global.fakeTVMResponse)
+  const response = rs._getCacheControlConfig('text/html', global.fakeConfig.cna)
+  expect(response).toBe('s-maxage=0, max-age=60')
+})
+
+test('test cachecontrol string for JS', async () => {
+  const rs = new RemoteStorage(global.fakeTVMResponse)
+  const response = rs._getCacheControlConfig('application/javascript', global.fakeConfig.cna)
+  expect(response).toBe('s-maxage=0, max-age=604800')
+})
+
+test('test cachecontrol string for CSS', async () => {
+  const rs = new RemoteStorage(global.fakeTVMResponse)
+  const response = rs._getCacheControlConfig('text/css', global.fakeConfig.cna)
+  expect(response).toBe('s-maxage=0, max-age=604800')
+})
+
+test('test cachecontrol string for Image', async () => {
+  const rs = new RemoteStorage(global.fakeTVMResponse)
+  const response = rs._getCacheControlConfig('image/jpeg', global.fakeConfig.cna)
+  expect(response).toBe('s-maxage=0, max-age=604800')
+})
+
+test('test cachecontrol string for default', async () => {
+  const rs = new RemoteStorage(global.fakeTVMResponse)
+  const response = rs._getCacheControlConfig('application/pdf', global.fakeConfig.cna)
+  expect(response).toBe('s-maxage=0')
 })
