@@ -117,7 +117,12 @@ class ActionServer extends BaseScript {
       // todo support live reloading ?
       this.emit('progress', 'redeploying actions..')
       await (new BuildActions(devConfig)).run()
-      await (new DeployActions(devConfig)).run()
+      const entities = await (new DeployActions(devConfig)).run()
+      if (entities.actions) {
+        entities.actions.forEach(a => {
+          this.emit('progress', `  -> ${a.url || a.name}`)
+        })
+      }
 
       this.emit('progress', `writing credentials to tmp wskdebug config '${this._relApp(WSK_DEBUG_PROPS)}'..`)
       // prepare wskprops for wskdebug

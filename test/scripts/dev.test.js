@@ -31,6 +31,8 @@ const DeployActions = require('../../scripts/deploy.actions')
 jest.mock('../../scripts/build.actions')
 jest.mock('../../scripts/deploy.actions')
 
+let deployActionsSpy
+
 process.exit = jest.fn()
 const mockOnProgress = jest.fn()
 
@@ -62,6 +64,13 @@ beforeEach(() => {
   time = now()
   Date.now.mockImplementation(() => time)
   global.setTimeout.mockImplementation((fn, d) => { time = time + d; fn() })
+
+  deployActionsSpy = jest.spyOn(DeployActions.prototype, 'run')
+  deployActionsSpy.mockResolvedValue({})
+})
+
+afterAll(() => {
+  deployActionsSpy.mockRestore()
 })
 
 /* ****************** Consts ******************* */
@@ -318,6 +327,20 @@ function runCommonTests (ref) {
       expect(vol.existsSync('/.vscode/launch.json.save')).toEqual(true)
       expect(vol.readFileSync('/.vscode/launch.json.save').toString()).toEqual('fakecontentsaved')
     })
+  })
+
+  test('should log actions url or name when actions are deployed', async () => {
+    deployActionsSpy.mockResolvedValue({
+      actions: [
+        { name: 'pkg/action', url: 'https://fake.com/action' },
+        { name: 'pkg/actionNoUrl' }
+      ]
+    })
+
+    await ref.scripts.runDev()
+
+    expect(mockOnProgress).toHaveBeenCalledWith(expect.stringContaining('pkg/actionNoUrl'))
+    expect(mockOnProgress).toHaveBeenCalledWith(expect.stringContaining('https://fake.com/action'))
   })
 }
 
