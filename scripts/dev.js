@@ -115,22 +115,25 @@ class ActionServer extends BaseScript {
 
       // build and deploy actions
       // todo support live reloading ?
-      this.emit('progress', 'redeploying actions..')
-      await (new BuildActions(devConfig)).run()
-      await (new DeployActions(devConfig)).run()
+      if (this.config.app.hasBackend) {
+        this.emit('progress', 'redeploying actions..')
+        await (new BuildActions(devConfig)).run()
+        await (new DeployActions(devConfig)).run()
 
-      this.emit('progress', `writing credentials to tmp wskdebug config '${this._relApp(WSK_DEBUG_PROPS)}'..`)
-      // prepare wskprops for wskdebug
-      fs.writeFileSync(WSK_DEBUG_PROPS, `NAMESPACE=${devConfig.ow.namespace}\nAUTH=${devConfig.ow.auth}\nAPIHOST=${devConfig.ow.apihost}`)
-      resources.wskdebugProps = WSK_DEBUG_PROPS
+        this.emit('progress', `writing credentials to tmp wskdebug config '${this._relApp(WSK_DEBUG_PROPS)}'..`)
+        // prepare wskprops for wskdebug
+        fs.writeFileSync(WSK_DEBUG_PROPS, `NAMESPACE=${devConfig.ow.namespace}\nAUTH=${devConfig.ow.auth}\nAPIHOST=${devConfig.ow.apihost}`)
+        resources.wskdebugProps = WSK_DEBUG_PROPS
+      }
 
       if (hasFrontend) {
-        // inject backend urls into ui
-        this.emit('progress', 'injecting backend urls into frontend config')
+        let urls = {}
         if (devConfig.app.hasBackend) {
-          const urls = await utils.getActionUrls(devConfig, true, isLocal)
-          await utils.writeConfig(devConfig.web.injectedConfig, urls)
+          // inject backend urls into ui
+          this.emit('progress', 'injecting backend urls into frontend config')
+          urls = await utils.getActionUrls(devConfig, true, isLocal)
         }
+        await utils.writeConfig(devConfig.web.injectedConfig, urls)
 
         this.emit('progress', 'starting local frontend server ..')
         // todo: does it have to be index.html?
