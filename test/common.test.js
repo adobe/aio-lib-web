@@ -115,5 +115,5 @@ test('Load pp without any name and version in package.json ', async () => {
   mockAIOConfig.get.mockReturnValue({})
   fs.writeFileSync('package.json', '{}')
   const scripts = AppScripts()
-  expect(scripts._config.app.version).toBe('0.0.1')
+  expect(scripts._config.app.version).toBe('0.1.0')
 })
