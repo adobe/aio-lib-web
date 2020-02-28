@@ -117,3 +117,14 @@ test('Load pp without any name and version in package.json ', async () => {
   const scripts = AppScripts()
   expect(scripts._config.app.version).toBe('0.1.0')
 })
+
+test('Use env variable for package name', async () => {
+  mockAIOConfig.get.mockReturnValue({})
+  fs.writeFileSync('package.json', JSON.stringify({
+    name: 'company/action'
+  }))
+  process.env.WSK_PACKAGE = 'this-is-the-name'
+  const scripts = AppScripts()
+  expect(scripts._config.ow.package).toBe('this-is-the-name')
+  delete process.env.WSK_PACKAGE
+})
