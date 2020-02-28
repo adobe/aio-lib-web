@@ -153,14 +153,3 @@ test('Load pp with invalid name in package.json ', async () => {
   const scripts = AppScripts()
   expect(scripts._config.app.name).toBe('action')
 })
-
-test('Use env variable for package name', async () => {
-  mockAIOConfig.get.mockReturnValue({})
-  fs.writeFileSync('package.json', JSON.stringify({
-    name: 'company/action'
-  }))
-  process.env.WSK_PACKAGE = 'this-is-the-name'
-  const scripts = AppScripts()
-  expect(scripts._config.ow.package).toBe('this-is-the-name')
-  delete process.env.WSK_PACKAGE
-})
