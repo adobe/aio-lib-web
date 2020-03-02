@@ -24,6 +24,8 @@ const utils = require('../lib/utils')
 const execa = require('execa')
 const Bundler = require('parcel-bundler')
 const chokidar = require('chokidar')
+let running = false
+let changed = false
 let watcher
 
 // TODO: this jar should become part of the distro, OR it should be pulled from bintray or similar.
@@ -120,12 +122,8 @@ class ActionServer extends BaseScript {
       this.emit('progress', 'redeploying actions..')
       await this._buildAndDeploy(devConfig)
 
-      const self = this
-      watcher = chokidar.watch(devConfig.actions.src, { persistent: true })
-      watcher.on('change', (filePath) => {
-        aioLogger.debug(`${filePath} has changed. Redeploying actions.`)
-        self._buildAndDeploy(devConfig)
-      })
+      watcher = chokidar.watch(devConfig.actions.src)
+      watcher.on('change', this._getActionChangeHandler(devConfig))
 
       this.emit('progress', `writing credentials to tmp wskdebug config '${this._relApp(WSK_DEBUG_PROPS)}'..`)
       // prepare wskprops for wskdebug
@@ -272,6 +270,32 @@ class ActionServer extends BaseScript {
       })
     }
     return debugConfig
+  }
+
+  _getActionChangeHandler (devConfig) {
+    return async (filePath) => {
+      if (running) {
+        aioLogger.debug(`${filePath} has changed. Deploy in progress. This change will be deployed after completion of current deployment.`)
+        changed = true
+        return
+      }
+      running = true
+      try {
+        aioLogger.debug(`${filePath} has changed. Redeploying actions.`)
+        await this._buildAndDeploy(devConfig)
+        aioLogger.debug('Deployment successfull.')
+      } catch (err) {
+        this.emit('progress', '  -> Error encountered while deploying actions. Stopping auto refresh.')
+        aioLogger.debug(err)
+        watcher.close()
+      }
+      if (changed) {
+        aioLogger.debug('Code changed during deployment. Triggering deploy again.')
+        changed = running = false
+        await this._getActionChangeHandler(devConfig)(devConfig.actions.src)
+      }
+      running = false
+    }
   }
 
   async _buildAndDeploy (devConfig) {
