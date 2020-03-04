@@ -118,11 +118,34 @@ test('Load pp without any name and version in package.json ', async () => {
   expect(scripts._config.app.version).toBe('0.1.0')
 })
 
-test('Use env variable for package name', async () => {
+test('Load pp with scoped name in package.json ', async () => {
   mockAIOConfig.get.mockReturnValue({})
   fs.writeFileSync('package.json', JSON.stringify({
-    name: 'company/action'
+    name: '@company/action'
   }))
+  const scripts = AppScripts()
+  expect(scripts._config.app.name).toBe('action')
+})
+
+test('Load pp with plain name in package.json ', async () => {
+  mockAIOConfig.get.mockReturnValue({})
+  fs.writeFileSync('package.json', JSON.stringify({
+    name: 'action'
+  }))
+  const scripts = AppScripts()
+  expect(scripts._config.app.name).toBe('action')
+})
+
+test('Load pp with multiple slashes in name in package.json ', async () => {
+  mockAIOConfig.get.mockReturnValue({})
+  fs.writeFileSync('package.json', JSON.stringify({
+    name: '@company/something/action'
+  }))
+  const scripts = AppScripts()
+  expect(scripts._config.app.name).toBe('action')
+})
+
+test('Load pp with invalid name in package.json ', async () => {
   process.env.WSK_PACKAGE = 'this-is-the-name'
   const scripts = AppScripts()
   expect(scripts._config.ow.package).toBe('this-is-the-name')
