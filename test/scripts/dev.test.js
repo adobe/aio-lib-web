@@ -15,8 +15,24 @@ const cloneDeep = require('lodash.clonedeep')
 const path = require('path')
 const stream = require('stream')
 const mockAIOConfig = require('@adobe/aio-lib-core-config')
+const util = require('util')
+const sleep = util.promisify(setTimeout)
 
 /* ****************** Mocks & beforeEach ******************* */
+let onChangeFunc
+jest.mock('chokidar', () => {
+  return {
+    watch: (...watchArgs) => {
+      return {
+        on: (status, method) => {
+          onChangeFunc = method
+        },
+        close: jest.fn()
+      }
+    }
+  }
+})
+
 const execa = require('execa')
 jest.mock('execa')
 
@@ -347,8 +363,33 @@ function runCommonTests (ref) {
 function runCommonRemoteTests (ref) {
   // eslint-disable-next-line jest/expect-expect
   test('should build and deploy actions to remote', async () => {
+    DeployActions.prototype.run.mockImplementation(async () => { await sleep(2000); return {} })
     await ref.scripts.runDev()
     expectDevActionBuildAndDeploy(expectedRemoteOWConfig)
+
+    BuildActions.mockClear()
+    DeployActions.mockClear()
+
+    // First change
+    onChangeFunc('changed')
+    await sleep(200)
+    DeployActions.prototype.run.mockImplementation(async () => { throw new Error() })
+
+    // Second change after 200 ms
+    onChangeFunc('changed')
+    await sleep(1000)
+
+    // Second change should not have resulted in build & deploy yet because first deploy would take 2 secs
+    expect(BuildActions).toHaveBeenCalledTimes(1)
+    expect(DeployActions).toHaveBeenCalledTimes(1)
+    await sleep(4000)
+
+    // The second call to DeployActions will result in an error because of the second mock above
+    expect(mockOnProgress).toHaveBeenCalledWith(expect.stringContaining('Stopping'))
+    expect(BuildActions).toHaveBeenCalledTimes(2)
+    expect(BuildActions.mock.instances[0].run).toHaveBeenCalledTimes(1)
+    expect(DeployActions).toHaveBeenCalledTimes(2)
+    expect(DeployActions.mock.instances[0].run).toHaveBeenCalledTimes(1)
   })
 
   test('should not start the local openwhisk stack', async () => {
@@ -500,8 +541,32 @@ function runCommonLocalTests (ref) {
 
   // eslint-disable-next-line jest/expect-expect
   test('should build and deploy actions to local ow', async () => {
+    DeployActions.prototype.run.mockImplementation(async () => { await sleep(2000); return {} })
     await ref.scripts.runDev()
     expectDevActionBuildAndDeploy(expectedLocalOWConfig)
+
+    BuildActions.mockClear()
+    DeployActions.mockClear()
+    // First change
+    onChangeFunc('changed')
+    await sleep(200)
+    DeployActions.prototype.run.mockImplementation(async () => { throw new Error() })
+
+    // Second change after 200 ms
+    onChangeFunc('changed')
+    await sleep(1000)
+
+    // Second change should not have resulted in build & deploy yet because first deploy would take 2 secs
+    expect(BuildActions).toHaveBeenCalledTimes(1)
+    expect(DeployActions).toHaveBeenCalledTimes(1)
+    await sleep(4000)
+
+    // The second call to DeployActions will result in an error because of the second mock above
+    expect(mockOnProgress).toHaveBeenCalledWith(expect.stringContaining('Stopping'))
+    expect(BuildActions).toHaveBeenCalledTimes(2)
+    expect(BuildActions.mock.instances[0].run).toHaveBeenCalledTimes(1)
+    expect(DeployActions).toHaveBeenCalledTimes(2)
+    expect(DeployActions.mock.instances[0].run).toHaveBeenCalledTimes(1)
   })
 
   test('should create a tmp .env file with local openwhisk credentials if there is no existing .env', async () => {
