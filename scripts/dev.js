@@ -23,6 +23,10 @@ const DeployActions = require('./deploy.actions')
 const utils = require('../lib/utils')
 const execa = require('execa')
 const Bundler = require('parcel-bundler')
+const chokidar = require('chokidar')
+let running = false
+let changed = false
+let watcher
 
 // TODO: this jar should become part of the distro, OR it should be pulled from bintray or similar.
 const OW_JAR_URL = 'https://github.com/adobe/aio-app-scripts/raw/binaries/bin/openwhisk-standalone-0.10.jar'
@@ -68,37 +72,40 @@ class ActionServer extends BaseScript {
 
     try {
       if (isLocal) {
-        this.emit('progress', 'checking if java is installed...')
-        if (!await utils.hasJavaCLI()) throw new Error('could not find java CLI, please make sure java is installed')
+        if (this.config.app.hasBackend) {
+          // take following steps only when we have a backend
+          this.emit('progress', 'checking if java is installed...')
+          if (!await utils.hasJavaCLI()) throw new Error('could not find java CLI, please make sure java is installed')
 
-        this.emit('progress', 'checking if docker is installed...')
-        if (!await utils.hasDockerCLI()) throw new Error('could not find docker CLI, please make sure docker is installed')
+          this.emit('progress', 'checking if docker is installed...')
+          if (!await utils.hasDockerCLI()) throw new Error('could not find docker CLI, please make sure docker is installed')
 
-        this.emit('progress', 'checking if docker is running...')
-        if (!await utils.isDockerRunning()) throw new Error('docker is not running, please make sure to start docker')
+          this.emit('progress', 'checking if docker is running...')
+          if (!await utils.isDockerRunning()) throw new Error('docker is not running, please make sure to start docker')
 
-        if (!fs.existsSync(OW_JAR_FILE)) {
-          this.emit('progress', `downloading OpenWhisk standalone jar from ${OW_JAR_URL} to ${OW_JAR_FILE}, this might take a while... (to be done only once!)`)
-          await utils.downloadOWJar(OW_JAR_URL, OW_JAR_FILE)
-        }
+          if (!fs.existsSync(OW_JAR_FILE)) {
+            this.emit('progress', `downloading OpenWhisk standalone jar from ${OW_JAR_URL} to ${OW_JAR_FILE}, this might take a while... (to be done only once!)`)
+            await utils.downloadOWJar(OW_JAR_URL, OW_JAR_FILE)
+          }
 
-        this.emit('progress', 'starting local OpenWhisk stack..')
-        const res = await utils.runOpenWhiskJar(OW_JAR_FILE, OW_LOCAL_APIHOST, owWaitInitTime, owWaitPeriodTime, owTimeout, { stderr: 'inherit' })
-        resources.owProc = res.proc
+          this.emit('progress', 'starting local OpenWhisk stack..')
+          const res = await utils.runOpenWhiskJar(OW_JAR_FILE, OW_LOCAL_APIHOST, owWaitInitTime, owWaitPeriodTime, owTimeout, { stderr: 'inherit' })
+          resources.owProc = res.proc
 
-        // case1: no dotenv file => expose local credentials in .env, delete on cleanup
-        const dotenvFile = this._absApp('.env')
-        if (!fs.existsSync(dotenvFile)) {
-          // todo move to utils
-          this.emit('progress', 'writing temporary .env with local OpenWhisk guest credentials..')
-          fs.writeFileSync(dotenvFile, `AIO_RUNTIME_NAMESPACE=${OW_LOCAL_NAMESPACE}\nAIO_RUNTIME_AUTH=${OW_LOCAL_AUTH}\nAIO_RUNTIME_APIHOST=${OW_LOCAL_APIHOST}`)
-          resources.dotenv = dotenvFile
-        } else {
-          // case2: existing dotenv file => save .env & expose local credentials in .env, restore on cleanup
-          this.emit('progress', `saving .env to ${DOTENV_SAVE} and writing new .env with local OpenWhisk guest credentials..`)
-          utils.saveAndReplaceDotEnvCredentials(dotenvFile, DOTENV_SAVE, OW_LOCAL_APIHOST, OW_LOCAL_NAMESPACE, OW_LOCAL_AUTH)
-          resources.dotenvSave = DOTENV_SAVE
-          resources.dotenv = dotenvFile
+          // case1: no dotenv file => expose local credentials in .env, delete on cleanup
+          const dotenvFile = this._absApp('.env')
+          if (!fs.existsSync(dotenvFile)) {
+            // todo move to utils
+            this.emit('progress', 'writing temporary .env with local OpenWhisk guest credentials..')
+            fs.writeFileSync(dotenvFile, `AIO_RUNTIME_NAMESPACE=${OW_LOCAL_NAMESPACE}\nAIO_RUNTIME_AUTH=${OW_LOCAL_AUTH}\nAIO_RUNTIME_APIHOST=${OW_LOCAL_APIHOST}`)
+            resources.dotenv = dotenvFile
+          } else {
+            // case2: existing dotenv file => save .env & expose local credentials in .env, restore on cleanup
+            this.emit('progress', `saving .env to ${DOTENV_SAVE} and writing new .env with local OpenWhisk guest credentials..`)
+            utils.saveAndReplaceDotEnvCredentials(dotenvFile, DOTENV_SAVE, OW_LOCAL_APIHOST, OW_LOCAL_NAMESPACE, OW_LOCAL_AUTH)
+            resources.dotenvSave = DOTENV_SAVE
+            resources.dotenv = dotenvFile
+          }
         }
         // delete potentially conflicting env vars
         delete process.env.AIO_RUNTIME_APIHOST
@@ -117,8 +124,10 @@ class ActionServer extends BaseScript {
       // todo support live reloading ?
       if (this.config.app.hasBackend) {
         this.emit('progress', 'redeploying actions..')
-        await (new BuildActions(devConfig)).run()
-        await (new DeployActions(devConfig)).run()
+        await this._buildAndDeploy(devConfig)
+
+        watcher = chokidar.watch(devConfig.actions.src)
+        watcher.on('change', this._getActionChangeHandler(devConfig))
 
         this.emit('progress', `writing credentials to tmp wskdebug config '${this._relApp(WSK_DEBUG_PROPS)}'..`)
         // prepare wskprops for wskdebug
@@ -277,9 +286,46 @@ class ActionServer extends BaseScript {
     }
     return debugConfig
   }
+
+  _getActionChangeHandler (devConfig) {
+    return async (filePath) => {
+      if (running) {
+        aioLogger.debug(`${filePath} has changed. Deploy in progress. This change will be deployed after completion of current deployment.`)
+        changed = true
+        return
+      }
+      running = true
+      try {
+        aioLogger.debug(`${filePath} has changed. Redeploying actions.`)
+        await this._buildAndDeploy(devConfig)
+        aioLogger.debug('Deployment successfull.')
+      } catch (err) {
+        this.emit('progress', '  -> Error encountered while deploying actions. Stopping auto refresh.')
+        aioLogger.debug(err)
+        watcher.close()
+      }
+      if (changed) {
+        aioLogger.debug('Code changed during deployment. Triggering deploy again.')
+        changed = running = false
+        await this._getActionChangeHandler(devConfig)(devConfig.actions.src)
+      }
+      running = false
+    }
+  }
+
+  async _buildAndDeploy (devConfig) {
+    await (new BuildActions(devConfig)).run()
+    const entities = await (new DeployActions(devConfig)).run()
+    if (entities.actions) {
+      entities.actions.forEach(a => {
+        this.emit('progress', `  -> ${a.url || a.name}`)
+      })
+    }
+  }
 }
 
 function cleanup (err, resources) {
+  if (watcher) { watcher.close() }
   if (resources.dotenv && resources.dotenvSave && fs.existsSync(resources.dotenvSave)) {
     aioLogger.info('restoring .env file...')
     fs.moveSync(resources.dotenvSave, resources.dotenv, { overwrite: true })

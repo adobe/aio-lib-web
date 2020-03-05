@@ -75,7 +75,7 @@ class DeployActions extends BaseScript {
       api_key: this.config.ow.auth,
       namespace: this.config.ow.namespace
     })
-    const deployedEntities = await utils.deployWsk(
+    let deployedEntities = await utils.deployWsk(
       this.config.ow.package,
       this.config.manifest.src,
       manifest,
@@ -84,8 +84,23 @@ class DeployActions extends BaseScript {
       deployConfig.filterEntities
     )
 
+    deployedEntities = deployedEntities || {}
+
+    // enrich actions array with urls
+    if (Array.isArray(deployedEntities.actions)) {
+      const actionUrlsFromManifest = utils.getActionUrls(this.config)
+      deployedEntities.actions = deployedEntities.actions.map(a => {
+        // in deployedEntities.actions, names are <package>/<action>
+        const url = actionUrlsFromManifest[a.name.split('/')[1]]
+        if (url) {
+          a.url = url
+        }
+        return a
+      })
+    }
+
     this.emit('end', taskName, deployedEntities)
-    return deployedEntities || {}
+    return deployedEntities
   }
 }
 

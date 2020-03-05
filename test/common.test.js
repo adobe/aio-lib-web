@@ -39,17 +39,20 @@ test('Load AppScripts for valid app in creds mode, and should store them in inte
   expect(scripts._config.s3.creds).toEqual(global.expectedS3ENVCreds)
 })
 
-test('Fail load AppScripts with missing manifest.yml', async () => {
+test('Load AppScripts with missing manifest.yml', async () => {
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
   fs.unlinkSync(path.join(process.cwd(), 'manifest.yml'))
-  expect(AppScripts.bind(this)).toThrowWithMessageContaining(['no such file', 'manifest.yml'])
+  const scripts = AppScripts()
+  expect(scripts).toEqual(global.expectedScripts)
 })
 
-test('Fail load AppScripts with symlink manifest.yml', async () => {
+test('Load AppScripts with symlink manifest.yml', async () => {
+
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
   fs.unlinkSync('/manifest.yml')
   fs.symlinkSync('fake', '/manifest.yml')
-  expect(AppScripts.bind(this)).toThrowWithMessageContaining([`${r('/manifest.yml')} is not a valid file (e.g. cannot be a dir or a symlink)`])
+  const scripts = AppScripts()
+  expect(scripts).toEqual(global.expectedScripts)
 })
 
 test('Fail load AppScripts with missing package.json', async () => {
@@ -115,5 +118,41 @@ test('Load pp without any name and version in package.json ', async () => {
   mockAIOConfig.get.mockReturnValue({})
   fs.writeFileSync('package.json', '{}')
   const scripts = AppScripts()
-  expect(scripts._config.app.version).toBe('0.0.1')
+  expect(scripts._config.app.version).toBe('0.1.0')
+})
+
+test('Load pp with scoped name in package.json ', async () => {
+  mockAIOConfig.get.mockReturnValue({})
+  fs.writeFileSync('package.json', JSON.stringify({
+    name: '@company/action'
+  }))
+  const scripts = AppScripts()
+  expect(scripts._config.app.name).toBe('action')
+})
+
+test('Load pp with plain name in package.json ', async () => {
+  mockAIOConfig.get.mockReturnValue({})
+  fs.writeFileSync('package.json', JSON.stringify({
+    name: 'action'
+  }))
+  const scripts = AppScripts()
+  expect(scripts._config.app.name).toBe('action')
+})
+
+test('Load pp with multiple slashes in name in package.json ', async () => {
+  mockAIOConfig.get.mockReturnValue({})
+  fs.writeFileSync('package.json', JSON.stringify({
+    name: '@company/something/action'
+  }))
+  const scripts = AppScripts()
+  expect(scripts._config.app.name).toBe('action')
+})
+
+test('Load pp with invalid name in package.json ', async () => {
+  mockAIOConfig.get.mockReturnValue({})
+  fs.writeFileSync('package.json', JSON.stringify({
+    name: 'company/action'
+  }))
+  const scripts = AppScripts()
+  expect(scripts._config.app.name).toBe('action')
 })
