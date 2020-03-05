@@ -47,7 +47,6 @@ test('Load AppScripts with missing manifest.yml', async () => {
 })
 
 test('Load AppScripts with symlink manifest.yml', async () => {
-
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
   fs.unlinkSync('/manifest.yml')
   fs.symlinkSync('fake', '/manifest.yml')

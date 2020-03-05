@@ -204,14 +204,13 @@ class ActionServer extends BaseScript {
 
   // todo make util not instance function
   async generateVSCodeDebugConfig (devConfig, hasFrontend, frontUrl, wskdebugProps) {
-      let actionConfigNames = []
-      let actionConfigs = []
-      if(devConfig.app.hasBackend) {
+    const actionConfigNames = []
+    let actionConfigs = []
+    if (devConfig.app.hasBackend) {
       const packageName = devConfig.ow.package
       const manifestActions = devConfig.manifest.package.actions
 
-
-        actionConfigs = Object.keys(manifestActions).map(an => {
+      actionConfigs = Object.keys(manifestActions).map(an => {
         const name = `Action:${packageName}/${an}`
         actionConfigNames.push(name)
         const action = manifestActions[an]
@@ -255,32 +254,32 @@ class ActionServer extends BaseScript {
         return config
       })
     }
-      const debugConfig = {
-        configurations: actionConfigs,
-        compounds: [{
-          name: 'Actions',
-          configurations: actionConfigNames
-        }]
-      }
-      if (hasFrontend) {
-        debugConfig.configurations.push({
-          type: 'chrome',
-          request: 'launch',
-          name: 'Web',
-          url: frontUrl,
-          webRoot: devConfig.web.src,
-          breakOnLoad: true,
-          sourceMapPathOverrides: {
-            '*': path.join(devConfig.web.distDev, '*')
-          }
-        })
-        debugConfig.compounds.push({
-          name: 'WebAndActions',
-          configurations: ['Web'].concat(actionConfigNames)
-        })
-      }
-      return debugConfig
+    const debugConfig = {
+      configurations: actionConfigs,
+      compounds: [{
+        name: 'Actions',
+        configurations: actionConfigNames
+      }]
     }
+    if (hasFrontend) {
+      debugConfig.configurations.push({
+        type: 'chrome',
+        request: 'launch',
+        name: 'Web',
+        url: frontUrl,
+        webRoot: devConfig.web.src,
+        breakOnLoad: true,
+        sourceMapPathOverrides: {
+          '*': path.join(devConfig.web.distDev, '*')
+        }
+      })
+      debugConfig.compounds.push({
+        name: 'WebAndActions',
+        configurations: ['Web'].concat(actionConfigNames)
+      })
+    }
+    return debugConfig
+  }
 
   _getActionChangeHandler (devConfig) {
     return async (filePath) => {
