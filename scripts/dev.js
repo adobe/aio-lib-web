@@ -204,15 +204,14 @@ class ActionServer extends BaseScript {
 
   // todo make util not instance function
   async generateVSCodeDebugConfig (devConfig, hasFrontend, frontUrl, wskdebugProps) {
-    const packageName = devConfig.ow.package
-    const debugConfig = {
-      configurations: [],
-      compounds: []
-    }
-    const actionConfigNames = []
-    if (devConfig.app.hasBackend) {
+      let actionConfigNames = []
+      let actionConfigs = []
+      if(devConfig.app.hasBackend) {
+      const packageName = devConfig.ow.package
       const manifestActions = devConfig.manifest.package.actions
-      const actionConfigs = Object.keys(manifestActions).map(an => {
+
+
+        actionConfigs = Object.keys(manifestActions).map(an => {
         const name = `Action:${packageName}/${an}`
         actionConfigNames.push(name)
         const action = manifestActions[an]
@@ -234,58 +233,54 @@ class ActionServer extends BaseScript {
 
         const actionFileStats = fs.lstatSync(actionPath)
         if (actionFileStats.isFile()) {
-        // why is this condition here?
+          // why is this condition here?
         }
         if (actionFileStats.isDirectory()) {
-        // take package.json.main or 'index.js'
+          // take package.json.main or 'index.js'
           const zipMain = utils.getActionEntryFile(path.join(actionPath, 'package.json'))
           config.runtimeArgs = [
-          `${packageName}/${an}`,
-          path.join(actionPath, zipMain),
-          '-v'
+            `${packageName}/${an}`,
+            path.join(actionPath, zipMain),
+            '-v'
           ]
         } else {
-        // we assume its a file at this point
-        // if symlink should have thrown an error during build stage, here we just ignore it
+          // we assume its a file at this point
+          // if symlink should have thrown an error during build stage, here we just ignore it
           config.runtimeArgs = [
-          `${packageName}/${an}`,
-          actionPath,
-          '-v'
+            `${packageName}/${an}`,
+            actionPath,
+            '-v'
           ]
         }
         return config
       })
-
-      debugConfig.configurations.push({
+    }
+      const debugConfig = {
         configurations: actionConfigs,
         compounds: [{
           name: 'Actions',
           configurations: actionConfigNames
         }]
-      })
-    }
-
-    if (hasFrontend) {
-      debugConfig.configurations.push({
-        type: 'chrome',
-        request: 'launch',
-        name: 'Web',
-        url: frontUrl,
-        webRoot: devConfig.web.src,
-        breakOnLoad: true,
-        sourceMapPathOverrides: {
-          '*': path.join(devConfig.web.distDev, '*')
-        }
-      })
-      if (devConfig.app.hasBackend) {
+      }
+      if (hasFrontend) {
+        debugConfig.configurations.push({
+          type: 'chrome',
+          request: 'launch',
+          name: 'Web',
+          url: frontUrl,
+          webRoot: devConfig.web.src,
+          breakOnLoad: true,
+          sourceMapPathOverrides: {
+            '*': path.join(devConfig.web.distDev, '*')
+          }
+        })
         debugConfig.compounds.push({
           name: 'WebAndActions',
           configurations: ['Web'].concat(actionConfigNames)
         })
       }
+      return debugConfig
     }
-    return debugConfig
-  }
 
   _getActionChangeHandler (devConfig) {
     return async (filePath) => {
