@@ -313,3 +313,12 @@ test('use buildConfig.filterActions to build only action called `action-zip`', a
   expect(utils.zip).toHaveBeenCalledTimes(1)
   expect(utils.zip).toHaveBeenCalledWith(r('/actions/action-zip'), r('/dist/actions/action-zip.zip'))
 })
+
+test('No backend is present', async () => {
+  global.loadFs(vol, 'sample-app')
+  mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
+  vol.unlinkSync('./manifest.yml')
+
+  const scripts = await AppScripts()
+  await expect(scripts.buildActions()).rejects.toThrow('cannot build actions, app has no backend')
+})

@@ -112,3 +112,13 @@ test('should generate and inject web and non web action urls into web-src/src/co
     'action-zip': baseUrl + 'action-zip'
   })
 })
+
+test('No backend is present', async () => {
+  global.loadFs(vol, 'sample-app')
+  mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
+  vol.unlinkSync('./manifest.yml')
+
+  const scripts = await AppScripts()
+  await scripts.buildUI()
+  expect(vol.existsSync('/web-src/src/config.json')).toBe(true)
+})

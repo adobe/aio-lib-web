@@ -920,3 +920,13 @@ describe('port unavailable', () => {
     expect(resultUrl).toBe('https://localhost:99')
   })
 })
+
+test('No backend is present', async () => {
+  global.loadFs(vol, 'sample-app')
+  mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
+  vol.unlinkSync('./manifest.yml')
+
+  const scripts = await AppScripts()
+  await scripts.runDev()
+  expect(vol.existsSync('/web-src/src/config.json')).toEqual(true)
+})
