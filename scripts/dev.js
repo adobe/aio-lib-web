@@ -54,8 +54,9 @@ class ActionServer extends BaseScript {
     const CODE_DEBUG = this._absApp('.vscode/launch.json')
 
     // control variables
-    const isLocal = !this.config.actions.devRemote
     const hasFrontend = this.config.app.hasFrontend
+    const hasBackend = this.config.app.hasBackend
+    const isLocal = !this.config.actions.devRemote // applies only for backend
 
     // todo take port for ow server as well
     // port for UI
@@ -65,77 +66,80 @@ class ActionServer extends BaseScript {
 
     // state
     const resources = {}
-    let devConfig // config will be different if local or remote
+    let devConfig = this.config // config will be different if local or remote
 
     // bind cleanup function
     process.on('SIGINT', () => cleanup(null, resources))
 
     try {
-      if (isLocal) {
-        this.emit('progress', 'checking if java is installed...')
-        if (!await utils.hasJavaCLI()) throw new Error('could not find java CLI, please make sure java is installed')
+      if (hasBackend) {
+        if (isLocal) {
+          // take following steps only when we have a backend
+          this.emit('progress', 'checking if java is installed...')
+          if (!await utils.hasJavaCLI()) throw new Error('could not find java CLI, please make sure java is installed')
 
-        this.emit('progress', 'checking if docker is installed...')
-        if (!await utils.hasDockerCLI()) throw new Error('could not find docker CLI, please make sure docker is installed')
+          this.emit('progress', 'checking if docker is installed...')
+          if (!await utils.hasDockerCLI()) throw new Error('could not find docker CLI, please make sure docker is installed')
 
-        this.emit('progress', 'checking if docker is running...')
-        if (!await utils.isDockerRunning()) throw new Error('docker is not running, please make sure to start docker')
+          this.emit('progress', 'checking if docker is running...')
+          if (!await utils.isDockerRunning()) throw new Error('docker is not running, please make sure to start docker')
 
-        if (!fs.existsSync(OW_JAR_FILE)) {
-          this.emit('progress', `downloading OpenWhisk standalone jar from ${OW_JAR_URL} to ${OW_JAR_FILE}, this might take a while... (to be done only once!)`)
-          await utils.downloadOWJar(OW_JAR_URL, OW_JAR_FILE)
-        }
+          if (!fs.existsSync(OW_JAR_FILE)) {
+            this.emit('progress', `downloading OpenWhisk standalone jar from ${OW_JAR_URL} to ${OW_JAR_FILE}, this might take a while... (to be done only once!)`)
+            await utils.downloadOWJar(OW_JAR_URL, OW_JAR_FILE)
+          }
 
-        this.emit('progress', 'starting local OpenWhisk stack..')
-        const res = await utils.runOpenWhiskJar(OW_JAR_FILE, OW_LOCAL_APIHOST, owWaitInitTime, owWaitPeriodTime, owTimeout, { stderr: 'inherit' })
-        resources.owProc = res.proc
+          this.emit('progress', 'starting local OpenWhisk stack..')
+          const res = await utils.runOpenWhiskJar(OW_JAR_FILE, OW_LOCAL_APIHOST, owWaitInitTime, owWaitPeriodTime, owTimeout, { stderr: 'inherit' })
+          resources.owProc = res.proc
 
-        // case1: no dotenv file => expose local credentials in .env, delete on cleanup
-        const dotenvFile = this._absApp('.env')
-        if (!fs.existsSync(dotenvFile)) {
-          // todo move to utils
-          this.emit('progress', 'writing temporary .env with local OpenWhisk guest credentials..')
-          fs.writeFileSync(dotenvFile, `AIO_RUNTIME_NAMESPACE=${OW_LOCAL_NAMESPACE}\nAIO_RUNTIME_AUTH=${OW_LOCAL_AUTH}\nAIO_RUNTIME_APIHOST=${OW_LOCAL_APIHOST}`)
-          resources.dotenv = dotenvFile
+          // case1: no dotenv file => expose local credentials in .env, delete on cleanup
+          const dotenvFile = this._absApp('.env')
+          if (!fs.existsSync(dotenvFile)) {
+            // todo move to utils
+            this.emit('progress', 'writing temporary .env with local OpenWhisk guest credentials..')
+            fs.writeFileSync(dotenvFile, `AIO_RUNTIME_NAMESPACE=${OW_LOCAL_NAMESPACE}\nAIO_RUNTIME_AUTH=${OW_LOCAL_AUTH}\nAIO_RUNTIME_APIHOST=${OW_LOCAL_APIHOST}`)
+            resources.dotenv = dotenvFile
+          } else {
+            // case2: existing dotenv file => save .env & expose local credentials in .env, restore on cleanup
+            this.emit('progress', `saving .env to ${DOTENV_SAVE} and writing new .env with local OpenWhisk guest credentials..`)
+            utils.saveAndReplaceDotEnvCredentials(dotenvFile, DOTENV_SAVE, OW_LOCAL_APIHOST, OW_LOCAL_NAMESPACE, OW_LOCAL_AUTH)
+            resources.dotenvSave = DOTENV_SAVE
+            resources.dotenv = dotenvFile
+          }
+          // delete potentially conflicting env vars
+          delete process.env.AIO_RUNTIME_APIHOST
+          delete process.env.AIO_RUNTIME_NAMESPACE
+          delete process.env.AIO_RUNTIME_AUTH
+
+          devConfig = require('../lib/config-loader')() // reload config for local config
         } else {
-          // case2: existing dotenv file => save .env & expose local credentials in .env, restore on cleanup
-          this.emit('progress', `saving .env to ${DOTENV_SAVE} and writing new .env with local OpenWhisk guest credentials..`)
-          utils.saveAndReplaceDotEnvCredentials(dotenvFile, DOTENV_SAVE, OW_LOCAL_APIHOST, OW_LOCAL_NAMESPACE, OW_LOCAL_AUTH)
-          resources.dotenvSave = DOTENV_SAVE
-          resources.dotenv = dotenvFile
+          // check credentials
+          utils.checkOpenWhiskCredentials(this.config)
+          this.emit('progress', 'using remote actions')
         }
-        // delete potentially conflicting env vars
-        delete process.env.AIO_RUNTIME_APIHOST
-        delete process.env.AIO_RUNTIME_NAMESPACE
-        delete process.env.AIO_RUNTIME_AUTH
 
-        devConfig = require('../lib/config-loader')() // reload config for local config
-      } else {
-        // check credentials
-        utils.checkOpenWhiskCredentials(this.config)
-        this.emit('progress', 'using remote actions')
-        devConfig = this.config
+        // build and deploy actions
+        // todo support live reloading ?
+        this.emit('progress', 'redeploying actions..')
+        await this._buildAndDeploy(devConfig, isLocal)
+
+        watcher = chokidar.watch(devConfig.actions.src)
+        watcher.on('change', this._getActionChangeHandler(devConfig, isLocal))
+
+        this.emit('progress', `writing credentials to tmp wskdebug config '${this._relApp(WSK_DEBUG_PROPS)}'..`)
+        // prepare wskprops for wskdebug
+        fs.writeFileSync(WSK_DEBUG_PROPS, `NAMESPACE=${devConfig.ow.namespace}\nAUTH=${devConfig.ow.auth}\nAPIHOST=${devConfig.ow.apihost}`)
+        resources.wskdebugProps = WSK_DEBUG_PROPS
       }
 
-      // build and deploy actions
-      // todo support live reloading ?
-      this.emit('progress', 'redeploying actions..')
-      await this._buildAndDeploy(devConfig)
-
-      watcher = chokidar.watch(devConfig.actions.src)
-      watcher.on('change', this._getActionChangeHandler(devConfig))
-
-      this.emit('progress', `writing credentials to tmp wskdebug config '${this._relApp(WSK_DEBUG_PROPS)}'..`)
-      // prepare wskprops for wskdebug
-      fs.writeFileSync(WSK_DEBUG_PROPS, `NAMESPACE=${devConfig.ow.namespace}\nAUTH=${devConfig.ow.auth}\nAPIHOST=${devConfig.ow.apihost}`)
-      resources.wskdebugProps = WSK_DEBUG_PROPS
-
       if (hasFrontend) {
-        // inject backend urls into ui
-        this.emit('progress', 'injecting backend urls into frontend config')
-
-        const urls = await utils.getActionUrls(devConfig, true, isLocal)
-
+        let urls = {}
+        if (devConfig.app.hasBackend) {
+          // inject backend urls into ui
+          this.emit('progress', 'injecting backend urls into frontend config')
+          urls = await utils.getActionUrls(devConfig, true, isLocal)
+        }
         await utils.writeConfig(devConfig.web.injectedConfig, urls)
 
         this.emit('progress', 'starting local frontend server ..')
@@ -198,53 +202,56 @@ class ActionServer extends BaseScript {
 
   // todo make util not instance function
   async generateVSCodeDebugConfig (devConfig, hasFrontend, frontUrl, wskdebugProps) {
-    const packageName = devConfig.ow.package
-    const manifestActions = devConfig.manifest.package.actions
-
     const actionConfigNames = []
-    const actionConfigs = Object.keys(manifestActions).map(an => {
-      const name = `Action:${packageName}/${an}`
-      actionConfigNames.push(name)
-      const action = manifestActions[an]
-      const actionPath = this._absApp(action.function)
+    let actionConfigs = []
+    if (devConfig.app.hasBackend) {
+      const packageName = devConfig.ow.package
+      const manifestActions = devConfig.manifest.package.actions
 
-      const config = {
-        type: 'node',
-        request: 'launch',
-        name: name,
-        // todo allow for global install aswell
-        runtimeExecutable: this._absApp('./node_modules/.bin/wskdebug'),
-        env: { WSK_CONFIG_FILE: wskdebugProps },
-        timeout: 30000,
-        // replaces remoteRoot with localRoot to get src files
-        localRoot: this._absApp('.'),
-        remoteRoot: '/code',
-        outputCapture: 'std'
-      }
+      actionConfigs = Object.keys(manifestActions).map(an => {
+        const name = `Action:${packageName}/${an}`
+        actionConfigNames.push(name)
+        const action = manifestActions[an]
+        const actionPath = this._absApp(action.function)
 
-      const actionFileStats = fs.lstatSync(actionPath)
-      if (actionFileStats.isFile()) {
-        // why is this condition here?
-      }
-      if (actionFileStats.isDirectory()) {
-        // take package.json.main or 'index.js'
-        const zipMain = utils.getActionEntryFile(path.join(actionPath, 'package.json'))
-        config.runtimeArgs = [
-          `${packageName}/${an}`,
-          path.join(actionPath, zipMain),
-          '-v'
-        ]
-      } else {
-        // we assume its a file at this point
-        // if symlink should have thrown an error during build stage, here we just ignore it
-        config.runtimeArgs = [
-          `${packageName}/${an}`,
-          actionPath,
-          '-v'
-        ]
-      }
-      return config
-    })
+        const config = {
+          type: 'node',
+          request: 'launch',
+          name: name,
+          // todo allow for global install aswell
+          runtimeExecutable: this._absApp('./node_modules/.bin/wskdebug'),
+          env: { WSK_CONFIG_FILE: wskdebugProps },
+          timeout: 30000,
+          // replaces remoteRoot with localRoot to get src files
+          localRoot: this._absApp('.'),
+          remoteRoot: '/code',
+          outputCapture: 'std'
+        }
+
+        const actionFileStats = fs.lstatSync(actionPath)
+        if (actionFileStats.isFile()) {
+          // why is this condition here?
+        }
+        if (actionFileStats.isDirectory()) {
+          // take package.json.main or 'index.js'
+          const zipMain = utils.getActionEntryFile(path.join(actionPath, 'package.json'))
+          config.runtimeArgs = [
+            `${packageName}/${an}`,
+            path.join(actionPath, zipMain),
+            '-v'
+          ]
+        } else {
+          // we assume its a file at this point
+          // if symlink should have thrown an error during build stage, here we just ignore it
+          config.runtimeArgs = [
+            `${packageName}/${an}`,
+            actionPath,
+            '-v'
+          ]
+        }
+        return config
+      })
+    }
     const debugConfig = {
       configurations: actionConfigs,
       compounds: [{
@@ -272,7 +279,7 @@ class ActionServer extends BaseScript {
     return debugConfig
   }
 
-  _getActionChangeHandler (devConfig) {
+  _getActionChangeHandler (devConfig, isLocalDev) {
     return async (filePath) => {
       if (running) {
         aioLogger.debug(`${filePath} has changed. Deploy in progress. This change will be deployed after completion of current deployment.`)
@@ -282,7 +289,7 @@ class ActionServer extends BaseScript {
       running = true
       try {
         aioLogger.debug(`${filePath} has changed. Redeploying actions.`)
-        await this._buildAndDeploy(devConfig)
+        await this._buildAndDeploy(devConfig, isLocalDev)
         aioLogger.debug('Deployment successfull.')
       } catch (err) {
         this.emit('progress', '  -> Error encountered while deploying actions. Stopping auto refresh.')
@@ -298,9 +305,9 @@ class ActionServer extends BaseScript {
     }
   }
 
-  async _buildAndDeploy (devConfig) {
+  async _buildAndDeploy (devConfig, isLocalDev) {
     await (new BuildActions(devConfig)).run()
-    const entities = await (new DeployActions(devConfig)).run()
+    const entities = await (new DeployActions(devConfig)).run([], { isLocalDev })
     if (entities.actions) {
       entities.actions.forEach(a => {
         this.emit('progress', `  -> ${a.url || a.name}`)

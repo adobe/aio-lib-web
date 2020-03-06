@@ -39,17 +39,19 @@ test('Load AppScripts for valid app in creds mode, and should store them in inte
   expect(scripts._config.s3.creds).toEqual(global.expectedS3ENVCreds)
 })
 
-test('Fail load AppScripts with missing manifest.yml', async () => {
+test('Load AppScripts with missing manifest.yml', async () => {
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
   fs.unlinkSync(path.join(process.cwd(), 'manifest.yml'))
-  expect(AppScripts.bind(this)).toThrowWithMessageContaining(['no such file', 'manifest.yml'])
+  const scripts = AppScripts()
+  expect(scripts).toEqual(global.expectedScripts)
 })
 
-test('Fail load AppScripts with symlink manifest.yml', async () => {
+test('Load AppScripts with symlink manifest.yml', async () => {
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
   fs.unlinkSync('/manifest.yml')
   fs.symlinkSync('fake', '/manifest.yml')
-  expect(AppScripts.bind(this)).toThrowWithMessageContaining([`${r('/manifest.yml')} is not a valid file (e.g. cannot be a dir or a symlink)`])
+  const scripts = AppScripts()
+  expect(scripts).toEqual(global.expectedScripts)
 })
 
 test('Fail load AppScripts with missing package.json', async () => {
