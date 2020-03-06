@@ -115,8 +115,10 @@ class ActionServer extends BaseScript {
         devConfig = require('../lib/config-loader')() // reload config for local config
       } else {
         // check credentials
-        utils.checkOpenWhiskCredentials(this.config)
-        this.emit('progress', 'using remote actions')
+        if (this.config.app.hasBackend) {
+          utils.checkOpenWhiskCredentials(this.config)
+          this.emit('progress', 'using remote actions')
+        }
         devConfig = this.config
       }
 

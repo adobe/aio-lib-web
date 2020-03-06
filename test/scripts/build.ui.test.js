@@ -121,4 +121,6 @@ test('No backend is present', async () => {
   const scripts = await AppScripts()
   await scripts.buildUI()
   expect(vol.existsSync('/web-src/src/config.json')).toBe(true)
+  expect(JSON.parse(vol.readFileSync('/web-src/src/config.json').toString())).toEqual({})
+  expect(scripts._config.app.hasBackend).toBe(false)
 })

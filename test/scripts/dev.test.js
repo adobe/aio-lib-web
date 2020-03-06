@@ -921,12 +921,51 @@ describe('port unavailable', () => {
   })
 })
 
-test('No backend is present', async () => {
-  global.loadFs(vol, 'sample-app')
-  mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
-  vol.unlinkSync('./manifest.yml')
+describe('UI Only Local run', () => {
+  const ref = {}
+  beforeEach(async () => {
+    process.env.REMOTE_ACTIONS = 'false'
+    global.loadFs(vol, 'sample-app')
+    mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
+    vol.unlinkSync('./manifest.yml')
+    ref.scripts = await AppScripts()
+  })
 
-  const scripts = await AppScripts()
-  await scripts.runDev()
-  expect(vol.existsSync('/web-src/src/config.json')).toEqual(true)
+  test('Test config file generation', async () => {
+    await ref.scripts.runDev()
+    expect(vol.existsSync('/web-src/src/config.json')).toEqual(true)
+    expect(JSON.parse(vol.readFileSync('/web-src/src/config.json').toString())).toEqual({})
+    expect(ref.scripts._config.app.hasBackend).toBe(false)
+  })
+
+  test('should start a ui server', async () => {
+    await ref.scripts.runDev()
+    expectUIServer(null, 9080)
+  })
+
+  test('should generate a vscode config for ui only', async () => {
+    await ref.scripts.runDev()
+    expect(JSON.parse(vol.readFileSync('/.vscode/launch.json').toString())).toEqual(expect.objectContaining({
+      configurations: [
+        getExpectedUIVSCodeDebugConfig(9080)
+      ]
+    }))
+  })
+})
+
+describe('UI Only run with remote actions set as true', () => {
+  beforeEach(async () => {
+    process.env.REMOTE_ACTIONS = 'true'
+    global.loadFs(vol, 'sample-app')
+    mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
+    vol.unlinkSync('./manifest.yml')
+  })
+
+  test('Test config file generation', async () => {
+    const scripts = await AppScripts()
+    await scripts.runDev()
+    expect(vol.existsSync('/web-src/src/config.json')).toEqual(true)
+    expect(JSON.parse(vol.readFileSync('/web-src/src/config.json').toString())).toEqual({})
+    expect(scripts._config.app.hasBackend).toBe(false)
+  })
 })
