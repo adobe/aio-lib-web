@@ -122,10 +122,10 @@ class ActionServer extends BaseScript {
         // build and deploy actions
         // todo support live reloading ?
         this.emit('progress', 'redeploying actions..')
-        await this._buildAndDeploy(devConfig)
+        await this._buildAndDeploy(devConfig, isLocal)
 
         watcher = chokidar.watch(devConfig.actions.src)
-        watcher.on('change', this._getActionChangeHandler(devConfig))
+        watcher.on('change', this._getActionChangeHandler(devConfig, isLocal))
 
         this.emit('progress', `writing credentials to tmp wskdebug config '${this._relApp(WSK_DEBUG_PROPS)}'..`)
         // prepare wskprops for wskdebug
@@ -279,7 +279,7 @@ class ActionServer extends BaseScript {
     return debugConfig
   }
 
-  _getActionChangeHandler (devConfig) {
+  _getActionChangeHandler (devConfig, isLocalDev) {
     return async (filePath) => {
       if (running) {
         aioLogger.debug(`${filePath} has changed. Deploy in progress. This change will be deployed after completion of current deployment.`)
@@ -289,7 +289,7 @@ class ActionServer extends BaseScript {
       running = true
       try {
         aioLogger.debug(`${filePath} has changed. Redeploying actions.`)
-        await this._buildAndDeploy(devConfig)
+        await this._buildAndDeploy(devConfig, isLocalDev)
         aioLogger.debug('Deployment successfull.')
       } catch (err) {
         this.emit('progress', '  -> Error encountered while deploying actions. Stopping auto refresh.')
@@ -305,9 +305,9 @@ class ActionServer extends BaseScript {
     }
   }
 
-  async _buildAndDeploy (devConfig) {
+  async _buildAndDeploy (devConfig, isLocalDev) {
     await (new BuildActions(devConfig)).run()
-    const entities = await (new DeployActions(devConfig)).run()
+    const entities = await (new DeployActions(devConfig)).run([], { isLocalDev })
     if (entities.actions) {
       entities.actions.forEach(a => {
         this.emit('progress', `  -> ${a.url || a.name}`)

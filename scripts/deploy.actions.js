@@ -43,6 +43,8 @@ class DeployActions extends BaseScript {
     const taskName = 'Deploy actions'
     this.emit('start', taskName)
 
+    const isLocalDev = deployConfig.isLocalDev
+
     // checks
     /// a. missing credentials
     utils.checkOpenWhiskCredentials(this.config)
@@ -88,7 +90,7 @@ class DeployActions extends BaseScript {
 
     // enrich actions array with urls
     if (Array.isArray(deployedEntities.actions)) {
-      const actionUrlsFromManifest = utils.getActionUrls(this.config)
+      const actionUrlsFromManifest = utils.getActionUrls(this.config, this.config.actions.devRemote, isLocalDev)
       deployedEntities.actions = deployedEntities.actions.map(a => {
         // in deployedEntities.actions, names are <package>/<action>
         const url = actionUrlsFromManifest[a.name.split('/')[1]]
