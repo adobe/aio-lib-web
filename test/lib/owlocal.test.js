@@ -13,17 +13,68 @@ const execa = require('execa')
 const owlocal = require('../../lib/owlocal')
 
 jest.mock('execa')
+let originalPlatform
+
+function setPlatform (platform) {
+  Object.defineProperty(process, 'platform', {
+    value: platform
+  })
+}
+
+beforeAll(() => {
+  // save
+  originalPlatform = process.platform
+})
+
+afterAll(() => {
+  // restore
+  setPlatform(originalPlatform)
+})
+
+const LOCALHOST_URL = `http://localhost:${owlocal.OW_LOCAL_DOCKER_PORT}`
 
 describe('owlocal - docker network inspect bridge', () => {
-  test('error', () => {
+  test('error - windows or mac', () => {
+    setPlatform('win32')
     execa.sync = jest.fn(() => {
       return {
         stdout: '[]'
       }
     })
-    expect(owlocal.getDockerNetworkAddress()).toEqual(null)
+    expect(owlocal.getDockerNetworkAddress()).toEqual(LOCALHOST_URL)
   })
-  test('success', () => {
+  test('error - other unix', () => {
+    setPlatform('freebsd')
+    execa.sync = jest.fn(() => {
+      return {
+        stdout: '[]'
+      }
+    })
+    expect(owlocal.getDockerNetworkAddress()).toEqual(LOCALHOST_URL)
+  })
+  test('success - windows or mac', () => {
+    setPlatform('darwin')
+    const ip = 'unused.ip'
+    const output = [
+      {
+        IPAM: {
+          Config: [
+            {
+              Gateway: ip
+            }
+          ]
+        }
+      }
+    ]
+    execa.sync = jest.fn(() => {
+      return {
+        stdout: JSON.stringify(output)
+      }
+    })
+    expect(owlocal.getDockerNetworkAddress()).toEqual(LOCALHOST_URL)
+  })
+  test('success - other unix', () => {
+    setPlatform('linux')
     const ip = '127.0.0.1'
     const output = [
       {
