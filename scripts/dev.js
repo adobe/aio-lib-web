@@ -54,8 +54,9 @@ class ActionServer extends BaseScript {
     const CODE_DEBUG = this._absApp('.vscode/launch.json')
 
     // control variables
-    const isLocal = !this.config.actions.devRemote
     const hasFrontend = this.config.app.hasFrontend
+    const hasBackend = this.config.app.hasBackend
+    const isLocal = !this.config.actions.devRemote // applies only for backend
 
     // todo take port for ow server as well
     // port for UI
@@ -65,14 +66,14 @@ class ActionServer extends BaseScript {
 
     // state
     const resources = {}
-    let devConfig // config will be different if local or remote
+    let devConfig = this.config // config will be different if local or remote
 
     // bind cleanup function
     process.on('SIGINT', () => cleanup(null, resources))
 
     try {
-      if (isLocal) {
-        if (this.config.app.hasBackend) {
+      if (hasBackend) {
+        if (isLocal) {
           // take following steps only when we have a backend
           this.emit('progress', 'checking if java is installed...')
           if (!await utils.hasJavaCLI()) throw new Error('could not find java CLI, please make sure java is installed')
@@ -106,25 +107,20 @@ class ActionServer extends BaseScript {
             resources.dotenvSave = DOTENV_SAVE
             resources.dotenv = dotenvFile
           }
-        }
-        // delete potentially conflicting env vars
-        delete process.env.AIO_RUNTIME_APIHOST
-        delete process.env.AIO_RUNTIME_NAMESPACE
-        delete process.env.AIO_RUNTIME_AUTH
+          // delete potentially conflicting env vars
+          delete process.env.AIO_RUNTIME_APIHOST
+          delete process.env.AIO_RUNTIME_NAMESPACE
+          delete process.env.AIO_RUNTIME_AUTH
 
-        devConfig = require('../lib/config-loader')() // reload config for local config
-      } else {
-        // check credentials
-        if (this.config.app.hasBackend) {
+          devConfig = require('../lib/config-loader')() // reload config for local config
+        } else {
+          // check credentials
           utils.checkOpenWhiskCredentials(this.config)
           this.emit('progress', 'using remote actions')
         }
-        devConfig = this.config
-      }
 
-      // build and deploy actions
-      // todo support live reloading ?
-      if (this.config.app.hasBackend) {
+        // build and deploy actions
+        // todo support live reloading ?
         this.emit('progress', 'redeploying actions..')
         await this._buildAndDeploy(devConfig)
 

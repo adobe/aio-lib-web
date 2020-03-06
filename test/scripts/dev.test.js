@@ -921,26 +921,31 @@ describe('port unavailable', () => {
   })
 })
 
-describe('UI Only Local run', () => {
+describe('with frontend only', () => {
   const ref = {}
   beforeEach(async () => {
-    process.env.REMOTE_ACTIONS = 'false'
-    global.loadFs(vol, 'sample-app')
-    mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
-    vol.unlinkSync('./manifest.yml')
-    ref.scripts = await AppScripts()
+    // exclude manifest file = backend only (should we make a fixture app without actions/ as well?)
+    ref.scripts = await loadEnvScripts('sample-app', global.fakeConfig.tvm, ['./manifest.yml'])
   })
 
-  test('Test config file generation', async () => {
-    await ref.scripts.runDev()
-    expect(vol.existsSync('/web-src/src/config.json')).toEqual(true)
-    expect(JSON.parse(vol.readFileSync('/web-src/src/config.json').toString())).toEqual({})
+  test('should set hasBackend=false', async () => {
     expect(ref.scripts._config.app.hasBackend).toBe(false)
   })
 
+  // eslint-disable-next-line jest/expect-expect
   test('should start a ui server', async () => {
     await ref.scripts.runDev()
     expectUIServer(null, 9080)
+  })
+
+  test('should not call build and deploy', async () => {
+    await ref.scripts.runDev()
+    // build & deploy constructor have been called once to init the scripts
+    // here we make sure run has not been calle
+    expect(BuildActions.mock.instances[0].run).toHaveBeenCalledTimes(0)
+    expect(DeployActions.mock.instances[0].run).toHaveBeenCalledTimes(0)
+    expect(BuildActions.mock.instances[1]).toBeUndefined()
+    expect(DeployActions.mock.instances[1]).toBeUndefined()
   })
 
   test('should generate a vscode config for ui only', async () => {
@@ -951,21 +956,10 @@ describe('UI Only Local run', () => {
       ]
     }))
   })
-})
 
-describe('UI Only run with remote actions set as true', () => {
-  beforeEach(async () => {
-    process.env.REMOTE_ACTIONS = 'true'
-    global.loadFs(vol, 'sample-app')
-    mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
-    vol.unlinkSync('./manifest.yml')
-  })
-
-  test('Test config file generation', async () => {
-    const scripts = await AppScripts()
-    await scripts.runDev()
+  test('should create config.json = {}', async () => {
+    await ref.scripts.runDev()
     expect(vol.existsSync('/web-src/src/config.json')).toEqual(true)
     expect(JSON.parse(vol.readFileSync('/web-src/src/config.json').toString())).toEqual({})
-    expect(scripts._config.app.hasBackend).toBe(false)
   })
 })
