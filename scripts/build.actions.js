@@ -33,6 +33,7 @@ class BuildActions extends BaseScript {
    * @memberof DeployActions
    */
   async run (args = [], buildConfig = {}) {
+    if (!this.config.app.hasBackend) throw new Error('cannot build actions, app has no backend')
     const taskName = 'Build actions'
     this.emit('start', taskName)
 

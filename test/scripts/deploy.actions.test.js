@@ -496,3 +496,12 @@ test('if actions are deployed and part of the manifest it should return their ur
     ]
   })
 })
+
+test('No backend is present', async () => {
+  global.loadFs(vol, 'sample-app')
+  mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
+  vol.unlinkSync('./manifest.yml')
+
+  const scripts = await AppScripts()
+  await expect(scripts.deployActions()).rejects.toThrow('cannot deploy actions, app has no backend')
+})
