@@ -21,22 +21,13 @@ const fs = require('fs-extra')
 const BuildActions = require('./build.actions')
 const DeployActions = require('./deploy.actions')
 const utils = require('../lib/utils')
+const { OW_JAR_FILE, OW_JAR_URL, OW_LOCAL_APIHOST, OW_LOCAL_NAMESPACE, OW_LOCAL_AUTH } = require('../lib/owlocal')
 const execa = require('execa')
 const Bundler = require('parcel-bundler')
 const chokidar = require('chokidar')
 let running = false
 let changed = false
 let watcher
-
-// TODO: this jar should become part of the distro, OR it should be pulled from bintray or similar.
-const OW_JAR_URL = 'https://github.com/adobe/aio-app-scripts/raw/binaries/bin/openwhisk-standalone-0.10.jar'
-
-// This path will be relative to this module, and not the cwd, so multiple projects can use it.
-const OW_JAR_FILE = path.resolve(__dirname, '../bin/openwhisk-standalone.jar')
-
-const OW_LOCAL_APIHOST = 'http://localhost:3233'
-const OW_LOCAL_NAMESPACE = 'guest'
-const OW_LOCAL_AUTH = '23bc46b1-71f6-4ed5-8c54-816aa4f8c502:123zO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP'
 
 const owWaitInitTime = 2000
 const owWaitPeriodTime = 500
