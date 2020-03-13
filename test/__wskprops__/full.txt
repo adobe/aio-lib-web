@@ -1,0 +1,3 @@
+APIHOST=https://adobe.wskprops.test.com
+NAMESPACE=wskprops_test_namespace
+AUTH=wskprops_test_auth
