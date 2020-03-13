@@ -15,15 +15,15 @@ const path = require('path')
 const process = require('process')
 
 test('Loads settings from env variables', async () => {
-    process.env.WSK_CONFIG_FILE = path.resolve('test/wskprops/full.txt')
+  process.env.WSK_CONFIG_FILE = path.resolve('test/wskprops/full.txt')
 
-    const appConfig = loadConfig()
-    // console.log('----------------------------------')
-    // console.log(appConfig)
-    // console.log('----------------------------------')
-    expect(appConfig.ow.auth).toEqual("wskprops_test_auth")
-    expect(appConfig.ow.namespace).toEqual("wskprops_test_namespace")
-    expect(appConfig.ow.apihost).toEqual("https://adobe.wskprops.test.com")
+  const appConfig = loadConfig()
+  // console.log('----------------------------------')
+  // console.log(appConfig)
+  // console.log('----------------------------------')
+  expect(appConfig.ow.auth).toEqual('wskprops_test_auth')
+  expect(appConfig.ow.namespace).toEqual('wskprops_test_namespace')
+  expect(appConfig.ow.apihost).toEqual('https://adobe.wskprops.test.com')
 
-    process.env.WSK_CONFIG_FILE = null
+  process.env.WSK_CONFIG_FILE = null
 })
