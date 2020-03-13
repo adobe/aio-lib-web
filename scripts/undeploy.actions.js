@@ -19,6 +19,8 @@ const OpenWhisk = require('openwhisk')
 
 class UndeployActions extends BaseScript {
   async run () {
+    if (!this.config.app.hasBackend) throw new Error('cannot undeploy actions, app has no backend')
+
     const taskName = 'Undeploy actions'
     this.emit('start', taskName)
 

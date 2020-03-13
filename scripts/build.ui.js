@@ -38,7 +38,8 @@ class BuildUI extends BaseScript {
       this.emit('warning', 'injected urls to backend actions are invalid because of missing Adobe I/O Runtime apihost and/or namespace')
     }
 
-    const urls = await utils.getActionUrls(this.config)
+    let urls = {}
+    if (this.config.app.hasBackend) { urls = await utils.getActionUrls(this.config) }
 
     await utils.writeConfig(this.config.web.injectedConfig, urls)
 

@@ -167,3 +167,12 @@ test('should not attempt to undeploy actions that are defined in manifest but no
   expect(ioruntime.undeployPackage).toHaveBeenCalledTimes(1)
   expect(ioruntime.undeployPackage).toHaveBeenCalledWith(expectedEntities, owMock, expect.anything())
 })
+
+test('No backend is present', async () => {
+  global.loadFs(vol, 'sample-app')
+  mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
+  vol.unlinkSync('./manifest.yml')
+
+  const scripts = await AppScripts()
+  await expect(scripts.undeployActions()).rejects.toThrow('cannot undeploy actions, app has no backend')
+})

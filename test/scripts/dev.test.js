@@ -15,8 +15,24 @@ const cloneDeep = require('lodash.clonedeep')
 const path = require('path')
 const stream = require('stream')
 const mockAIOConfig = require('@adobe/aio-lib-core-config')
+const util = require('util')
+const sleep = util.promisify(setTimeout)
 
 /* ****************** Mocks & beforeEach ******************* */
+let onChangeFunc
+jest.mock('chokidar', () => {
+  return {
+    watch: (...watchArgs) => {
+      return {
+        on: (status, method) => {
+          onChangeFunc = method
+        },
+        close: jest.fn()
+      }
+    }
+  }
+})
+
 const execa = require('execa')
 jest.mock('execa')
 
@@ -347,8 +363,33 @@ function runCommonTests (ref) {
 function runCommonRemoteTests (ref) {
   // eslint-disable-next-line jest/expect-expect
   test('should build and deploy actions to remote', async () => {
+    DeployActions.prototype.run.mockImplementation(async () => { await sleep(2000); return {} })
     await ref.scripts.runDev()
     expectDevActionBuildAndDeploy(expectedRemoteOWConfig)
+
+    BuildActions.mockClear()
+    DeployActions.mockClear()
+
+    // First change
+    onChangeFunc('changed')
+    await sleep(200)
+    DeployActions.prototype.run.mockImplementation(async () => { throw new Error() })
+
+    // Second change after 200 ms
+    onChangeFunc('changed')
+    await sleep(1000)
+
+    // Second change should not have resulted in build & deploy yet because first deploy would take 2 secs
+    expect(BuildActions).toHaveBeenCalledTimes(1)
+    expect(DeployActions).toHaveBeenCalledTimes(1)
+    await sleep(4000)
+
+    // The second call to DeployActions will result in an error because of the second mock above
+    expect(mockOnProgress).toHaveBeenCalledWith(expect.stringContaining('Stopping'))
+    expect(BuildActions).toHaveBeenCalledTimes(2)
+    expect(BuildActions.mock.instances[0].run).toHaveBeenCalledTimes(1)
+    expect(DeployActions).toHaveBeenCalledTimes(2)
+    expect(DeployActions.mock.instances[0].run).toHaveBeenCalledTimes(1)
   })
 
   test('should not start the local openwhisk stack', async () => {
@@ -500,8 +541,32 @@ function runCommonLocalTests (ref) {
 
   // eslint-disable-next-line jest/expect-expect
   test('should build and deploy actions to local ow', async () => {
+    DeployActions.prototype.run.mockImplementation(async () => { await sleep(2000); return {} })
     await ref.scripts.runDev()
     expectDevActionBuildAndDeploy(expectedLocalOWConfig)
+
+    BuildActions.mockClear()
+    DeployActions.mockClear()
+    // First change
+    onChangeFunc('changed')
+    await sleep(200)
+    DeployActions.prototype.run.mockImplementation(async () => { throw new Error() })
+
+    // Second change after 200 ms
+    onChangeFunc('changed')
+    await sleep(1000)
+
+    // Second change should not have resulted in build & deploy yet because first deploy would take 2 secs
+    expect(BuildActions).toHaveBeenCalledTimes(1)
+    expect(DeployActions).toHaveBeenCalledTimes(1)
+    await sleep(4000)
+
+    // The second call to DeployActions will result in an error because of the second mock above
+    expect(mockOnProgress).toHaveBeenCalledWith(expect.stringContaining('Stopping'))
+    expect(BuildActions).toHaveBeenCalledTimes(2)
+    expect(BuildActions.mock.instances[0].run).toHaveBeenCalledTimes(1)
+    expect(DeployActions).toHaveBeenCalledTimes(2)
+    expect(DeployActions.mock.instances[0].run).toHaveBeenCalledTimes(1)
   })
 
   test('should create a tmp .env file with local openwhisk credentials if there is no existing .env', async () => {
@@ -853,5 +918,48 @@ describe('port unavailable', () => {
     const resultUrl = await ref.scripts.runDev([8888], httpsConfig)
     expect(Bundler.mockServe).toHaveBeenCalledWith(8888, httpsConfig.https)
     expect(resultUrl).toBe('https://localhost:99')
+  })
+})
+
+describe('with frontend only', () => {
+  const ref = {}
+  beforeEach(async () => {
+    // exclude manifest file = backend only (should we make a fixture app without actions/ as well?)
+    ref.scripts = await loadEnvScripts('sample-app', global.fakeConfig.tvm, ['./manifest.yml'])
+  })
+
+  test('should set hasBackend=false', async () => {
+    expect(ref.scripts._config.app.hasBackend).toBe(false)
+  })
+
+  // eslint-disable-next-line jest/expect-expect
+  test('should start a ui server', async () => {
+    await ref.scripts.runDev()
+    expectUIServer(null, 9080)
+  })
+
+  test('should not call build and deploy', async () => {
+    await ref.scripts.runDev()
+    // build & deploy constructor have been called once to init the scripts
+    // here we make sure run has not been calle
+    expect(BuildActions.mock.instances[0].run).toHaveBeenCalledTimes(0)
+    expect(DeployActions.mock.instances[0].run).toHaveBeenCalledTimes(0)
+    expect(BuildActions.mock.instances[1]).toBeUndefined()
+    expect(DeployActions.mock.instances[1]).toBeUndefined()
+  })
+
+  test('should generate a vscode config for ui only', async () => {
+    await ref.scripts.runDev()
+    expect(JSON.parse(vol.readFileSync('/.vscode/launch.json').toString())).toEqual(expect.objectContaining({
+      configurations: [
+        getExpectedUIVSCodeDebugConfig(9080)
+      ]
+    }))
+  })
+
+  test('should create config.json = {}', async () => {
+    await ref.scripts.runDev()
+    expect(vol.existsSync('/web-src/src/config.json')).toEqual(true)
+    expect(JSON.parse(vol.readFileSync('/web-src/src/config.json').toString())).toEqual({})
   })
 })
