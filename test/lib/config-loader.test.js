@@ -11,9 +11,11 @@ governing permissions and limitations under the License.
 */
 
 const loadConfig = require('../../lib/config-loader')
+const path = require('path')
+const process = require('process')
 
-/*test('Loads settings from env variables', async () => {
-    process.env.WSK_CONFIG_FILE = '../wskprops/test.wskprops'
+test('Loads settings from env variables', async () => {
+    process.env.WSK_CONFIG_FILE = path.resolve('test/wskprops/full.txt')
 
     const appConfig = loadConfig()
     // console.log('----------------------------------')
@@ -22,4 +24,6 @@ const loadConfig = require('../../lib/config-loader')
     expect(appConfig.ow.auth).toEqual("wskprops_test_auth")
     expect(appConfig.ow.namespace).toEqual("wskprops_test_namespace")
     expect(appConfig.ow.apihost).toEqual("https://adobe.wskprops.test.com")
-})//*/
+
+    process.env.WSK_CONFIG_FILE = null
+})
