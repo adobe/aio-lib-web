@@ -36,12 +36,32 @@ test('Checks if there is a default wsk config or not', async () => {
 
 test('Gets wsk properties file from env', async () => {
     process.env.WSK_CONFIG_FILE = path.resolve('test/wskprops/full.txt')
-    let config = wskprops.get()
-    console.log('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
-    console.log(config)
-    console.log('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
 
+    let config = wskprops.get()
     expect(config.apihost).toEqual('https://adobe.wskprops.test.com')
     expect(config.namespace).toEqual('wskprops_test_namespace')
     expect(config.api_key).toEqual('wskprops_test_auth')
+
+    process.env.WSK_CONFIG_FILE = null
+
+    config = wskprops.get()
+    expect(config.apihost).toBeUndefined()
+    expect(config.namespace).toBeUndefined()
+    expect(config.api_key).toBeUndefined()
+
+    process.env.OW_APIHOST = 'test-OW_APIHOST'
+    process.env.OW_AUTH = 'test-OW_AUTH'
+    process.env.OW_NAMESPACE = 'test-OW_NAMESPACE'
+    process.env.OW_APIGW_ACCESS_TOKEN = 'test-OW_APIGW_ACCESS_TOKEN'
+
+    config = wskprops.get()
+    expect(config.apihost).toEqual('test-OW_APIHOST')
+    expect(config.namespace).toEqual('test-OW_NAMESPACE')
+    expect(config.apigw_access_token).toEqual('test-OW_APIGW_ACCESS_TOKEN')
+    expect(config.api_key).toEqual('test-OW_AUTH')
+
+    process.env.OW_APIHOST = null
+    process.env.OW_AUTH = null
+    process.env.OW_NAMESPACE = null
+    process.env.OW_APIGW_ACCESS_TOKEN = null
 })
