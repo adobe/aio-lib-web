@@ -10,10 +10,16 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-'use strict'
+const loadConfig = require('../../lib/config-loader')
 
-const configLoader = require('../../lib/config-loader')
+/*test('Loads settings from env variables', async () => {
+    process.env.WSK_CONFIG_FILE = '../wskprops/test.wskprops'
 
-test('Loads settings from env variables', async () => {
-    
-})
+    const appConfig = loadConfig()
+    // console.log('----------------------------------')
+    // console.log(appConfig)
+    // console.log('----------------------------------')
+    expect(appConfig.ow.auth).toEqual("wskprops_test_auth")
+    expect(appConfig.ow.namespace).toEqual("wskprops_test_namespace")
+    expect(appConfig.ow.apihost).toEqual("https://adobe.wskprops.test.com")
+})//*/

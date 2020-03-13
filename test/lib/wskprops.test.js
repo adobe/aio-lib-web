@@ -13,33 +13,35 @@ governing permissions and limitations under the License.
 'use strict'
 
 const wskprops = require('../../lib/wskprops')
+const path = require('path')
+const process = require('process')
 
-test('Gets wskprop file from env', async () => {
-    
-})
-
-test('Gets wskprop file from default location', async () => {
-    
+beforeEach(() => {
+    // restores all spies
+    jest.restoreAllMocks()
+    //global.cleanFs(vol)
 })
 
 // tests exported function hasWskConfig()
 test('Checks if there is a default wsk config or not', async () => {
-    
+    process.env.WSK_CONFIG_FILE = path.resolve('test/wskprops/full.txt')
+    let result = wskprops.hasWskConfig()
+    expect(result).toEqual(true)
+
+    process.env.WSK_CONFIG_FILE = null
+    result = wskprops.hasWskConfig()
+    expect(result).toEqual(false)
 })
 
-test('Reads wskprops config', async () => {
-    
-})
 
-test('Gets wsk props', async () => {
-    
-})
+test('Gets wsk properties file from env', async () => {
+    process.env.WSK_CONFIG_FILE = path.resolve('test/wskprops/full.txt')
+    let config = wskprops.get()
+    console.log('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
+    console.log(config)
+    console.log('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
 
-test('Gets wsk env props', async () => {
-    
-})
-
-// tests exported function get()
-test('Aggregates information from wskprops', async () => {
-    
+    expect(config.apihost).toEqual('https://adobe.wskprops.test.com')
+    expect(config.namespace).toEqual('wskprops_test_namespace')
+    expect(config.api_key).toEqual('wskprops_test_auth')
 })
