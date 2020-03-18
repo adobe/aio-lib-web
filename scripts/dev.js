@@ -223,22 +223,24 @@ class ActionServer extends BaseScript {
         if (actionFileStats.isFile()) {
           // why is this condition here?
         }
+        config.runtimeArgs = [
+          `${packageName}/${an}`,
+          actionPath,
+          '-v'
+        ]
         if (actionFileStats.isDirectory()) {
           // take package.json.main or 'index.js'
           const zipMain = utils.getActionEntryFile(path.join(actionPath, 'package.json'))
-          config.runtimeArgs = [
-            `${packageName}/${an}`,
-            path.join(actionPath, zipMain),
-            '-v'
-          ]
-        } else {
-          // we assume its a file at this point
-          // if symlink should have thrown an error during build stage, here we just ignore it
-          config.runtimeArgs = [
-            `${packageName}/${an}`,
-            actionPath,
-            '-v'
-          ]
+          config.runtimeArgs[1] = path.join(actionPath, zipMain)
+        }
+        if (action.annotations && action.annotations['require-adobe-auth']) {
+          // NOTE: The require-adobe-auth annotation is a feature implemented in the
+          // runtime plugin. The current implementation replaces the action by a sequence
+          // and renames the action to __secured_<action>. The annotation will soon be
+          // natively supported in Adobe I/O Runtime, at which point this condition won't
+          // be needed anymore.
+          /* instanbul ignore next */
+          config.runtimeArgs[0] = `${packageName}/__secured_${an}`
         }
         return config
       })
