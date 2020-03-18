@@ -224,6 +224,11 @@ const getExpectedActionVSCodeDebugConfig = actionName =>
     request: 'launch',
     name: 'Action:' + actionName,
     runtimeExecutable: r('/node_modules/.bin/wskdebug'),
+    runtimeArgs: [
+      actionName,
+      expect.stringContaining(actionName.split('/')[1]),
+      '-v'
+    ],
     env: { WSK_CONFIG_FILE: r('/.wskdebug.props.tmp') },
     localRoot: r('/'),
     remoteRoot: '/code'
@@ -962,4 +967,38 @@ describe('with frontend only', () => {
     expect(vol.existsSync('/web-src/src/config.json')).toEqual(true)
     expect(JSON.parse(vol.readFileSync('/web-src/src/config.json').toString())).toEqual({})
   })
+})
+
+// Note: this test can be safely deleted once the require-adobe-auth is
+// natively supported in Adobe I/O Runtime.
+test('vscode wskdebug config with require-adobe-auth annotation', async () => {
+  // create test app
+  global.loadFs(vol, 'sample-app')
+  vol.unlinkSync('web-src/index.html')
+  mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
+  process.env.REMOTE_ACTIONS = 'true'
+  const scripts = AppScripts({})
+  // avoid recreating a new fixture
+  scripts._config.manifest.package.actions.action.annotations = { 'require-adobe-auth': true }
+
+  await scripts.runDev()
+
+  expect(JSON.parse(vol.readFileSync('/.vscode/launch.json').toString())).toEqual(expect.objectContaining({
+    configurations: expect.arrayContaining([
+      expect.objectContaining({
+        type: 'node',
+        request: 'launch',
+        name: 'Action:' + 'sample-app-1.0.0/action',
+        runtimeExecutable: r('/node_modules/.bin/wskdebug'),
+        runtimeArgs: [
+          'sample-app-1.0.0/__secured_action',
+          r('actions/action.js'),
+          '-v'
+        ],
+        env: { WSK_CONFIG_FILE: r('/.wskdebug.props.tmp') },
+        localRoot: r('/'),
+        remoteRoot: '/code'
+      })
+    ])
+  }))
 })
