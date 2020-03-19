@@ -19,8 +19,6 @@ const path = require('path')
 
 const cloneDeep = require('lodash.clonedeep')
 
-const OpenWhisk = require('openwhisk')
-
 // This should eventually be fully covered by `aio runtime deploy`
 class DeployActions extends BaseScript {
   /**
@@ -71,17 +69,17 @@ class DeployActions extends BaseScript {
     delete manifest.packages[this.config.manifest.packagePlaceholder]
 
     // 2. deploy manifest
-    const owClient = OpenWhisk({
+    const owOptions = {
       apihost: this.config.ow.apihost,
       apiversion: this.config.ow.apiversion,
       api_key: this.config.ow.auth,
       namespace: this.config.ow.namespace
-    })
+    }
     let deployedEntities = await utils.deployWsk(
       this.config.ow.package,
       this.config.manifest.src,
       manifest,
-      owClient,
+      owOptions,
       this.emit.bind(this, 'progress'),
       deployConfig.filterEntities
     )

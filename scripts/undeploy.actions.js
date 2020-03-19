@@ -15,7 +15,6 @@ const BaseScript = require('../lib/abstract-script')
 const utils = require('../lib/utils')
 
 const cloneDeep = require('lodash.clonedeep')
-const OpenWhisk = require('openwhisk')
 
 class UndeployActions extends BaseScript {
   async run () {
@@ -36,13 +35,13 @@ class UndeployActions extends BaseScript {
     manifestPackage.version = this.config.app.version
 
     // 2. undeploy
-    const owClient = OpenWhisk({
+    const owOptions = {
       apihost: this.config.ow.apihost,
       apiversion: this.config.ow.apiversion,
       api_key: this.config.ow.auth,
       namespace: this.config.ow.namespace
-    })
-    await utils.undeployWsk(this.config.ow.package, manifest, owClient, this.emit.bind(this, 'progress'))
+    }
+    await utils.undeployWsk(this.config.ow.package, manifest, owOptions, this.emit.bind(this, 'progress'))
 
     this.emit('end', taskName)
   }
