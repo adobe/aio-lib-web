@@ -492,7 +492,8 @@ test('if actions are deployed and part of the manifest it should return their ur
     actions: [
       {
         name: 'pkg/action',
-        url: 'https://fake_ns.adobeio-static.net/api/v1/web/sample-app-reduced-1.0.0/action'
+        // no UI in sample-app reduced so url is pointing to adobeioruntime instead of cdn
+        url: 'https://fake_ns.adobeioruntime.net/api/v1/web/sample-app-reduced-1.0.0/action'
       },
       { name: 'pkg/actionNotInManifest' }
     ]
