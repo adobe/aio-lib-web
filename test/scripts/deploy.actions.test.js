@@ -84,6 +84,8 @@ const expectedDistManifest = {
   }
 }
 
+const expectedOWOptions = { api_key: 'fake:auth', apihost: 'https://adobeioruntime.net', apiversion: 'v1', namespace: 'fake_ns' }
+
 const mockEntities = { fake: true }
 //   pkgAndDeps: [{ name: 'sample-app-1.0.0' }, { name: 'dep' }],
 //   actions: [{ name: 'sample-app-1.0.0/action' }],
@@ -107,7 +109,7 @@ test('deploy full manifest', async () => {
   await scripts.deployActions()
 
   expect(ioruntime.processPackage).toHaveBeenCalledTimes(1)
-  expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedDistManifest.packages, {}, {}, {})
+  expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedDistManifest.packages, {}, {}, {}, false, expectedOWOptions)
 
   expect(ioruntime.syncProject).toHaveBeenCalledTimes(1)
   expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, mockEntities, { fake: 'ow' }, expect.anything(), true)
@@ -146,7 +148,7 @@ test('use deployConfig.filterEntities to deploy only one action', async () => {
   }
 
   expect(ioruntime.processPackage).toHaveBeenCalledTimes(1)
-  expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedDistPackagesFiltered, {}, {}, {})
+  expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedDistPackagesFiltered, {}, {}, {}, false, expectedOWOptions)
 
   expect(ioruntime.syncProject).toHaveBeenCalledTimes(1)
   expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, mockEntities, { fake: 'ow' }, expect.anything(), false)
@@ -189,7 +191,7 @@ test('use deployConfig.filterEntities to deploy only one trigger and one action'
   }
 
   expect(ioruntime.processPackage).toHaveBeenCalledTimes(1)
-  expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedDistPackagesFiltered, {}, {}, {})
+  expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedDistPackagesFiltered, {}, {}, {}, false, expectedOWOptions)
 
   expect(ioruntime.syncProject).toHaveBeenCalledTimes(1)
   expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, mockEntities, { fake: 'ow' }, expect.anything(), false)
@@ -240,7 +242,7 @@ test('use deployConfig.filterEntities to deploy only one trigger and one action 
   }
 
   expect(ioruntime.processPackage).toHaveBeenCalledTimes(1)
-  expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedDistPackagesFiltered, {}, {}, {})
+  expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedDistPackagesFiltered, {}, {}, {}, false, expectedOWOptions)
 
   expect(ioruntime.syncProject).toHaveBeenCalledTimes(1)
   expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, mockEntities, { fake: 'ow' }, expect.anything(), false)
@@ -291,7 +293,7 @@ test('use deployConfig.filterEntities to deploy only one action and one api', as
   }
 
   expect(ioruntime.processPackage).toHaveBeenCalledTimes(1)
-  expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedDistPackagesFiltered, {}, {}, {})
+  expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedDistPackagesFiltered, {}, {}, {}, false, expectedOWOptions)
 
   expect(ioruntime.syncProject).toHaveBeenCalledTimes(1)
   expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, mockEntities, { fake: 'ow' }, expect.anything(), false)
@@ -342,7 +344,7 @@ test('use deployConfig.filterEntities to deploy only two actions and one sequenc
   }
 
   expect(ioruntime.processPackage).toHaveBeenCalledTimes(1)
-  expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedDistPackagesFiltered, {}, {}, {})
+  expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedDistPackagesFiltered, {}, {}, {}, false, expectedOWOptions)
 
   expect(ioruntime.syncProject).toHaveBeenCalledTimes(1)
   expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, mockEntities, { fake: 'ow' }, expect.anything(), false)
@@ -379,7 +381,7 @@ test('use deployConfig.filterEntities to deploy only one pkg dependency', async 
   }
 
   expect(ioruntime.processPackage).toHaveBeenCalledTimes(1)
-  expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedDistPackagesFiltered, {}, {}, {})
+  expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedDistPackagesFiltered, {}, {}, {}, false, expectedOWOptions)
 
   expect(ioruntime.syncProject).toHaveBeenCalledTimes(1)
   expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, mockEntities, { fake: 'ow' }, expect.anything(), false)
@@ -433,7 +435,7 @@ test('use deployConfig.filterEntities on non existing pkgEntity should work', as
   }
 
   expect(ioruntime.processPackage).toHaveBeenCalledTimes(1)
-  expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedDistPackagesFiltered, {}, {}, {})
+  expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedDistPackagesFiltered, {}, {}, {}, false, expectedOWOptions)
 
   expect(ioruntime.syncProject).toHaveBeenCalledTimes(1)
   expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-reduced-1.0.0', r('/manifest.yml'), expectedDistReducedManifest, mockEntities, { fake: 'ow' }, expect.anything(), false)
