@@ -57,16 +57,14 @@ class DeployActions extends BaseScript {
 
     // 1. rewrite wskManifest config
     const manifest = cloneDeep(this.config.manifest.full)
-    const manifestPackage = manifest.packages[this.config.manifest.packagePlaceholder]
+    const manifestPackage = cloneDeep(this.config.manifest.package)
     manifestPackage.version = this.config.app.version
     const relDist = this._relApp(this.config.actions.dist)
-    await Promise.all(Object.entries(manifestPackage.actions).map(async ([name, action]) => {
+
+    Object.keys(manifestPackage.actions).forEach(name => {
       // change path to built action
-      action.function = path.join(relDist, name + '.zip')
-    }))
-    // replace package name
-    manifest.packages[this.config.ow.package] = manifest.packages[this.config.manifest.packagePlaceholder]
-    delete manifest.packages[this.config.manifest.packagePlaceholder]
+      manifestPackage.actions[name].function = path.join(relDist, name + '.zip')
+    })
 
     // 2. deploy manifest
     const owOptions = {

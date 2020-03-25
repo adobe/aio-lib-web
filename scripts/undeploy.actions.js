@@ -28,9 +28,6 @@ class UndeployActions extends BaseScript {
 
     // 1. rewrite wskManifest config
     const manifest = cloneDeep(this.config.manifest.full)
-    // replace package name
-    manifest.packages[this.config.ow.package] = manifest.packages[this.config.manifest.packagePlaceholder]
-    delete manifest.packages[this.config.manifest.packagePlaceholder]
     const manifestPackage = manifest.packages[this.config.ow.package]
     manifestPackage.version = this.config.app.version
 
