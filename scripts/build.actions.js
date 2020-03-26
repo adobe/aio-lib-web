@@ -40,12 +40,14 @@ class BuildActions extends BaseScript {
             let destinationPath = path.join(this.config.root, fileDetails.base)
 
             if(fs.existsSync(sourcePath)){
-                fs.copySync(sourcePath, destinationPath)
-                injectedFiles.push({
-                    source: sourcePath,
-                    destination: destinationPath,
-                    file: fileDetails
-                })
+                if(sourcePath !== destinationPath) {
+                    fs.copySync(sourcePath, destinationPath)
+                    injectedFiles.push({
+                        source: sourcePath,
+                        destination: destinationPath,
+                        file: fileDetails
+                    })
+                }
                 aioLogger.debug(`SUCCESS Injecting additional file: ${file}`)
             } else {
                 throw new Error(`missing file ${file} for injection`)
