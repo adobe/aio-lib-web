@@ -33,6 +33,9 @@ class BuildActions extends BaseScript {
    * @memberof DeployActions
    */
   async run (args = [], buildConfig = {}) {
+    console.log('################# run BuildActions')
+    console.log(buildConfig)
+    console.log('#################')
     if (!this.config.app.hasBackend) throw new Error('cannot build actions, app has no backend')
     const taskName = 'Build actions'
     this.emit('start', taskName)
@@ -52,6 +55,17 @@ class BuildActions extends BaseScript {
         if (!fs.existsSync(packageJsonPath)) {
           throw new Error(`missing required ${this._relApp(packageJsonPath)} for folder actions`)
         }
+
+        if(buildConfig.injectFiles) { // inject files into package
+            console.log('########### In file injection logic')
+            console.log(buildConfig.injectFiles);
+
+            // verify files are here
+
+            // move them into action path
+
+        }
+
         // make sure package.json exposes main or there is an index.js
         const expectedActionName = utils.getActionEntryFile(packageJsonPath)
         if (!fs.existsSync(path.join(actionPath, expectedActionName))) {
@@ -61,9 +75,29 @@ class BuildActions extends BaseScript {
         await utils.installDeps(actionPath)
         // zip the action
         await utils.zip(actionPath, outPath)
+
+        // remove injected files from where they were put
+        if(buildConfig.injectFiles) { // inject files into package
+            console.log('########### In file injection logic')
+            console.log(buildConfig.injectFiles);
+
+            // remove them from action path
+
+        }
       } else {
         const outBuildFilename = `${name}.tmp.js`
         const outBuildDir = path.dirname(outPath)
+
+        if(buildConfig.injectFiles) { // inject files into package
+            console.log('########### In file injection logic - sh only (else case)')
+            console.log(buildConfig.injectFiles);
+
+            // verify files are here
+
+            // move them into action path
+
+        }
+
         // if not directory => package and minify to single file
         const compiler = webpack({
           entry: [
@@ -110,6 +144,18 @@ class BuildActions extends BaseScript {
           throw new Error(`could not find bundled output ${zipSrcPath}, building action '${name}' has likely failed`)
         }
       }
+
+      // remove injected files
+      if(buildConfig.injectFiles) { // inject files into package
+        console.log('########### In file injection logic (else case)')
+        console.log(buildConfig.injectFiles);
+
+        // verify files are here
+
+        // remove them from action path
+
+      }
+
       return outPath
     }
 
