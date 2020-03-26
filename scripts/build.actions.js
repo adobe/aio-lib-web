@@ -21,6 +21,7 @@ const webpack = require('webpack')
 const aioLogger = require('@adobe/aio-lib-core-logging')('@adobe/aio-app-scripts:build.actions', { provider: 'debug' })
 
 // const Bundler = require('parcel-bundler')
+const ADDITIONAL_FILES_EXT = ['.sh']
 
 class BuildActions extends BaseScript {
     /**
@@ -45,7 +46,7 @@ class BuildActions extends BaseScript {
                     injectedFiles.push({
                         source: sourcePath,
                         destination: destinationPath,
-                        file: fileDetails
+                        filename: fileDetails.base
                     })
                 }
                 aioLogger.debug(`SUCCESS Injecting additional file: ${file}`)
@@ -73,6 +74,7 @@ class BuildActions extends BaseScript {
         fs.emptyDirSync(this.config.actions.dist)
 
         let injectedFiles = [];
+        let addedFiles = [];
         const build = async (name, action) => {
             const actionConfiguration = this.config.manifest.package.actions[name]
             
@@ -105,12 +107,12 @@ class BuildActions extends BaseScript {
                 }
                 // install dependencies
                 await utils.installDeps(actionPath)
+                
                 // zip the action
                 await utils.zip(actionPath, outPath)
             } else {
                 const outBuildFilename = `${name}.tmp.js`
                 const outBuildDir = path.dirname(outPath)
-
                 // if not directory => package and minify to single file
                 const compiler = webpack({
                     entry: [
@@ -147,11 +149,32 @@ class BuildActions extends BaseScript {
                     return resolve(stats)
                 }))
 
+                // add neighbooring script files here
+                let fileDetails = path.parse(actionPath);
+                fs.readdirSync(fileDetails.dir).forEach(file => {
+                    let fileInfo = path.parse(file);
+                    if(ADDITIONAL_FILES_EXT.includes(fileInfo.ext)){
+                        // move to dist
+                        const destination = path.join(outBuildDir, fileInfo.base);
+                        fs.copySync(file, destination)
+
+                        addedFiles.push({
+                            source: file,
+                            destination: destination,
+                            filename: fileInfo.base
+                        })
+                    }
+                });
+
                 // zip the bundled file
                 // the path in zip must be renamed to index.js even if buildFilename is not index.js
                 const zipSrcPath = path.join(outBuildDir, outBuildFilename)
                 if (fs.existsSync(zipSrcPath)) {
-                    await utils.zip(zipSrcPath, outPath, 'index.js')
+                    if(addedFiles.length > 0){
+                        await utils.zipWithOptions(zipSrcPath, outPath, {additionalFiles: addedFiles}, 'index.js')
+                    } else {
+                        await utils.zip(zipSrcPath, outPath, 'index.js')
+                    }
                     fs.removeSync(zipSrcPath) // remove the build file
                 } else {
                     throw new Error(`could not find bundled output ${zipSrcPath}, building action '${name}' has likely failed`)
@@ -165,6 +188,17 @@ class BuildActions extends BaseScript {
                         fs.removeSync(injectedItem.destination)
                     } catch(e){ // ignore deletion errors
                         aioLogger.debug(`File ${injectedItem} not found, no deletion needed`)
+                    }
+                }
+            }
+
+            // remove added neighboor files
+            if (addedFiles && addedFiles.length > 0) { // inject files into package
+                for (const addedItem of addedFiles) {
+                    try {
+                        fs.removeSync(addedItem.destination)
+                    } catch(e){ // ignore deletion errors
+                        aioLogger.debug(`File ${addedItem} not found, no deletion needed`)
                     }
                 }
             }
