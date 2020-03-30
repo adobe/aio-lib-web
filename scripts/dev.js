@@ -32,6 +32,7 @@ let watcher
 const owWaitInitTime = 2000
 const owWaitPeriodTime = 500
 const owTimeout = 60000
+const fetchLogInterval = 10000
 
 class ActionServer extends BaseScript {
   async run (args = [], bundleOptions = {}) {
@@ -184,11 +185,28 @@ class ActionServer extends BaseScript {
         resources.dummyProc = execa('node')
       }
       this.emit('progress', 'press CTRL+C to terminate dev environment')
+
+      if (hasBackend) {
+        // fetch action logs
+        const AppScripts = require('../index.js')
+        const scripts = AppScripts({ listeners: {} })
+        this.getLogs(scripts.logs, this.getLogs)
+      }
     } catch (e) {
       aioLogger.error('Unexpected error. Cleaning up.')
       cleanup(e, resources)
     }
     return frontEndUrl
+  }
+
+  async getLogs (logScript, cb) {
+    try {
+      await logScript([], {})
+    } catch (e) {
+      aioLogger.error('Error while fetching action logs ' + e)
+    } finally {
+      setTimeout(function () { cb(logScript, cb) }, fetchLogInterval)
+    }
   }
 
   // todo make util not instance function
