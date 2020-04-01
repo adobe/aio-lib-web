@@ -53,7 +53,7 @@ class ActionServer extends BaseScript {
     // control variables
     const hasFrontend = this.config.app.hasFrontend
     const withBackend = this.config.app.hasBackend && !skipActions
-    const isLocal = !this.config.actions.devRemote // applies only for backend
+    const isLocal = !this.config.actions.devRemote // applies only for backend for
 
     // port for UI
     const uiPort = parseInt(args[0]) || parseInt(process.env.PORT) || 9080
@@ -129,10 +129,12 @@ class ActionServer extends BaseScript {
 
       if (hasFrontend) {
         let urls = {}
-        if (withBackend) {
+        if (this.config.app.hasBackend) {
           // inject backend urls into ui
+          // note the condition: we still write backend urls EVEN if skipActions is set
+          // the urls will always point to remotely deployed actions if skipActions is set
           this.emit('progress', 'injecting backend urls into frontend config')
-          urls = await utils.getActionUrls(devConfig, true, isLocal)
+          urls = await utils.getActionUrls(devConfig, true, isLocal && !skipActions)
         }
         await utils.writeConfig(devConfig.web.injectedConfig, urls)
 

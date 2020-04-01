@@ -465,6 +465,13 @@ function runCommonWithFrontendTests (ref) {
       ]
     }))
   })
+
+  test('should use https cert/key if passed', async () => {
+    const options = { parcel: { https: { cert: 'cert.cert', key: 'key.key' } } }
+    const port = 8888
+    await ref.scripts.runDev([port], options)
+    expect(Bundler.mockServe).toHaveBeenCalledWith(port, options.parcel.https)
+  })
 }
 
 function runCommonLocalTests (ref) {
@@ -844,11 +851,15 @@ describe('with remote actions and frontend', () => {
     })
   })
 
-  test('should use https cert/key if passed', async () => {
-    const options = { parcel: { https: { cert: 'cert.cert', key: 'key.key' } } }
-    const port = 8888
-    await ref.scripts.runDev([port], options)
-    expect(Bundler.mockServe).toHaveBeenCalledWith(port, options.parcel.https)
+  test('should still inject remote action urls into the UI if skipActions is set', async () => {
+    await ref.scripts.runDev([], { skipActions: true })
+    expect(vol.existsSync('/web-src/src/config.json')).toEqual(true)
+    const baseUrl = 'https://' + remoteOWCredentials.namespace + '.' + global.defaultOwApiHost.split('https://')[1] + '/api/v1/web/sample-app-1.0.0/'
+    expect(JSON.parse(vol.readFileSync('/web-src/src/config.json').toString())).toEqual({
+      action: baseUrl + 'action',
+      'action-zip': baseUrl + 'action-zip',
+      'action-sequence': baseUrl + 'action-sequence'
+    })
   })
 })
 
@@ -909,6 +920,17 @@ describe('with local actions and frontend', () => {
     await ref.scripts.runDev()
     expect(vol.existsSync('/web-src/src/config.json')).toEqual(true)
     const baseUrl = localOWCredentials.apihost + '/api/v1/web/' + localOWCredentials.namespace + '/sample-app-1.0.0/'
+    expect(JSON.parse(vol.readFileSync('/web-src/src/config.json').toString())).toEqual({
+      action: baseUrl + 'action',
+      'action-zip': baseUrl + 'action-zip',
+      'action-sequence': baseUrl + 'action-sequence'
+    })
+  })
+
+  test('should inject REMOTE action urls into the UI if skipActions is set', async () => {
+    await ref.scripts.runDev([], { skipActions: true })
+    expect(vol.existsSync('/web-src/src/config.json')).toEqual(true)
+    const baseUrl = 'https://' + remoteOWCredentials.namespace + '.' + global.defaultOwApiHost.split('https://')[1] + '/api/v1/web/sample-app-1.0.0/'
     expect(JSON.parse(vol.readFileSync('/web-src/src/config.json').toString())).toEqual({
       action: baseUrl + 'action',
       'action-zip': baseUrl + 'action-zip',
