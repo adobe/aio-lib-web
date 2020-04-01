@@ -34,7 +34,13 @@ const owWaitPeriodTime = 500
 const owTimeout = 60000
 
 class ActionServer extends BaseScript {
-  async run (args = [], bundleOptions = {}) {
+  async run (args = [], options = {}) {
+    // options
+    /* parcel bundle options */
+    const bundleOptions = options.parcel || {}
+    /* skip actions */
+    const skipActions = !!options.skipActions
+
     const taskName = 'Local Dev Server'
     this.emit('start', taskName)
     // files
@@ -46,10 +52,9 @@ class ActionServer extends BaseScript {
 
     // control variables
     const hasFrontend = this.config.app.hasFrontend
-    const hasBackend = this.config.app.hasBackend
+    const withBackend = this.config.app.hasBackend && !skipActions
     const isLocal = !this.config.actions.devRemote // applies only for backend
 
-    // todo take port for ow server as well
     // port for UI
     const uiPort = parseInt(args[0]) || parseInt(process.env.PORT) || 9080
 
@@ -63,7 +68,7 @@ class ActionServer extends BaseScript {
     process.on('SIGINT', () => cleanup(null, resources))
 
     try {
-      if (hasBackend) {
+      if (withBackend) {
         if (isLocal) {
           // take following steps only when we have a backend
           this.emit('progress', 'checking if java is installed...')
@@ -87,7 +92,6 @@ class ActionServer extends BaseScript {
           // case1: no dotenv file => expose local credentials in .env, delete on cleanup
           const dotenvFile = this._absApp('.env')
           if (!fs.existsSync(dotenvFile)) {
-            // todo move to utils
             this.emit('progress', 'writing temporary .env with local OpenWhisk guest credentials..')
             fs.writeFileSync(dotenvFile, `AIO_RUNTIME_NAMESPACE=${OW_LOCAL_NAMESPACE}\nAIO_RUNTIME_AUTH=${OW_LOCAL_AUTH}\nAIO_RUNTIME_APIHOST=${OW_LOCAL_APIHOST}`)
             resources.dotenv = dotenvFile
@@ -111,7 +115,6 @@ class ActionServer extends BaseScript {
         }
 
         // build and deploy actions
-        // todo support live reloading ?
         this.emit('progress', 'redeploying actions..')
         await this._buildAndDeploy(devConfig, isLocal)
 
@@ -126,7 +129,7 @@ class ActionServer extends BaseScript {
 
       if (hasFrontend) {
         let urls = {}
-        if (devConfig.app.hasBackend) {
+        if (withBackend) {
           // inject backend urls into ui
           this.emit('progress', 'injecting backend urls into frontend config')
           urls = await utils.getActionUrls(devConfig, true, isLocal)
@@ -134,10 +137,8 @@ class ActionServer extends BaseScript {
         await utils.writeConfig(devConfig.web.injectedConfig, urls)
 
         this.emit('progress', 'starting local frontend server ..')
-        // todo: does it have to be index.html?
         const entryFile = path.join(devConfig.web.src, 'index.html')
 
-        // todo move to utils.runUIDevServer
         // our defaults here can be overridden by the bundleOptions passed in
         // bundleOptions.https are also passed to bundler.serve
         const parcelBundleOptions = {
@@ -163,8 +164,6 @@ class ActionServer extends BaseScript {
       }
 
       this.emit('progress', 'setting up vscode debug configuration files..')
-      // todo refactor the whole .vscode/launch.json piece into utils
-      // todo 2 don't enforce vscode config to non vscode dev
       fs.ensureDirSync(path.dirname(CODE_DEBUG))
       if (fs.existsSync(CODE_DEBUG)) {
         if (!fs.existsSync(CODE_DEBUG_SAVE)) {
@@ -173,7 +172,7 @@ class ActionServer extends BaseScript {
         }
       }
       fs.writeJSONSync(CODE_DEBUG,
-        await this.generateVSCodeDebugConfig(devConfig, hasFrontend, frontEndUrl, WSK_DEBUG_PROPS),
+        await this.generateVSCodeDebugConfig(devConfig, withBackend, hasFrontend, frontEndUrl, WSK_DEBUG_PROPS),
         { spaces: 2 })
 
       resources.vscodeDebugConfig = CODE_DEBUG
@@ -191,11 +190,10 @@ class ActionServer extends BaseScript {
     return frontEndUrl
   }
 
-  // todo make util not instance function
-  async generateVSCodeDebugConfig (devConfig, hasFrontend, frontUrl, wskdebugProps) {
+  async generateVSCodeDebugConfig (devConfig, withBackend, hasFrontend, frontUrl, wskdebugProps) {
     const actionConfigNames = []
     let actionConfigs = []
-    if (devConfig.app.hasBackend) {
+    if (withBackend) {
       const packageName = devConfig.ow.package
       const manifestActions = devConfig.manifest.package.actions
 
@@ -209,7 +207,6 @@ class ActionServer extends BaseScript {
           type: 'node',
           request: 'launch',
           name: name,
-          // todo allow for global install aswell
           runtimeExecutable: this._absApp('./node_modules/.bin/wskdebug'),
           env: { WSK_CONFIG_FILE: wskdebugProps },
           timeout: 30000,
@@ -347,7 +344,10 @@ function cleanup (err, resources) {
     aioLogger.info('cleaning up because of dev error', err)
     throw err // exits with 1
   }
-  process.exit(0) // todo don't exit just make sure we get out of waiting, unregister sigint and return properly (e.g. not waiting on stdin.resume anymore)
+  // in case app-scripts are eventually turned into a lib:
+  // - don't exit the process, just make sure we get out of waiting
+  // - unregister sigint and return properly (e.g. not waiting on stdin.resume anymore)
+  process.exit(0)
 }
 
 module.exports = ActionServer
