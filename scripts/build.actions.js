@@ -83,7 +83,7 @@ class BuildActions extends BaseScript {
           },
           // the following lines are used to require es6 module, e.g.node-fetch which is used by azure sdk
           resolve: {
-            extensions: ['.js'],
+            extensions: ['.js', '.json'],
             mainFields: ['main']
           }
           // todo remove packages from bundled file that are available in runtime (add the deps of deps as well)
