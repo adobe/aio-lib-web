@@ -170,13 +170,10 @@ class ActionServer extends BaseScript {
         let actualPort = uiPort
         resources.uiBundler = new Bundler(entryFile, parcelBundleOptions)
         resources.uiServer = await resources.uiBundler.serve(uiPort, bundleOptions.https)
-
-        if (resources.uiServer) {
-          actualPort = resources.uiServer.address().port
-          resources.uiServerTerminator = httpTerminator.createHttpTerminator({
-            server: resources.uiServer
-          })
-        }
+        actualPort = resources.uiServer.address().port
+        resources.uiServerTerminator = httpTerminator.createHttpTerminator({
+          server: resources.uiServer
+        })
         if (actualPort !== uiPort) {
           this.emit('progress', `Could not use port:${uiPort}, using port:${actualPort} instead`)
         }
@@ -329,7 +326,6 @@ class ActionServer extends BaseScript {
 }
 
 async function cleanup (resources) {
-  process.removeAllListeners('SIGINT')
   if (watcher) {
     aioLogger.info('stopping action watcher...')
     await watcher.close()
@@ -338,9 +334,9 @@ async function cleanup (resources) {
     aioLogger.info('stopping parcel watchers...')
     await resources.uiBundler.stop()
   }
-  if (resources.uiServer) {
+  if (resources.uiServer && resources.uiServerTerminator) {
     aioLogger.info('closing ui server...')
-    // kill any open connections
+    // close server and kill any open connections
     await resources.uiServerTerminator.terminate()
   }
   if (resources.dotenv && resources.dotenvSave && fs.existsSync(resources.dotenvSave)) {

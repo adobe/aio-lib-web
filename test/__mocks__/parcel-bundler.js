@@ -17,6 +17,7 @@ const mockBundle = jest.fn()
 const mockMiddleware = jest.fn()
 const mockConstructor = jest.fn()
 const mockServe = jest.fn()
+const mockStop = jest.fn()
 
 // hack to expose constructor, somehow returning a jest.fn doesn't work as expected for commonjs (only es6)
 const Bundler = function (...args) {
@@ -24,19 +25,23 @@ const Bundler = function (...args) {
   return {
     bundle: mockBundle,
     middleware: mockMiddleware,
-    serve: mockServe
+    serve: mockServe,
+    stop: mockStop
   }
 }
 Bundler.mockBundle = mockBundle
 Bundler.mockConstructor = mockConstructor
 Bundler.mockMiddleware = mockMiddleware
 Bundler.mockServe = mockServe
+Bundler.mockStop = mockStop
+
 // alias
 Bundler.mockReset = () => {
   Bundler.mockConstructor.mockReset()
   Bundler.mockBundle.mockReset()
   Bundler.mockMiddleware.mockReset()
   Bundler.mockServe.mockReset()
+  Bundler.mockStop.mockReset()
 }
 
 module.exports = Bundler
