@@ -331,11 +331,11 @@ async function cleanup (resources) {
     await watcher.close()
   }
   if (resources.uiBundler) {
-    aioLogger.info('stopping parcel watchers...')
+    aioLogger.info('stopping parcel watcher...')
     await resources.uiBundler.stop()
   }
   if (resources.uiServer && resources.uiServerTerminator) {
-    aioLogger.info('closing ui server...')
+    aioLogger.info('stopping ui server...')
     // close server and kill any open connections
     await resources.uiServerTerminator.terminate()
   }
@@ -348,7 +348,7 @@ async function cleanup (resources) {
     fs.removeSync(resources.dotenv)
   }
   if (resources.owProc) {
-    aioLogger.info('killing local OpenWhisk process...')
+    aioLogger.info('stopping local OpenWhisk stack...')
     resources.owProc.kill()
   }
   if (resources.wskdebugProps) {
@@ -368,7 +368,7 @@ async function cleanup (resources) {
     fs.moveSync(resources.vscodeDebugConfigSave, resources.vscodeDebugConfig, { overwrite: true })
   }
   if (resources.dummyProc) {
-    aioLogger.info('closing sigint waiter...')
+    aioLogger.info('stopping sigint waiter...')
     resources.dummyProc.kill()
   }
 }
