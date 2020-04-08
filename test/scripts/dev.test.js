@@ -62,8 +62,8 @@ const mockTerminatorInstance = {
 
 let deployActionsSpy
 
-process.exit = jest.fn()
 const mockOnProgress = jest.fn()
+const mockOnEnd = jest.fn()
 
 const actualSetTimeout = setTimeout
 const now = Date.now
@@ -88,10 +88,10 @@ beforeEach(() => {
   mockUIServerInstance.address.mockClear()
   mockUIServerAddressInstance.port = 1111
 
-  process.exit.mockReset()
   process.removeAllListeners('SIGINT')
 
   mockOnProgress.mockReset()
+  mockOnEnd.mockReset()
 
   httpTerminator.createHttpTerminator.mockReset()
   httpTerminator.createHttpTerminator.mockImplementation(() => mockTerminatorInstance)
@@ -158,7 +158,7 @@ async function loadEnvScripts (project, config, excludeFiles = []) {
   global.loadFs(vol, project)
   excludeFiles.forEach(f => vol.unlinkSync(f))
   mockAIOConfig.get.mockReturnValue(config)
-  const scripts = AppScripts({ listeners: { onProgress: mockOnProgress } })
+  const scripts = AppScripts({ listeners: { onProgress: mockOnProgress, onEnd: mockOnEnd } })
   return scripts
 }
 
@@ -209,26 +209,26 @@ function expectAppFiles (expectedFiles) {
 async function testCleanupNoErrors (done, scripts, postCleanupChecks) {
   // todo why do we need to remove listeners here, somehow the one in beforeEach isn't sufficient, is jest adding a listener?
   process.removeAllListeners('SIGINT')
-  process.exit.mockImplementation(() => {
+  mockOnEnd.mockImplementation(() => {
     postCleanupChecks()
-    expect(process.exit).toHaveBeenCalledWith(0)
+    expect(mockOnEnd).toHaveBeenCalledTimes(1)
     done()
   })
   await scripts.runDev()
-  expect(process.exit).toHaveBeenCalledTimes(0)
+
+  expect(mockOnEnd).toHaveBeenCalledTimes(0)
   // make sure we have only one listener = cleanup listener after each test + no pending promises
   expect(process.listenerCount('SIGINT')).toEqual(1)
   // send cleanup signal
   process.emit('SIGINT')
-  // if test times out => means handler is not calling process.exit
+  // if test times out => means handler is not mockOnEnd
 }
 
 async function testCleanupOnError (scripts, postCleanupChecks) {
   const error = new Error('fake')
   mockOnProgress.mockImplementation(msg => {
-    // throw error for last progress statement
-    // todo tests for intermediary progress steps aswell
-    if (msg.includes('CTRL+C to terminate')) {
+    // throw fake error for last progress statement
+    if (msg.includes('dev server is running!')) {
       throw error
     }
   })
@@ -382,6 +382,24 @@ function runCommonTests (ref) {
     await ref.scripts.runDev([], { skipActions: true })
     expect(vol.readFileSync('/.vscode/launch.json').toString()).not.toEqual(expect.stringContaining('wskdebug'))
   })
+
+  // eslint-disable-next-line jest/no-test-callback
+  test('should not call the sigint handler until the dev env is ready', async done => {
+    process.removeAllListeners('SIGINT')
+    let ready = false
+    mockOnEnd.mockImplementation(() => {
+      expect(ready).toBe(true)
+      expect(mockOnEnd).toHaveBeenCalledTimes(1)
+      done()
+    })
+    const promise = ref.scripts.runDev()
+    process.emit('SIGINT')
+    expect(mockOnEnd).toHaveBeenCalledTimes(0)
+    await promise
+    ready = true
+    process.emit('SIGINT')
+    // if test times out => means handler is not mockOnEnd
+  })
 }
 
 function runCommonWithBackendTests (ref) {
@@ -504,20 +522,19 @@ function runCommonWithFrontendTests (ref) {
     })
   })
   // eslint-disable-next-line jest/no-test-callback
-  test('should exit with 1 if there is an error in cleanup', async done => {
+  test('should log the error if there is an error in cleanup', async done => {
     const theError = new Error('theerror')
     Bundler.mockStop.mockRejectedValue(theError)
     process.removeAllListeners('SIGINT')
-    process.exit.mockImplementation(() => {
+    mockOnEnd.mockImplementation(() => {
       expect(mockLogger.error).toHaveBeenCalledWith(theError)
-      expect(process.exit).toHaveBeenCalledWith(1)
       done()
     })
     await ref.scripts.runDev()
-    expect(process.exit).toHaveBeenCalledTimes(0)
+    expect(mockOnEnd).toHaveBeenCalledTimes(0)
     // send cleanup signal
     process.emit('SIGINT')
-    // if test times out => means handler is not calling process.exit
+    // if test times out => means handler is not mockOnEnd
   })
 
   test('should return another available port for the UI server if used', async () => {

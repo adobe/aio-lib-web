@@ -42,6 +42,7 @@ class ActionServer extends BaseScript {
     /* skip actions */
     const skipActions = !!options.skipActions
 
+    // start task
     const taskName = 'Local Dev Server'
     this.emit('start', taskName)
 
@@ -63,24 +64,28 @@ class ActionServer extends BaseScript {
     let frontEndUrl = null
 
     // state
+    let ready = false
     const resources = {}
     let devConfig = this.config // config will be different if local or remote
 
     // bind cleanup function
-    process.on('SIGINT', async () => {
-      // in case app-scripts are eventually turned into a lib:
-      // - don't exit the process, just make sure we get out of waiting
-      // - unregister sigint and return properly (e.g. not waiting on stdin.resume anymore)
-      try {
-        await cleanup(resources)
-        aioLogger.info('exiting!')
-        process.exit(0)
-      } catch (e) {
-        aioLogger.error('unexpected error while cleaning up!')
-        aioLogger.error(e)
-        process.exit(1)
+    const sigintHandler = async () => {
+      if (ready) {
+        process.removeListener('SIGINT', sigintHandler)
+        try {
+          await this.cleanup(resources)
+          // process.exit(0)
+        } catch (e) {
+          // here we cannot throw because run already returned and it would trigger an unhandled promise rejection
+          aioLogger.error('unexpected error while cleaning up, please report the following error:')
+          aioLogger.error(e)
+        }
+        this.emit('end', taskName)
       }
-    })
+    }
+    // in case app-scripts are eventually turned into a lib:
+    // => expose a .close() function and don't catch SIGINT
+    process.on('SIGINT', sigintHandler)
 
     try {
       if (withBackend) {
@@ -200,13 +205,62 @@ class ActionServer extends BaseScript {
         // trick to avoid termination
         resources.dummyProc = execa('node')
       }
-      this.emit('progress', 'press CTRL+C to terminate dev environment')
+      this.emit('progress', 'dev server is running!')
+      ready = true
     } catch (e) {
-      aioLogger.error('unexpected error, cleaning up...')
-      await cleanup(resources)
+      // cleanup and rethrow
+      await this.cleanup(resources)
       throw e
     }
     return frontEndUrl
+  }
+
+  async cleanup (resources) {
+    if (watcher) {
+      this.emit('progress', 'stopping action watcher...')
+      await watcher.close()
+    }
+    if (resources.uiBundler) {
+      this.emit('progress', 'stopping parcel watcher...')
+      await resources.uiBundler.stop()
+    }
+    if (resources.uiServer && resources.uiServerTerminator) {
+      this.emit('progress', 'stopping ui server...')
+      // close server and kill any open connections
+      await resources.uiServerTerminator.terminate()
+    }
+    if (resources.dotenv && resources.dotenvSave && fs.existsSync(resources.dotenvSave)) {
+      this.emit('progress', 'restoring .env file...')
+      fs.moveSync(resources.dotenvSave, resources.dotenv, { overwrite: true })
+    } else if (resources.dotenv && !resources.dotenvSave) {
+      // if there was no save file it means .env was created
+      this.emit('progress', 'deleting tmp .env file...')
+      fs.removeSync(resources.dotenv)
+    }
+    if (resources.owProc) {
+      this.emit('progress', 'stopping local OpenWhisk stack...')
+      resources.owProc.kill()
+    }
+    if (resources.wskdebugProps) {
+      this.emit('progress', 'removing wskdebug tmp credentials file...')
+      fs.unlinkSync(resources.wskdebugProps)
+    }
+    if (resources.vscodeDebugConfig && !resources.vscodeDebugConfigSave) {
+      this.emit('progress', 'removing .vscode/launch.json...')
+      const vscodeDir = path.dirname(resources.vscodeDebugConfig)
+      fs.unlinkSync(resources.vscodeDebugConfig)
+      if (fs.readdirSync(vscodeDir).length === 0) {
+        fs.rmdirSync(vscodeDir)
+      }
+    }
+    if (resources.vscodeDebugConfigSave) {
+      this.emit('progress', 'restoring previous .vscode/launch.json...')
+      fs.moveSync(resources.vscodeDebugConfigSave, resources.vscodeDebugConfig, { overwrite: true })
+    }
+    if (resources.dummyProc) {
+      this.emit('progress', 'stopping sigint waiter...')
+      resources.dummyProc.kill()
+    }
   }
 
   async generateVSCodeDebugConfig (devConfig, withBackend, hasFrontend, frontUrl, wskdebugProps) {
@@ -322,54 +376,6 @@ class ActionServer extends BaseScript {
         this.emit('progress', `  -> ${a.url || a.name}`)
       })
     }
-  }
-}
-
-async function cleanup (resources) {
-  if (watcher) {
-    aioLogger.info('stopping action watcher...')
-    await watcher.close()
-  }
-  if (resources.uiBundler) {
-    aioLogger.info('stopping parcel watcher...')
-    await resources.uiBundler.stop()
-  }
-  if (resources.uiServer && resources.uiServerTerminator) {
-    aioLogger.info('stopping ui server...')
-    // close server and kill any open connections
-    await resources.uiServerTerminator.terminate()
-  }
-  if (resources.dotenv && resources.dotenvSave && fs.existsSync(resources.dotenvSave)) {
-    aioLogger.info('restoring .env file...')
-    fs.moveSync(resources.dotenvSave, resources.dotenv, { overwrite: true })
-  } else if (resources.dotenv && !resources.dotenvSave) {
-    // if there was no save file it means .env was created
-    aioLogger.info('deleting tmp .env file...')
-    fs.removeSync(resources.dotenv)
-  }
-  if (resources.owProc) {
-    aioLogger.info('stopping local OpenWhisk stack...')
-    resources.owProc.kill()
-  }
-  if (resources.wskdebugProps) {
-    aioLogger.info('removing wskdebug tmp credentials file...')
-    fs.unlinkSync(resources.wskdebugProps)
-  }
-  if (resources.vscodeDebugConfig && !resources.vscodeDebugConfigSave) {
-    aioLogger.info('removing .vscode/launch.json...')
-    const vscodeDir = path.dirname(resources.vscodeDebugConfig)
-    fs.unlinkSync(resources.vscodeDebugConfig)
-    if (fs.readdirSync(vscodeDir).length === 0) {
-      fs.rmdirSync(vscodeDir)
-    }
-  }
-  if (resources.vscodeDebugConfigSave) {
-    aioLogger.info('restoring previous .vscode/launch.json...')
-    fs.moveSync(resources.vscodeDebugConfigSave, resources.vscodeDebugConfig, { overwrite: true })
-  }
-  if (resources.dummyProc) {
-    aioLogger.info('stopping sigint waiter...')
-    resources.dummyProc.kill()
   }
 }
 
