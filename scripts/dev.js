@@ -53,7 +53,7 @@ class ActionServer extends BaseScript {
     // control variables
     const hasFrontend = this.config.app.hasFrontend
     const withBackend = this.config.app.hasBackend && !skipActions
-    const isLocal = !this.config.actions.devRemote // applies only for backend for
+    const isLocal = !this.config.actions.devRemote // applies only for backend
 
     // port for UI
     const uiPort = parseInt(args[0]) || parseInt(process.env.PORT) || 9080
