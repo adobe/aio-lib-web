@@ -297,14 +297,14 @@ function runCommonTests (ref) {
   // eslint-disable-next-line jest/expect-expect
   test('should cleanup generated files on SIGINT', async () => {
     return new Promise(resolve => {
-      testCleanupNoErrors(resolve, ref.scripts, () => { expectAppFiles(['manifest.yml', 'package.json', 'web-src', 'actions']) })
+      testCleanupNoErrors(resolve, ref.scripts, () => { expectAppFiles(ref.appFiles) })
     })
   })
 
   // eslint-disable-next-line jest/expect-expect
   test('should cleanup generated files on error', async () => {
     await testCleanupOnError(ref.scripts, () => {
-      expectAppFiles(['manifest.yml', 'package.json', 'web-src', 'actions'])
+      expectAppFiles(ref.appFiles)
     })
   })
 
@@ -312,7 +312,7 @@ function runCommonTests (ref) {
     global.addFakeFiles(vol, '.vscode', { 'launch.json': 'fakecontent' })
     return new Promise(resolve => {
       testCleanupNoErrors(resolve, ref.scripts, () => {
-        expectAppFiles(['manifest.yml', 'package.json', 'web-src', 'actions', '.vscode'])
+        expectAppFiles([...ref.appFiles, '.vscode'])
         expect(vol.existsSync('/.vscode/launch.json.save')).toEqual(false)
         expect(vol.existsSync('/.vscode/launch.json')).toEqual(true)
         expect(vol.readFileSync('/.vscode/launch.json').toString()).toEqual('fakecontent')
@@ -323,7 +323,7 @@ function runCommonTests (ref) {
   test('should cleanup and restore previous existing .vscode/config.json on error', async () => {
     global.addFakeFiles(vol, '.vscode', { 'launch.json': 'fakecontent' })
     await testCleanupOnError(ref.scripts, () => {
-      expectAppFiles(['manifest.yml', 'package.json', 'web-src', 'actions', '.vscode'])
+      expectAppFiles([...ref.appFiles, '.vscode'])
       expect(vol.existsSync('/.vscode/launch.json.save')).toEqual(false)
       expect(vol.existsSync('/.vscode/launch.json')).toEqual(true)
       expect(vol.readFileSync('/.vscode/launch.json').toString()).toEqual('fakecontent')
@@ -350,6 +350,23 @@ function runCommonTests (ref) {
     })
   })
 
+  test('should not build and deploy actions if skipActions is set', async () => {
+    await ref.scripts.runDev([], { skipActions: true })
+    // build & deploy constructor have been called once to init the scripts
+    // here we make sure run has not been called
+    expect(BuildActions.mock.instances[0].run).toHaveBeenCalledTimes(0)
+    expect(DeployActions.mock.instances[0].run).toHaveBeenCalledTimes(0)
+    expect(BuildActions.mock.instances[1]).toBeUndefined()
+    expect(DeployActions.mock.instances[1]).toBeUndefined()
+  })
+
+  test('should not set vscode config for actions if skipActions is set', async () => {
+    await ref.scripts.runDev([], { skipActions: true })
+    expect(vol.readFileSync('/.vscode/launch.json').toString()).not.toEqual(expect.stringContaining('wskdebug'))
+  })
+}
+
+function runCommonWithBackendTests (ref) {
   test('should log actions url or name when actions are deployed', async () => {
     deployActionsSpy.mockResolvedValue({
       actions: [
@@ -447,6 +464,13 @@ function runCommonWithFrontendTests (ref) {
         getExpectedUIVSCodeDebugConfig(9080)
       ]
     }))
+  })
+
+  test('should use https cert/key if passed', async () => {
+    const options = { parcel: { https: { cert: 'cert.cert', key: 'key.key' } } }
+    const port = 8888
+    await ref.scripts.runDev([port], options)
+    expect(Bundler.mockServe).toHaveBeenCalledWith(port, options.parcel.https)
   })
 }
 
@@ -769,9 +793,11 @@ describe('with remote actions and no frontend', () => {
     process.env.REMOTE_ACTIONS = 'true'
     // remove '/web-src/index.html' file = no ui
     ref.scripts = await loadEnvScripts('sample-app', global.fakeConfig.tvm, ['/web-src/index.html'])
+    ref.appFiles = ['manifest.yml', 'package.json', 'web-src', 'actions'] // still have web-src cause we only delete index.html
   })
 
   runCommonTests(ref)
+  runCommonWithBackendTests(ref)
   runCommonRemoteTests(ref)
   runCommonBackendOnlyTests(ref)
 
@@ -806,10 +832,12 @@ describe('with remote actions and frontend', () => {
   beforeEach(async () => {
     process.env.REMOTE_ACTIONS = 'true'
     ref.scripts = await loadEnvScripts('sample-app', global.fakeConfig.tvm)
+    ref.appFiles = ['manifest.yml', 'package.json', 'web-src', 'actions']
   })
 
   runCommonTests(ref)
   runCommonRemoteTests(ref)
+  runCommonWithBackendTests(ref)
   runCommonWithFrontendTests(ref)
 
   test('should inject remote action urls into the UI', async () => {
@@ -823,11 +851,15 @@ describe('with remote actions and frontend', () => {
     })
   })
 
-  test('should use https cert/key if passed', async () => {
-    const httpsConfig = { https: { cert: 'cert.cert', key: 'key.key' } }
-    const port = 8888
-    await ref.scripts.runDev([port], httpsConfig)
-    expect(Bundler.mockServe).toHaveBeenCalledWith(port, httpsConfig.https)
+  test('should still inject remote action urls into the UI if skipActions is set', async () => {
+    await ref.scripts.runDev([], { skipActions: true })
+    expect(vol.existsSync('/web-src/src/config.json')).toEqual(true)
+    const baseUrl = 'https://' + remoteOWCredentials.namespace + '.' + global.defaultOwApiHost.split('https://')[1] + '/api/v1/web/sample-app-1.0.0/'
+    expect(JSON.parse(vol.readFileSync('/web-src/src/config.json').toString())).toEqual({
+      action: baseUrl + 'action',
+      'action-zip': baseUrl + 'action-zip',
+      'action-sequence': baseUrl + 'action-sequence'
+    })
   })
 })
 
@@ -836,6 +868,7 @@ describe('with local actions and no frontend', () => {
   beforeEach(async () => {
     process.env.REMOTE_ACTIONS = 'false'
     ref.scripts = await loadEnvScripts('sample-app', global.fakeConfig.tvm, ['/web-src/index.html'])
+    ref.appFiles = ['manifest.yml', 'package.json', 'web-src', 'actions'] // still have web-src cause we only delete index.html
     // default mocks
     // assume ow jar is already downloaded
     writeFakeOwJar()
@@ -852,6 +885,7 @@ describe('with local actions and no frontend', () => {
   })
 
   runCommonTests(ref)
+  runCommonWithBackendTests(ref)
   runCommonBackendOnlyTests(ref)
   runCommonLocalTests(ref)
 })
@@ -861,6 +895,7 @@ describe('with local actions and frontend', () => {
   beforeEach(async () => {
     process.env.REMOTE_ACTIONS = 'false'
     ref.scripts = await loadEnvScripts('sample-app', global.fakeConfig.tvm)
+    ref.appFiles = ['manifest.yml', 'package.json', 'web-src', 'actions']
     // default mocks
     // assume ow jar is already downloaded
     writeFakeOwJar()
@@ -877,6 +912,7 @@ describe('with local actions and frontend', () => {
   })
 
   runCommonTests(ref)
+  runCommonWithBackendTests(ref)
   runCommonWithFrontendTests(ref)
   runCommonLocalTests(ref)
 
@@ -884,6 +920,17 @@ describe('with local actions and frontend', () => {
     await ref.scripts.runDev()
     expect(vol.existsSync('/web-src/src/config.json')).toEqual(true)
     const baseUrl = localOWCredentials.apihost + '/api/v1/web/' + localOWCredentials.namespace + '/sample-app-1.0.0/'
+    expect(JSON.parse(vol.readFileSync('/web-src/src/config.json').toString())).toEqual({
+      action: baseUrl + 'action',
+      'action-zip': baseUrl + 'action-zip',
+      'action-sequence': baseUrl + 'action-sequence'
+    })
+  })
+
+  test('should inject REMOTE action urls into the UI if skipActions is set', async () => {
+    await ref.scripts.runDev([], { skipActions: true })
+    expect(vol.existsSync('/web-src/src/config.json')).toEqual(true)
+    const baseUrl = 'https://' + remoteOWCredentials.namespace + '.' + global.defaultOwApiHost.split('https://')[1] + '/api/v1/web/sample-app-1.0.0/'
     expect(JSON.parse(vol.readFileSync('/web-src/src/config.json').toString())).toEqual({
       action: baseUrl + 'action',
       'action-zip': baseUrl + 'action-zip',
@@ -919,9 +966,9 @@ describe('port unavailable', () => {
   })
 
   test('should return the used port', async () => {
-    const httpsConfig = { https: { cert: 'cert.cert', key: 'key.key' } }
-    const resultUrl = await ref.scripts.runDev([8888], httpsConfig)
-    expect(Bundler.mockServe).toHaveBeenCalledWith(8888, httpsConfig.https)
+    const options = { parcel: { https: { cert: 'cert.cert', key: 'key.key' } } }
+    const resultUrl = await ref.scripts.runDev([8888], options)
+    expect(Bundler.mockServe).toHaveBeenCalledWith(8888, options.parcel.https)
     expect(resultUrl).toBe('https://localhost:99')
   })
 })
@@ -931,7 +978,9 @@ describe('with frontend only', () => {
   beforeEach(async () => {
     // exclude manifest file = backend only (should we make a fixture app without actions/ as well?)
     ref.scripts = await loadEnvScripts('sample-app', global.fakeConfig.tvm, ['./manifest.yml'])
+    ref.appFiles = ['package.json', 'web-src', 'actions'] // still have actions cause we only delete manifest.yml
   })
+  runCommonTests(ref)
 
   test('should set hasBackend=false', async () => {
     expect(ref.scripts._config.app.hasBackend).toBe(false)
