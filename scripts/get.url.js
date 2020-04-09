@@ -10,19 +10,17 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-const Openwhisk = require('openwhisk')
 const BaseScript = require('../lib/abstract-script')
 const utils = require('../lib/utils')
 
 class GetUrl extends BaseScript {
-
   async run (options = {}) {
     const taskName = 'GetUrl'
     this.emit('start', taskName)
-    let urls = {}
-    if(options.action) {
+    const urls = {}
+    if (options.action) {
       const action = this.config.manifest.package.actions[options.action]
-      if(!action) {
+      if (!action) {
         throw new Error(`No action with name ${options.action} found`)
       }
       this.config.manifest.package.actions = {}
@@ -30,7 +28,7 @@ class GetUrl extends BaseScript {
     }
     const actionUrls = await utils.getActionUrls(this.config, true)
     urls.runtime = actionUrls
-    if(options.cdn) {
+    if (options.cdn) {
       const cdnUrls = await utils.getActionUrls(this.config, false)
       urls.cdn = cdnUrls
     }
