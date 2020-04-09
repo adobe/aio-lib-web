@@ -369,7 +369,7 @@ function runCommonTests (ref) {
   })
 
   test('should not build and deploy actions if skipActions is set', async () => {
-    await ref.scripts.runDev([], { skipActions: true })
+    await ref.scripts.runDev([], { skipActions: true }, false)
     // build & deploy constructor have been called once to init the scripts
     // here we make sure run has not been called
     expect(BuildActions.mock.instances[0].run).toHaveBeenCalledTimes(0)
