@@ -18,6 +18,7 @@ const aioLogger = require('@adobe/aio-lib-core-logging')('@adobe/aio-app-scripts
 const path = require('path')
 const fs = require('fs-extra')
 
+const httpTerminator = require('http-terminator')
 const BuildActions = require('./build.actions')
 const DeployActions = require('./deploy.actions')
 const utils = require('../lib/utils')
@@ -43,6 +44,7 @@ class ActionServer extends BaseScript {
 
     const taskName = 'Local Dev Server'
     this.emit('start', taskName)
+
     // files
     // const OW_LOG_FILE = '.openwhisk-standalone.log'
     const DOTENV_SAVE = this._absApp('.env.app.save')
@@ -65,7 +67,20 @@ class ActionServer extends BaseScript {
     let devConfig = this.config // config will be different if local or remote
 
     // bind cleanup function
-    process.on('SIGINT', () => cleanup(null, resources))
+    process.on('SIGINT', async () => {
+      // in case app-scripts are eventually turned into a lib:
+      // - don't exit the process, just make sure we get out of waiting
+      // - unregister sigint and return properly (e.g. not waiting on stdin.resume anymore)
+      try {
+        await cleanup(resources)
+        aioLogger.info('exiting!')
+        process.exit(0)
+      } catch (e) {
+        aioLogger.error('unexpected error while cleaning up!')
+        aioLogger.error(e)
+        process.exit(1)
+      }
+    })
 
     try {
       if (withBackend) {
@@ -153,11 +168,12 @@ class ActionServer extends BaseScript {
           ...bundleOptions
         }
         let actualPort = uiPort
-        const bundler = new Bundler(entryFile, parcelBundleOptions)
-        resources.uiServer = await bundler.serve(uiPort, bundleOptions.https)
-        if (resources.uiServer) {
-          actualPort = resources.uiServer.address().port
-        }
+        resources.uiBundler = new Bundler(entryFile, parcelBundleOptions)
+        resources.uiServer = await resources.uiBundler.serve(uiPort, bundleOptions.https)
+        actualPort = resources.uiServer.address().port
+        resources.uiServerTerminator = httpTerminator.createHttpTerminator({
+          server: resources.uiServer
+        })
         if (actualPort !== uiPort) {
           this.emit('progress', `Could not use port:${uiPort}, using port:${actualPort} instead`)
         }
@@ -186,8 +202,9 @@ class ActionServer extends BaseScript {
       }
       this.emit('progress', 'press CTRL+C to terminate dev environment')
     } catch (e) {
-      aioLogger.error('Unexpected error. Cleaning up.')
-      cleanup(e, resources)
+      aioLogger.error('unexpected error, cleaning up...')
+      await cleanup(resources)
+      throw e
     }
     return frontEndUrl
   }
@@ -286,7 +303,7 @@ class ActionServer extends BaseScript {
       } catch (err) {
         this.emit('progress', '  -> Error encountered while deploying actions. Stopping auto refresh.')
         aioLogger.debug(err)
-        watcher.close()
+        await watcher.close()
       }
       if (changed) {
         aioLogger.debug('Code changed during deployment. Triggering deploy again.')
@@ -308,8 +325,20 @@ class ActionServer extends BaseScript {
   }
 }
 
-function cleanup (err, resources) {
-  if (watcher) { watcher.close() }
+async function cleanup (resources) {
+  if (watcher) {
+    aioLogger.info('stopping action watcher...')
+    await watcher.close()
+  }
+  if (resources.uiBundler) {
+    aioLogger.info('stopping parcel watcher...')
+    await resources.uiBundler.stop()
+  }
+  if (resources.uiServer && resources.uiServerTerminator) {
+    aioLogger.info('stopping ui server...')
+    // close server and kill any open connections
+    await resources.uiServerTerminator.terminate()
+  }
   if (resources.dotenv && resources.dotenvSave && fs.existsSync(resources.dotenvSave)) {
     aioLogger.info('restoring .env file...')
     fs.moveSync(resources.dotenvSave, resources.dotenv, { overwrite: true })
@@ -319,7 +348,7 @@ function cleanup (err, resources) {
     fs.removeSync(resources.dotenv)
   }
   if (resources.owProc) {
-    aioLogger.info('killing local OpenWhisk process...')
+    aioLogger.info('stopping local OpenWhisk stack...')
     resources.owProc.kill()
   }
   if (resources.wskdebugProps) {
@@ -339,17 +368,9 @@ function cleanup (err, resources) {
     fs.moveSync(resources.vscodeDebugConfigSave, resources.vscodeDebugConfig, { overwrite: true })
   }
   if (resources.dummyProc) {
-    aioLogger.info('closing sigint waiter...')
+    aioLogger.info('stopping sigint waiter...')
     resources.dummyProc.kill()
   }
-  if (err) {
-    aioLogger.info('cleaning up because of dev error', err)
-    throw err // exits with 1
-  }
-  // in case app-scripts are eventually turned into a lib:
-  // - don't exit the process, just make sure we get out of waiting
-  // - unregister sigint and return properly (e.g. not waiting on stdin.resume anymore)
-  process.exit(0)
 }
 
 module.exports = ActionServer

@@ -39,13 +39,26 @@ jest.mock('execa')
 const fetch = require('node-fetch')
 jest.mock('node-fetch')
 
+const mockLogger = require('@adobe/aio-lib-core-logging')
+
 const Bundler = require('parcel-bundler')
 jest.mock('parcel-bundler')
+const mockUIServerAddressInstance = { port: 1111 }
+const mockUIServerInstance = {
+  close: jest.fn(),
+  address: jest.fn().mockReturnValue(mockUIServerAddressInstance)
+}
 
 const BuildActions = require('../../scripts/build.actions')
 const DeployActions = require('../../scripts/deploy.actions')
 jest.mock('../../scripts/build.actions')
 jest.mock('../../scripts/deploy.actions')
+
+jest.mock('http-terminator')
+const httpTerminator = require('http-terminator')
+const mockTerminatorInstance = {
+  terminate: jest.fn()
+}
 
 let deployActionsSpy
 
@@ -66,12 +79,23 @@ beforeEach(() => {
   fetch.mockReset()
   execa.mockReset()
 
+  mockLogger.mockReset()
+
   Bundler.mockReset()
+  // mock bundler server
+  Bundler.mockServe.mockResolvedValue(mockUIServerInstance)
+  mockUIServerInstance.close.mockReset()
+  mockUIServerInstance.address.mockClear()
+  mockUIServerAddressInstance.port = 1111
 
   process.exit.mockReset()
   process.removeAllListeners('SIGINT')
 
   mockOnProgress.mockReset()
+
+  httpTerminator.createHttpTerminator.mockReset()
+  httpTerminator.createHttpTerminator.mockImplementation(() => mockTerminatorInstance)
+  mockTerminatorInstance.terminate.mockReset()
 
   // workaround for timers and elapsed time
   // to replace when https://github.com/facebook/jest/issues/5165 is closed
@@ -186,7 +210,6 @@ async function testCleanupNoErrors (done, scripts, postCleanupChecks) {
   // todo why do we need to remove listeners here, somehow the one in beforeEach isn't sufficient, is jest adding a listener?
   process.removeAllListeners('SIGINT')
   process.exit.mockImplementation(() => {
-    console.error = consoleerror
     postCleanupChecks()
     expect(process.exit).toHaveBeenCalledWith(0)
     done()
@@ -195,16 +218,12 @@ async function testCleanupNoErrors (done, scripts, postCleanupChecks) {
   expect(process.exit).toHaveBeenCalledTimes(0)
   // make sure we have only one listener = cleanup listener after each test + no pending promises
   expect(process.listenerCount('SIGINT')).toEqual(1)
-  const consoleerror = console.error
-  console.error = jest.fn()
   // send cleanup signal
   process.emit('SIGINT')
   // if test times out => means handler is not calling process.exit
 }
 
 async function testCleanupOnError (scripts, postCleanupChecks) {
-  const consoleerror = console.error
-  console.error = jest.fn()
   const error = new Error('fake')
   mockOnProgress.mockImplementation(msg => {
     // throw error for last progress statement
@@ -214,7 +233,6 @@ async function testCleanupOnError (scripts, postCleanupChecks) {
     }
   })
   await expect(scripts.runDev()).rejects.toBe(error)
-  console.error = consoleerror
   postCleanupChecks()
 }
 
@@ -455,22 +473,67 @@ function runCommonWithFrontendTests (ref) {
     expectUIServer(fakeMiddleware, 9080)
   })
 
-  test('should generate a vscode debug config for actions and web-src', async () => {
-    await ref.scripts.runDev()
-    expect(JSON.parse(vol.readFileSync('/.vscode/launch.json').toString())).toEqual(expect.objectContaining({
-      configurations: [
-        getExpectedActionVSCodeDebugConfig('sample-app-1.0.0/action'),
-        getExpectedActionVSCodeDebugConfig('sample-app-1.0.0/action-zip'),
-        getExpectedUIVSCodeDebugConfig(9080)
-      ]
-    }))
-  })
-
   test('should use https cert/key if passed', async () => {
     const options = { parcel: { https: { cert: 'cert.cert', key: 'key.key' } } }
     const port = 8888
     await ref.scripts.runDev([port], options)
     expect(Bundler.mockServe).toHaveBeenCalledWith(port, options.parcel.https)
+  })
+
+  test('should cleanup ui server on SIGINT', async () => {
+    return new Promise(resolve => {
+      testCleanupNoErrors(resolve, ref.scripts, () => {
+        expect(Bundler.mockStop).toHaveBeenCalledTimes(1)
+        expect(mockUIServerInstance.close).toBeCalledTimes(0) // should not be called directly, b/c terminator does
+        expect(mockTerminatorInstance.terminate).toBeCalledTimes(1)
+        expect(httpTerminator.createHttpTerminator).toHaveBeenCalledWith({
+          server: mockUIServerInstance
+        })
+      })
+    })
+  })
+
+  test('should cleanup ui server on error', async () => {
+    await testCleanupOnError(ref.scripts, () => {
+      expect(Bundler.mockStop).toHaveBeenCalledTimes(1)
+      expect(mockUIServerInstance.close).toBeCalledTimes(0) // should not be called directly, b/c terminator does
+      expect(mockTerminatorInstance.terminate).toBeCalledTimes(1)
+      expect(httpTerminator.createHttpTerminator).toHaveBeenCalledWith({
+        server: mockUIServerInstance
+      })
+    })
+  })
+  // eslint-disable-next-line jest/no-test-callback
+  test('should exit with 1 if there is an error in cleanup', async done => {
+    const theError = new Error('theerror')
+    Bundler.mockStop.mockRejectedValue(theError)
+    process.removeAllListeners('SIGINT')
+    process.exit.mockImplementation(() => {
+      expect(mockLogger.error).toHaveBeenCalledWith(theError)
+      expect(process.exit).toHaveBeenCalledWith(1)
+      done()
+    })
+    await ref.scripts.runDev()
+    expect(process.exit).toHaveBeenCalledTimes(0)
+    // send cleanup signal
+    process.emit('SIGINT')
+    // if test times out => means handler is not calling process.exit
+  })
+
+  test('should return another available port for the UI server if used', async () => {
+    mockUIServerAddressInstance.port = 9999
+    const options = { parcel: { https: { cert: 'cert.cert', key: 'key.key' } } }
+    const resultUrl = await ref.scripts.runDev([8888], options)
+    expect(Bundler.mockServe).toHaveBeenCalledWith(8888, options.parcel.https)
+    expect(resultUrl).toBe('https://localhost:9999')
+  })
+
+  test('should return the used ui server port', async () => {
+    mockUIServerAddressInstance.port = 8888
+    const options = { parcel: { https: { cert: 'cert.cert', key: 'key.key' } } }
+    const resultUrl = await ref.scripts.runDev([8888], options)
+    expect(Bundler.mockServe).toHaveBeenCalledWith(8888, options.parcel.https)
+    expect(resultUrl).toBe('https://localhost:8888')
   })
 }
 
@@ -840,6 +903,18 @@ describe('with remote actions and frontend', () => {
   runCommonWithBackendTests(ref)
   runCommonWithFrontendTests(ref)
 
+  test('should generate a vscode debug config for actions and web-src', async () => {
+    mockUIServerAddressInstance.port = 9999
+    await ref.scripts.runDev()
+    expect(JSON.parse(vol.readFileSync('/.vscode/launch.json').toString())).toEqual(expect.objectContaining({
+      configurations: [
+        getExpectedActionVSCodeDebugConfig('sample-app-1.0.0/action'),
+        getExpectedActionVSCodeDebugConfig('sample-app-1.0.0/action-zip'),
+        getExpectedUIVSCodeDebugConfig(9999)
+      ]
+    }))
+  })
+
   test('should inject remote action urls into the UI', async () => {
     await ref.scripts.runDev()
     expect(vol.existsSync('/web-src/src/config.json')).toEqual(true)
@@ -916,6 +991,18 @@ describe('with local actions and frontend', () => {
   runCommonWithFrontendTests(ref)
   runCommonLocalTests(ref)
 
+  test('should generate a vscode debug config for actions and web-src', async () => {
+    mockUIServerAddressInstance.port = 9999
+    await ref.scripts.runDev()
+    expect(JSON.parse(vol.readFileSync('/.vscode/launch.json').toString())).toEqual(expect.objectContaining({
+      configurations: [
+        getExpectedActionVSCodeDebugConfig('sample-app-1.0.0/action'),
+        getExpectedActionVSCodeDebugConfig('sample-app-1.0.0/action-zip'),
+        getExpectedUIVSCodeDebugConfig(9999)
+      ]
+    }))
+  })
+
   test('should inject local action urls into the UI', async () => {
     await ref.scripts.runDev()
     expect(vol.existsSync('/web-src/src/config.json')).toEqual(true)
@@ -939,40 +1026,6 @@ describe('with local actions and frontend', () => {
   })
 })
 
-describe('port unavailable', () => {
-  const ref = {}
-  beforeEach(async () => {
-    process.env.REMOTE_ACTIONS = 'false'
-    ref.scripts = await loadEnvScripts('sample-app', global.fakeConfig.tvm)
-    // default mocks
-    // assume ow jar is already downloaded
-    writeFakeOwJar()
-    execa.mockReturnValue({
-      stdout: jest.fn(),
-      kill: jest.fn()
-    })
-    Bundler.mockServe.mockReturnValue({
-      address: () => {
-        return { port: 99 }
-      }
-    })
-
-    fetch.mockResolvedValue({
-      ok: true
-    })
-    // should expose a new config with local credentials when reloaded in the dev cmd
-    // we could also not mock aioConfig and expect it to read from .env
-    mockAIOConfig.get.mockReturnValue(global.fakeConfig.local)
-  })
-
-  test('should return the used port', async () => {
-    const options = { parcel: { https: { cert: 'cert.cert', key: 'key.key' } } }
-    const resultUrl = await ref.scripts.runDev([8888], options)
-    expect(Bundler.mockServe).toHaveBeenCalledWith(8888, options.parcel.https)
-    expect(resultUrl).toBe('https://localhost:99')
-  })
-})
-
 describe('with frontend only', () => {
   const ref = {}
   beforeEach(async () => {
@@ -981,7 +1034,7 @@ describe('with frontend only', () => {
     ref.appFiles = ['package.json', 'web-src', 'actions'] // still have actions cause we only delete manifest.yml
   })
   runCommonTests(ref)
-
+  runCommonWithFrontendTests(ref)
   test('should set hasBackend=false', async () => {
     expect(ref.scripts._config.app.hasBackend).toBe(false)
   })
@@ -1003,10 +1056,11 @@ describe('with frontend only', () => {
   })
 
   test('should generate a vscode config for ui only', async () => {
+    mockUIServerAddressInstance.port = 9999
     await ref.scripts.runDev()
     expect(JSON.parse(vol.readFileSync('/.vscode/launch.json').toString())).toEqual(expect.objectContaining({
       configurations: [
-        getExpectedUIVSCodeDebugConfig(9080)
+        getExpectedUIVSCodeDebugConfig(9999)
       ]
     }))
   })
