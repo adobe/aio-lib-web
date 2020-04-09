@@ -1,4 +1,4 @@
-const mockConfig = {
+const mocks = {
   error: jest.fn(),
   warn: jest.fn(),
   info: jest.fn(),
@@ -7,6 +7,14 @@ const mockConfig = {
   silly: jest.fn()
 }
 
-module.exports = function () {
-  return mockConfig
+const mockLogger = function () {
+  return mocks
 }
+
+Object.assign(mockLogger, mocks)
+
+mockLogger.mockReset = function () {
+  Object.values(mocks).forEach(m => m.mockReset())
+}
+
+module.exports = mockLogger
