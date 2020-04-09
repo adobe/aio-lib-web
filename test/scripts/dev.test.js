@@ -526,7 +526,6 @@ function runCommonWithFrontendTests (ref) {
     const resultUrl = await ref.scripts.runDev([8888], options)
     expect(Bundler.mockServe).toHaveBeenCalledWith(8888, options.parcel.https)
     expect(resultUrl).toBe('https://localhost:9999')
-    expect(mockOnProgress).toHaveBeenCalledWith('Could not use port:8888, using port:9999 instead')
   })
 
   test('should return the used ui server port', async () => {
