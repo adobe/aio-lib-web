@@ -48,12 +48,19 @@ class Logs extends BaseScript {
     // get activations
     const listOptions = { limit: limit, skip: 0 }
     const activations = await ow.activations.list(listOptions)
-
-    for (let i = 0; i < activations.length; ++i) {
+    let showLogs = true
+    let lastActivationTime = 0
+    for (let i = (activations.length - 1); i >= 0; i--) {
       const activation = activations[i]
+      lastActivationTime = activation.start
+      if (logsOptions.startTime && lastActivationTime <= logsOptions.startTime) {
+        showLogs = false
+      } else {
+        showLogs = true
+      }
       const results = await ow.activations.logs({ activationId: activation.activationId })
       // send fetched logs to console
-      if (results.logs.length > 0) {
+      if (results.logs.length > 0 && showLogs) {
         hasLogs = true
         logger(activation.name + ':' + activation.activationId)
         results.logs.forEach(function (log) {
@@ -66,7 +73,7 @@ class Logs extends BaseScript {
     // if we move scripts to lib, return the log instead of logging them?
     this.emit('end', taskName, hasLogs)
 
-    return hasLogs
+    return { hasLogs: hasLogs, lastActivationTime: lastActivationTime }
   }
 }
 module.exports = Logs

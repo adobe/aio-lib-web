@@ -369,7 +369,7 @@ function runCommonRemoteTests (ref) {
   // eslint-disable-next-line jest/expect-expect
   test('should build and deploy actions to remote', async () => {
     DeployActions.prototype.run.mockImplementation(async () => { await sleep(2000); return {} })
-    await ref.scripts.runDev()
+    await ref.scripts.runDev([], {}, false)
     expectDevActionBuildAndDeploy(expectedRemoteOWConfig)
 
     BuildActions.mockClear()
@@ -547,7 +547,7 @@ function runCommonLocalTests (ref) {
   // eslint-disable-next-line jest/expect-expect
   test('should build and deploy actions to local ow', async () => {
     DeployActions.prototype.run.mockImplementation(async () => { await sleep(2000); return {} })
-    await ref.scripts.runDev()
+    await ref.scripts.runDev([], {}, false)
     expectDevActionBuildAndDeploy(expectedLocalOWConfig)
 
     BuildActions.mockClear()

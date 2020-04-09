@@ -35,7 +35,7 @@ const owTimeout = 60000
 const fetchLogInterval = 10000
 
 class ActionServer extends BaseScript {
-  async run (args = [], bundleOptions = {}) {
+  async run (args = [], bundleOptions = {}, fetchLogs = true) {
     const taskName = 'Local Dev Server'
     this.emit('start', taskName)
     // files
@@ -186,7 +186,7 @@ class ActionServer extends BaseScript {
       }
       this.emit('progress', 'press CTRL+C to terminate dev environment')
 
-      if (hasBackend) {
+      if (hasBackend && fetchLogs) {
         // fetch action logs
         const AppScripts = require('../index.js')
         const scripts = AppScripts({ listeners: {} })
@@ -199,13 +199,14 @@ class ActionServer extends BaseScript {
     return frontEndUrl
   }
 
-  async getLogs (logScript, cb) {
+  async getLogs (logScript, cb, options = {}) {
+    let ret = {}
     try {
-      await logScript([], {})
+      ret = await logScript([], options)
     } catch (e) {
       aioLogger.error('Error while fetching action logs ' + e)
     } finally {
-      setTimeout(function () { cb(logScript, cb) }, fetchLogInterval)
+      setTimeout(function () { cb(logScript, cb, { limit: 30, startTime: ret.lastActivationTime }) }, fetchLogInterval)
     }
   }
 
