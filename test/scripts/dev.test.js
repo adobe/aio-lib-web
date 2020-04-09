@@ -810,7 +810,7 @@ MORE_VAR_1=hello2
       return { ok: true }
     })
 
-    await ref.scripts.runDev()
+    await ref.scripts.runDev([], {}, false)
     expect(execa).toHaveBeenCalledWith(...execaLocalOWArgs)
     expect(fetch).toHaveBeenCalledWith('http://localhost:3233/api/v1')
     expect(fetch).toHaveBeenCalledTimes(5)
