@@ -12,24 +12,26 @@ governing permissions and limitations under the License.
 
 const BaseScript = require('../lib/abstract-script')
 const utils = require('../lib/utils')
+const cloneDeep = require('lodash.clonedeep')
 
 class GetUrl extends BaseScript {
   async run (options = {}) {
     const taskName = 'GetUrl'
     this.emit('start', taskName)
     const urls = {}
+    const configCopy = cloneDeep(this.config)
     if (options.action) {
       const action = this.config.manifest.package.actions[options.action]
       if (!action) {
         throw new Error(`No action with name ${options.action} found`)
       }
-      this.config.manifest.package.actions = {}
-      this.config.manifest.package.actions[options.action] = action
+      configCopy.manifest.package.actions = {}
+      configCopy.manifest.package.actions[options.action] = action
     }
-    const actionUrls = await utils.getActionUrls(this.config, true)
+    const actionUrls = await utils.getActionUrls(configCopy, true)
     urls.runtime = actionUrls
     if (options.cdn) {
-      const cdnUrls = await utils.getActionUrls(this.config, false)
+      const cdnUrls = await utils.getActionUrls(configCopy, false)
       urls.cdn = cdnUrls
     }
     this.emit('end', taskName)
