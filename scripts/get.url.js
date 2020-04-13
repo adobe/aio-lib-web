@@ -34,7 +34,7 @@ class GetUrl extends BaseScript {
       const cdnUrls = await utils.getActionUrls(configCopy, false)
       urls.cdn = cdnUrls
     }
-    this.emit('end', taskName)
+    this.emit('end', taskName, JSON.stringify(urls))
     return urls
   }
 }
