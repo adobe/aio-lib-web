@@ -403,26 +403,27 @@ function runCommonWithBackendTests (ref) {
 function runCommonRemoteTests (ref) {
   // eslint-disable-next-line jest/expect-expect
   test('should build and deploy actions to remote', async () => {
-    DeployActions.prototype.run.mockImplementation(async () => { await sleep(2000); return {} })
     await ref.scripts.runDev([], {}, false)
     expectDevActionBuildAndDeploy(expectedRemoteOWConfig)
 
     BuildActions.mockClear()
     DeployActions.mockClear()
 
+    jest.useFakeTimers()
+    DeployActions.prototype.run.mockImplementation(async () => { await sleep(2000); return {} })
     // First change
     onChangeFunc('changed')
-    await sleep(200)
     DeployActions.prototype.run.mockImplementation(async () => { throw new Error() })
 
-    // Second change after 200 ms
+    // Second change
     onChangeFunc('changed')
-    await sleep(1000)
+    await jest.runAllTimers()
 
     // Second change should not have resulted in build & deploy yet because first deploy would take 2 secs
     expect(BuildActions).toHaveBeenCalledTimes(1)
     expect(DeployActions).toHaveBeenCalledTimes(1)
-    await sleep(4000)
+    await jest.runAllTimers()
+    await sleep(1)
 
     // The second call to DeployActions will result in an error because of the second mock above
     expect(mockOnProgress).toHaveBeenCalledWith(expect.stringContaining('Stopping'))
@@ -633,25 +634,38 @@ function runCommonLocalTests (ref) {
 
   // eslint-disable-next-line jest/expect-expect
   test('should build and deploy actions to local ow', async () => {
-    DeployActions.prototype.run.mockImplementation(async () => { await sleep(2000); return {} })
     await ref.scripts.runDev([], {}, false)
     expectDevActionBuildAndDeploy(expectedLocalOWConfig)
 
     BuildActions.mockClear()
     DeployActions.mockClear()
+    mockOnProgress.mockClear()
+
+    jest.useFakeTimers()
+    DeployActions.prototype.run.mockImplementation(async () => {
+      return new Promise((resolve, reject) => {
+        setTimeout(() => {
+          resolve({})
+        }, 2000)
+      })
+    })
     // First change
     onChangeFunc('changed')
-    await sleep(200)
-    DeployActions.prototype.run.mockImplementation(async () => { throw new Error() })
+    // Defensive sleep just to let the onChange handler pass through
+    await sleep(1)
 
-    // Second change after 200 ms
+    // Second change
+    DeployActions.prototype.run.mockImplementation(async () => { throw new Error() })
     onChangeFunc('changed')
-    await sleep(1000)
+    await jest.runAllTimers()
 
     // Second change should not have resulted in build & deploy yet because first deploy would take 2 secs
     expect(BuildActions).toHaveBeenCalledTimes(1)
     expect(DeployActions).toHaveBeenCalledTimes(1)
-    await sleep(4000)
+
+    await jest.runAllTimers()
+    // Defensive sleep just to let the onChange handler pass through
+    await sleep(1)
 
     // The second call to DeployActions will result in an error because of the second mock above
     expect(mockOnProgress).toHaveBeenCalledWith(expect.stringContaining('Stopping'))
