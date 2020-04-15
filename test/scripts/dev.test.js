@@ -109,8 +109,9 @@ beforeEach(() => {
   deployActionsSpy.mockResolvedValue({})
 })
 
-afterAll(() => {
+afterAll((done) => {
   deployActionsSpy.mockRestore()
+  done()
 })
 
 /* ****************** Consts ******************* */
