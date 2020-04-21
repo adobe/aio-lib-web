@@ -21,6 +21,7 @@ const UndeployActions = require('./scripts/undeploy.actions')
 const RunDev = require('./scripts/dev')
 const AddAuth = require('./scripts/add.auth')
 const Logs = require('./scripts/logs')
+const GetUrl = require('./scripts/get.url')
 
 /**
  * Adobe I/O application scripts
@@ -40,6 +41,7 @@ const Logs = require('./scripts/logs')
  * REMOTE_ACTIONS=true to use remotely deployed actions
  * @property {function(object):Promise<undefined>} addAuth - adds auth capabilities to the application
  * @property {function(object, object):Promise<boolean>} logs - shows action logs
+ * @property {function(object, object):Promise<Object>} getUrls - shows action urls
  */
 
 /**
@@ -94,6 +96,7 @@ module.exports = function (options) {
     runDev: instantiate(RunDev),
     addAuth: instantiate(AddAuth),
     logs: instantiate(Logs),
+    getUrls: instantiate(GetUrl),
     // for unit testing
     _config: appConfig
   }
