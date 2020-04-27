@@ -111,7 +111,7 @@ test('no options, logs availaible', async () => {
   spy.mockImplementation(() => {})
 
   mockOWActivationList.mockResolvedValue([
-    { name: 'fake', activationId: 'fakeId', start: 0 }
+    { name: 'fake', activationId: 'fakeId', start: 1 }
   ])
 
   mockOWActivationLogs.mockResolvedValue({ logs: ['fake log1', 'fake log2'] })
@@ -121,7 +121,7 @@ test('no options, logs availaible', async () => {
   const res = await scripts.logs()
 
   expect(res.hasLogs).toBe(true)
-  expect(res.lastActivationTime).toBe(0)
+  expect(res.lastActivationTime).toBe(1)
   expect(mockOWActivationList).toHaveBeenCalledWith({ limit: 1, skip: 0 })
   expect(mockOWActivationLogs).toBeCalledTimes(1)
   expect(mockOWActivationLogs).toBeCalledWith(expect.objectContaining({ activationId: 'fakeId' }))
@@ -185,7 +185,7 @@ test('no options, logs availaible, startTime greater than activation start', asy
   expect(res.hasLogs).toBe(false)
   expect(res.lastActivationTime).toBe(100)
   expect(mockOWActivationList).toHaveBeenCalledWith({ limit: 1, skip: 0 })
-  expect(mockOWActivationLogs).toBeCalledTimes(1)
+  expect(mockOWActivationLogs).toBeCalledTimes(0)
   spy.mockRestore()
 })
 
@@ -198,8 +198,8 @@ test('limit=2, logs availaible', async () => {
   spy.mockImplementation(() => {})
 
   mockOWActivationList.mockResolvedValue([
-    { name: 'fake', activationId: 'fakeId', start: 0 },
-    { name: 'fake2', activationId: 'fakeId2', start: 0 }
+    { name: 'fake', activationId: 'fakeId', start: 1 },
+    { name: 'fake2', activationId: 'fakeId2', start: 1 }
   ])
 
   mockOWActivationLogs.mockResolvedValueOnce({ logs: ['fake log1', 'fake log2'] })
@@ -210,7 +210,7 @@ test('limit=2, logs availaible', async () => {
   const res = await scripts.logs([], { limit: 2 })
 
   expect(res.hasLogs).toBe(true)
-  expect(res.lastActivationTime).toBe(0)
+  expect(res.lastActivationTime).toBe(1)
 
   expect(mockOWActivationList).toHaveBeenCalledWith({ limit: 2, skip: 0 })
 
@@ -235,7 +235,7 @@ test('logger=jest.fn(), logs availaible', async () => {
   const mockLogger = jest.fn()
 
   mockOWActivationList.mockResolvedValue([
-    { name: 'fake', activationId: 'fakeId', start: 0 }
+    { name: 'fake', activationId: 'fakeId', start: 1 }
   ])
 
   mockOWActivationLogs.mockResolvedValue({ logs: ['fake log1', 'fake log2'] })
@@ -245,7 +245,7 @@ test('logger=jest.fn(), logs availaible', async () => {
   const res = await scripts.logs([], { logger: mockLogger })
 
   expect(res.hasLogs).toBe(true)
-  expect(res.lastActivationTime).toBe(0)
+  expect(res.lastActivationTime).toBe(1)
   expect(mockOWActivationList).toHaveBeenCalledWith({ limit: 1, skip: 0 })
   expect(mockOWActivationLogs).toBeCalledTimes(1)
   expect(mockOWActivationLogs).toBeCalledWith(expect.objectContaining({ activationId: 'fakeId' }))
@@ -253,4 +253,24 @@ test('logger=jest.fn(), logs availaible', async () => {
   expect(mockLogger).toBeCalledWith('fake:fakeId')
   expect(mockLogger).toHaveBeenCalledWith('fake log1')
   expect(mockLogger).toHaveBeenCalledWith('fake log2')
+})
+
+test('logger=jest.fn(), no logs availaible', async () => {
+  global.loadFs(vol, 'sample-app')
+  const config = deepCopy(global.fakeConfig.tvm)
+  mockAIOConfig.get.mockReturnValue(config)
+
+  const mockLogger = jest.fn()
+
+  mockOWActivationList.mockResolvedValue([
+    { name: 'fake', activationId: 'fakeId', start: 1 }
+  ])
+
+  mockOWActivationLogs.mockResolvedValue({ logs: [] })
+
+  const scripts = await AppScripts()
+
+  const res = await scripts.logs([], { logger: mockLogger })
+
+  expect(res.hasLogs).toBe(false)
 })

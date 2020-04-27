@@ -36,12 +36,15 @@ const owTimeout = 60000
 const fetchLogInterval = 10000
 
 class ActionServer extends BaseScript {
-  async run (args = [], options = {}, fetchLogs = true) {
+  async run (args = [], options = {}) {
     // options
     /* parcel bundle options */
     const bundleOptions = options.parcel || {}
     /* skip actions */
     const skipActions = !!options.skipActions
+
+    /* fetch logs for actions option */
+    const fetchLogs = options.fetchLogs || true
 
     const taskName = 'Local Dev Server'
     this.emit('start', taskName)
@@ -205,9 +208,10 @@ class ActionServer extends BaseScript {
 
       if (this.config.app.hasBackend && fetchLogs) {
         // fetch action logs
+        resources.stopFetchLogs = false
         const AppScripts = require('../index.js')
         const scripts = AppScripts({ listeners: {} })
-        this.getLogs(scripts.logs, this.getLogs)
+        this.getLogs(scripts.logs, this.getLogs, resources)
       }
     } catch (e) {
       aioLogger.error('unexpected error, cleaning up...')
@@ -217,14 +221,16 @@ class ActionServer extends BaseScript {
     return frontEndUrl
   }
 
-  async getLogs (logScript, cb, options = {}) {
+  async getLogs (logScript, cb, resources, options = {}) {
     let ret = {}
-    try {
-      ret = await logScript([], options)
-    } catch (e) {
-      aioLogger.error('Error while fetching action logs ' + e)
-    } finally {
-      setTimeout(function () { cb(logScript, cb, { limit: 30, startTime: ret.lastActivationTime }) }, fetchLogInterval)
+    if (!resources.stopFetchLogs) {
+      try {
+        ret = await logScript([], options)
+      } catch (e) {
+        aioLogger.error('Error while fetching action logs ' + e)
+      } finally {
+        setTimeout(function () { cb(logScript, cb, resources, { limit: 30, startTime: ret.lastActivationTime }) }, fetchLogInterval)
+      }
     }
   }
 
@@ -390,6 +396,7 @@ async function cleanup (resources) {
     aioLogger.info('stopping sigint waiter...')
     resources.dummyProc.kill()
   }
+  resources.stopFetchLogs = true
 }
 
 module.exports = ActionServer
