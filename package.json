@@ -1,6 +1,6 @@
 {
   "name": "@adobe/aio-app-scripts",
-  "version": "0.13.0",
+  "version": "0.15.0",
   "description": "Utility tooling scripts to build, deploy and run an Adobe I/O App",
   "main": "index.js",
   "directories": {
@@ -44,6 +44,7 @@
     "dotenv": "^8.2.0",
     "execa": "^4.0.0",
     "fs-extra": "^9.0.0",
+    "http-terminator": "^2.0.2",
     "js-yaml": "^3.13.1",
     "klaw": "^3.0.0",
     "lodash.clonedeep": "^4.5.0",

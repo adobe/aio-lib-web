@@ -18,6 +18,7 @@ const aioLogger = require('@adobe/aio-lib-core-logging')('@adobe/aio-app-scripts
 const path = require('path')
 const fs = require('fs-extra')
 
+const httpTerminator = require('http-terminator')
 const BuildActions = require('./build.actions')
 const DeployActions = require('./deploy.actions')
 const utils = require('../lib/utils')
@@ -34,9 +35,16 @@ const owWaitPeriodTime = 500
 const owTimeout = 60000
 
 class ActionServer extends BaseScript {
-  async run (args = [], bundleOptions = {}) {
+  async run (args = [], options = {}) {
+    // options
+    /* parcel bundle options */
+    const bundleOptions = options.parcel || {}
+    /* skip actions */
+    const skipActions = !!options.skipActions
+
     const taskName = 'Local Dev Server'
     this.emit('start', taskName)
+
     // files
     // const OW_LOG_FILE = '.openwhisk-standalone.log'
     const DOTENV_SAVE = this._absApp('.env.app.save')
@@ -46,10 +54,9 @@ class ActionServer extends BaseScript {
 
     // control variables
     const hasFrontend = this.config.app.hasFrontend
-    const hasBackend = this.config.app.hasBackend
+    const withBackend = this.config.app.hasBackend && !skipActions
     const isLocal = !this.config.actions.devRemote // applies only for backend
 
-    // todo take port for ow server as well
     // port for UI
     const uiPort = parseInt(args[0]) || parseInt(process.env.PORT) || 9080
 
@@ -60,10 +67,23 @@ class ActionServer extends BaseScript {
     let devConfig = this.config // config will be different if local or remote
 
     // bind cleanup function
-    process.on('SIGINT', () => cleanup(null, resources))
+    process.on('SIGINT', async () => {
+      // in case app-scripts are eventually turned into a lib:
+      // - don't exit the process, just make sure we get out of waiting
+      // - unregister sigint and return properly (e.g. not waiting on stdin.resume anymore)
+      try {
+        await cleanup(resources)
+        aioLogger.info('exiting!')
+        process.exit(0)
+      } catch (e) {
+        aioLogger.error('unexpected error while cleaning up!')
+        aioLogger.error(e)
+        process.exit(1)
+      }
+    })
 
     try {
-      if (hasBackend) {
+      if (withBackend) {
         if (isLocal) {
           // take following steps only when we have a backend
           this.emit('progress', 'checking if java is installed...')
@@ -87,7 +107,6 @@ class ActionServer extends BaseScript {
           // case1: no dotenv file => expose local credentials in .env, delete on cleanup
           const dotenvFile = this._absApp('.env')
           if (!fs.existsSync(dotenvFile)) {
-            // todo move to utils
             this.emit('progress', 'writing temporary .env with local OpenWhisk guest credentials..')
             fs.writeFileSync(dotenvFile, `AIO_RUNTIME_NAMESPACE=${OW_LOCAL_NAMESPACE}\nAIO_RUNTIME_AUTH=${OW_LOCAL_AUTH}\nAIO_RUNTIME_APIHOST=${OW_LOCAL_APIHOST}`)
             resources.dotenv = dotenvFile
@@ -111,7 +130,6 @@ class ActionServer extends BaseScript {
         }
 
         // build and deploy actions
-        // todo support live reloading ?
         this.emit('progress', 'redeploying actions..')
         await this._buildAndDeploy(devConfig, isLocal)
 
@@ -126,18 +144,18 @@ class ActionServer extends BaseScript {
 
       if (hasFrontend) {
         let urls = {}
-        if (devConfig.app.hasBackend) {
+        if (this.config.app.hasBackend) {
           // inject backend urls into ui
+          // note the condition: we still write backend urls EVEN if skipActions is set
+          // the urls will always point to remotely deployed actions if skipActions is set
           this.emit('progress', 'injecting backend urls into frontend config')
-          urls = await utils.getActionUrls(devConfig, true, isLocal)
+          urls = await utils.getActionUrls(devConfig, true, isLocal && !skipActions)
         }
         await utils.writeConfig(devConfig.web.injectedConfig, urls)
 
         this.emit('progress', 'starting local frontend server ..')
-        // todo: does it have to be index.html?
         const entryFile = path.join(devConfig.web.src, 'index.html')
 
-        // todo move to utils.runUIDevServer
         // our defaults here can be overridden by the bundleOptions passed in
         // bundleOptions.https are also passed to bundler.serve
         const parcelBundleOptions = {
@@ -150,11 +168,12 @@ class ActionServer extends BaseScript {
           ...bundleOptions
         }
         let actualPort = uiPort
-        const bundler = new Bundler(entryFile, parcelBundleOptions)
-        resources.uiServer = await bundler.serve(uiPort, bundleOptions.https)
-        if (resources.uiServer) {
-          actualPort = resources.uiServer.address().port
-        }
+        resources.uiBundler = new Bundler(entryFile, parcelBundleOptions)
+        resources.uiServer = await resources.uiBundler.serve(uiPort, bundleOptions.https)
+        actualPort = resources.uiServer.address().port
+        resources.uiServerTerminator = httpTerminator.createHttpTerminator({
+          server: resources.uiServer
+        })
         if (actualPort !== uiPort) {
           this.emit('progress', `Could not use port:${uiPort}, using port:${actualPort} instead`)
         }
@@ -163,8 +182,6 @@ class ActionServer extends BaseScript {
       }
 
       this.emit('progress', 'setting up vscode debug configuration files..')
-      // todo refactor the whole .vscode/launch.json piece into utils
-      // todo 2 don't enforce vscode config to non vscode dev
       fs.ensureDirSync(path.dirname(CODE_DEBUG))
       if (fs.existsSync(CODE_DEBUG)) {
         if (!fs.existsSync(CODE_DEBUG_SAVE)) {
@@ -173,7 +190,7 @@ class ActionServer extends BaseScript {
         }
       }
       fs.writeJSONSync(CODE_DEBUG,
-        await this.generateVSCodeDebugConfig(devConfig, hasFrontend, frontEndUrl, WSK_DEBUG_PROPS),
+        await this.generateVSCodeDebugConfig(devConfig, withBackend, hasFrontend, frontEndUrl, WSK_DEBUG_PROPS),
         { spaces: 2 })
 
       resources.vscodeDebugConfig = CODE_DEBUG
@@ -185,17 +202,17 @@ class ActionServer extends BaseScript {
       }
       this.emit('progress', 'press CTRL+C to terminate dev environment')
     } catch (e) {
-      aioLogger.error('Unexpected error. Cleaning up.')
-      cleanup(e, resources)
+      aioLogger.error('unexpected error, cleaning up...')
+      await cleanup(resources)
+      throw e
     }
     return frontEndUrl
   }
 
-  // todo make util not instance function
-  async generateVSCodeDebugConfig (devConfig, hasFrontend, frontUrl, wskdebugProps) {
+  async generateVSCodeDebugConfig (devConfig, withBackend, hasFrontend, frontUrl, wskdebugProps) {
     const actionConfigNames = []
     let actionConfigs = []
-    if (devConfig.app.hasBackend) {
+    if (withBackend) {
       const packageName = devConfig.ow.package
       const manifestActions = devConfig.manifest.package.actions
 
@@ -209,7 +226,6 @@ class ActionServer extends BaseScript {
           type: 'node',
           request: 'launch',
           name: name,
-          // todo allow for global install aswell
           runtimeExecutable: this._absApp('./node_modules/.bin/wskdebug'),
           env: { WSK_CONFIG_FILE: wskdebugProps },
           timeout: 30000,
@@ -287,7 +303,7 @@ class ActionServer extends BaseScript {
       } catch (err) {
         this.emit('progress', '  -> Error encountered while deploying actions. Stopping auto refresh.')
         aioLogger.debug(err)
-        watcher.close()
+        await watcher.close()
       }
       if (changed) {
         aioLogger.debug('Code changed during deployment. Triggering deploy again.')
@@ -309,8 +325,20 @@ class ActionServer extends BaseScript {
   }
 }
 
-function cleanup (err, resources) {
-  if (watcher) { watcher.close() }
+async function cleanup (resources) {
+  if (watcher) {
+    aioLogger.info('stopping action watcher...')
+    await watcher.close()
+  }
+  if (resources.uiBundler) {
+    aioLogger.info('stopping parcel watcher...')
+    await resources.uiBundler.stop()
+  }
+  if (resources.uiServer && resources.uiServerTerminator) {
+    aioLogger.info('stopping ui server...')
+    // close server and kill any open connections
+    await resources.uiServerTerminator.terminate()
+  }
   if (resources.dotenv && resources.dotenvSave && fs.existsSync(resources.dotenvSave)) {
     aioLogger.info('restoring .env file...')
     fs.moveSync(resources.dotenvSave, resources.dotenv, { overwrite: true })
@@ -320,7 +348,7 @@ function cleanup (err, resources) {
     fs.removeSync(resources.dotenv)
   }
   if (resources.owProc) {
-    aioLogger.info('killing local OpenWhisk process...')
+    aioLogger.info('stopping local OpenWhisk stack...')
     resources.owProc.kill()
   }
   if (resources.wskdebugProps) {
@@ -340,14 +368,9 @@ function cleanup (err, resources) {
     fs.moveSync(resources.vscodeDebugConfigSave, resources.vscodeDebugConfig, { overwrite: true })
   }
   if (resources.dummyProc) {
-    aioLogger.info('closing sigint waiter...')
+    aioLogger.info('stopping sigint waiter...')
     resources.dummyProc.kill()
   }
-  if (err) {
-    aioLogger.info('cleaning up because of dev error', err)
-    throw err // exits with 1
-  }
-  process.exit(0) // todo don't exit just make sure we get out of waiting, unregister sigint and return properly (e.g. not waiting on stdin.resume anymore)
 }
 
 module.exports = ActionServer
