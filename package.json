@@ -32,7 +32,7 @@
     "aio-app-scripts": "./bin/cna-scripts.js"
   },
   "dependencies": {
-    "@adobe/aio-cli-plugin-runtime": "^1.6.0",
+    "@adobe/aio-cli-plugin-runtime": "^1.7.0",
     "@adobe/aio-lib-core-config": "^1.2.8",
     "@adobe/aio-lib-core-logging": "^1.1.0",
     "@adobe/aio-lib-core-tvm": "^1.0.3",
