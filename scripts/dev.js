@@ -249,7 +249,7 @@ class ActionServer extends BaseScript {
           const zipMain = utils.getActionEntryFile(path.join(actionPath, 'package.json'))
           config.runtimeArgs[1] = path.join(actionPath, zipMain)
         }
-        if (action.annotations && action.annotations['require-adobe-auth']) {
+        if (action.annotations && action.annotations['require-adobe-auth'] && devConfig.ow.apihost === 'https://adobeioruntime.net') {
           // NOTE: The require-adobe-auth annotation is a feature implemented in the
           // runtime plugin. The current implementation replaces the action by a sequence
           // and renames the action to __secured_<action>. The annotation will soon be
