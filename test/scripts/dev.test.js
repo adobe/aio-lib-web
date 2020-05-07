@@ -1030,7 +1030,7 @@ describe('with local actions and frontend', () => {
   })
 
   test('should inject REMOTE action urls into the UI if skipActions is set', async () => {
-    await ref.scripts.runDev([], { fetchLogs: false })
+    await ref.scripts.runDev([], { skipActions: true, fetchLogs: false })
     expect(vol.existsSync('/web-src/src/config.json')).toEqual(true)
     const baseUrl = 'https://' + remoteOWCredentials.namespace + '.' + global.defaultOwApiHost.split('https://')[1] + '/api/v1/web/sample-app-1.0.0/'
     expect(JSON.parse(vol.readFileSync('/web-src/src/config.json').toString())).toEqual({
@@ -1038,11 +1038,6 @@ describe('with local actions and frontend', () => {
       'action-zip': baseUrl + 'action-zip',
       'action-sequence': baseUrl + 'action-sequence'
     })
-  })
-
-  test('should get action logs', async () => {
-    await ref.scripts.runDev([], { fetchLogs: false })
-    expect(vol.existsSync('/web-src/src/config.json')).toEqual(true)
   })
 })
 

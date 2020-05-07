@@ -21,7 +21,9 @@ const fs = require('fs-extra')
 const httpTerminator = require('http-terminator')
 const BuildActions = require('./build.actions')
 const DeployActions = require('./deploy.actions')
+const ActionLogs = require('./logs')
 const utils = require('../lib/utils')
+const EventPoller = require('../lib/poller')
 const { OW_JAR_FILE, OW_JAR_URL, OW_LOCAL_APIHOST, OW_LOCAL_NAMESPACE, OW_LOCAL_AUTH } = require('../lib/owlocal')
 const execa = require('execa')
 const Bundler = require('parcel-bundler')
@@ -34,6 +36,8 @@ const owWaitInitTime = 2000
 const owWaitPeriodTime = 500
 const owTimeout = 60000
 const fetchLogInterval = 10000
+const logOptions = {}
+const eventPoller = new EventPoller(fetchLogInterval)
 
 class ActionServer extends BaseScript {
   async run (args = [], options = {}) {
@@ -44,7 +48,7 @@ class ActionServer extends BaseScript {
     const skipActions = !!options.skipActions
 
     /* fetch logs for actions option */
-    const fetchLogs = options.fetchLogs || true
+    const fetchLogs = options.fetchLogs || false
 
     const taskName = 'Local Dev Server'
     this.emit('start', taskName)
@@ -209,9 +213,8 @@ class ActionServer extends BaseScript {
       if (this.config.app.hasBackend && fetchLogs) {
         // fetch action logs
         resources.stopFetchLogs = false
-        const AppScripts = require('../index.js')
-        const scripts = AppScripts({ listeners: {} })
-        this.getLogs(scripts.logs, this.getLogs, resources)
+        eventPoller.onPoll(this.logListner)
+        eventPoller.poll({ resources: resources, config: devConfig })
       }
     } catch (e) {
       aioLogger.error('unexpected error, cleaning up...')
@@ -221,15 +224,17 @@ class ActionServer extends BaseScript {
     return frontEndUrl
   }
 
-  async getLogs (logScript, cb, resources, options = {}) {
-    let ret = {}
-    if (!resources.stopFetchLogs) {
+  async logListner (args) {
+    const logScript = new ActionLogs(args.config)
+    if (!args.resources.stopFetchLogs) {
       try {
-        ret = await logScript([], options)
+        const ret = await logScript.run([], logOptions)
+        logOptions.limit = 30
+        logOptions.startTime = ret.lastActivationTime
       } catch (e) {
         aioLogger.error('Error while fetching action logs ' + e)
       } finally {
-        setTimeout(function () { cb(logScript, cb, resources, { limit: 30, startTime: ret.lastActivationTime }) }, fetchLogInterval)
+        eventPoller.poll(args)
       }
     }
   }
