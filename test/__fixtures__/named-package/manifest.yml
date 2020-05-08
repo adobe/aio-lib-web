@@ -1,0 +1,32 @@
+packages:
+  bobby-mcgee:
+    license: Apache-2.0
+    actions:
+      action:
+        function: actions/action.js
+        web: yes
+        runtime: 'nodejs:10'
+      action-zip:
+        function: actions/action-zip
+        web: yes
+        runtime: 'nodejs:10'
+    sequences:
+      action-sequence:
+        actions: action, action-zip
+        web: yes
+    triggers:
+      trigger1:
+    rules:
+      rule1:
+        trigger: trigger1
+        action: action
+        rule: true
+    apis:
+      api1:
+        base:
+          path:
+            action:
+              method: get
+    dependencies:
+      dependency1:
+        location: fake.com/package

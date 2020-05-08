@@ -115,6 +115,31 @@ test('deploy full manifest', async () => {
   expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, mockEntities, { fake: 'ow' }, expect.anything(), true)
 })
 
+test('deploy full manifest with package name specified', async () => {
+  global.loadFs(vol, 'named-package')
+
+  mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
+  ioruntime.processPackage.mockReturnValue(deepCopy(mockEntities))
+  openwhisk.mockReturnValue({ fake: 'ow' })
+
+  const expectedNamedPackage = {
+    'bobby-mcgee': expectedDistManifest.packages['sample-app-1.0.0']
+  }
+
+  const scripts = await AppScripts()
+  const buildDir = scripts._config.actions.dist
+  // fake a previous build
+  await global.addFakeFiles(vol, buildDir, ['action.js', 'action-zip.zip'])
+
+  await scripts.deployActions()
+
+  expect(ioruntime.processPackage).toHaveBeenCalledTimes(1)
+  expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedNamedPackage, {}, {}, {}, false, expectedOWOptions)
+
+  expect(ioruntime.syncProject).toHaveBeenCalledTimes(1)
+  expect(ioruntime.syncProject).toHaveBeenCalledWith('bobby-mcgee', r('/manifest.yml'), { packages: expectedNamedPackage }, mockEntities, { fake: 'ow' }, expect.anything(), true)
+})
+
 test('use deployConfig.filterEntities to deploy only one action', async () => {
   global.loadFs(vol, 'sample-app')
 

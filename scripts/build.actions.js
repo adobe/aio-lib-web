@@ -114,11 +114,17 @@ class BuildActions extends BaseScript {
     }
 
     // which actions to build, check filter
-    let actions = Object.entries(this.config.manifest.package.actions)
-    if (Array.isArray(buildConfig.filterActions)) actions = actions.filter(([name, value]) => buildConfig.filterActions.includes(name))
+    if (!this.config.manifest.package) {
+      const firstPkgName = Object.keys(this.config.manifest.full.packages)[0]
+      this.config.manifest.package = this.config.manifest.full.packages[firstPkgName]
+    }
+    let actionsToBuild = Object.entries(this.config.manifest.package.actions)
+    if (Array.isArray(buildConfig.filterActions)) {
+      actionsToBuild = actionsToBuild.filter(([name, value]) => buildConfig.filterActions.includes(name))
+    }
 
     // build all sequentially (todo make bundler execution parallel)
-    for (const [name, action] of actions) {
+    for (const [name, action] of actionsToBuild) {
       const out = await build(name, action)
       this.emit('progress', `${this._relApp(out)}`)
     }
