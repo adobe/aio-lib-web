@@ -150,6 +150,27 @@ test('should undeploy apis defined in the manifest', async () => {
   expect(ioruntime.undeployPackage).toHaveBeenCalledWith(expectedEntities, owMock, expect.anything())
 })
 
+test('should undeploy apis defined in the manifest with named package', async () => {
+  global.loadFs(vol, 'named-package')
+  scripts = await AppScripts()
+
+  setOwGetPackageMockResponse('bobby-mcgeee', [])
+  setRuntimeGetProjectEntitiesMock('bobby-mcgeee', [])
+  ioruntime.processPackage.mockReturnValue({ apis: [{ name: 'fake', basepath: '/fake', relpath: '/path/to/endpoint' }] })
+
+  const expectedEntities = {
+    actions: [],
+    pkgAndDeps: [],
+    triggers: [],
+    rules: [],
+    apis: [{ name: 'fake', basepath: '/fake', relpath: '/path/to/endpoint' }]
+  }
+
+  await scripts.undeployActions()
+  expect(ioruntime.undeployPackage).toHaveBeenCalledTimes(1)
+  expect(ioruntime.undeployPackage).toHaveBeenCalledWith(expectedEntities, owMock, expect.anything())
+})
+
 test('should not attempt to undeploy actions that are defined in manifest but not deployed', async () => {
   setOwGetPackageMockResponse('sample-app-1.0.0', [])
   setRuntimeGetProjectEntitiesMock('sample-app-1.0.0', [])
