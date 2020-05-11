@@ -1086,9 +1086,9 @@ describe('with frontend only', () => {
   })
 })
 
-// Note: this test can be safely deleted once the require-adobe-auth is
+// Note: these tests can be safely deleted once the require-adobe-auth is
 // natively supported in Adobe I/O Runtime.
-test('vscode wskdebug config with require-adobe-auth annotation', async () => {
+test('vscode wskdebug config with require-adobe-auth annotation && apihost=https://adobeioruntime.net', async () => {
   // create test app
   global.loadFs(vol, 'sample-app')
   vol.unlinkSync('web-src/index.html')
@@ -1097,7 +1097,7 @@ test('vscode wskdebug config with require-adobe-auth annotation', async () => {
   const scripts = AppScripts({})
   // avoid recreating a new fixture
   scripts._config.manifest.package.actions.action.annotations = { 'require-adobe-auth': true }
-
+  scripts._config.ow.apihost = 'https://adobeioruntime.net'
   await scripts.runDev()
 
   expect(JSON.parse(vol.readFileSync('/.vscode/launch.json').toString())).toEqual(expect.objectContaining({
@@ -1109,6 +1109,37 @@ test('vscode wskdebug config with require-adobe-auth annotation', async () => {
         runtimeExecutable: r('/node_modules/.bin/wskdebug'),
         runtimeArgs: [
           'sample-app-1.0.0/__secured_action',
+          r('actions/action.js'),
+          '-v'
+        ],
+        env: { WSK_CONFIG_FILE: r('/.wskdebug.props.tmp') },
+        localRoot: r('/'),
+        remoteRoot: '/code'
+      })
+    ])
+  }))
+})
+test('vscode wskdebug config with require-adobe-auth annotation && apihost!=https://adobeioruntime.net', async () => {
+  // create test app
+  global.loadFs(vol, 'sample-app')
+  vol.unlinkSync('web-src/index.html')
+  mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
+  process.env.REMOTE_ACTIONS = 'true'
+  const scripts = AppScripts({})
+  // avoid recreating a new fixture
+  scripts._config.manifest.package.actions.action.annotations = { 'require-adobe-auth': true }
+  scripts._config.ow.apihost = 'https://notadobeioruntime.net'
+  await scripts.runDev()
+
+  expect(JSON.parse(vol.readFileSync('/.vscode/launch.json').toString())).toEqual(expect.objectContaining({
+    configurations: expect.arrayContaining([
+      expect.objectContaining({
+        type: 'node',
+        request: 'launch',
+        name: 'Action:' + 'sample-app-1.0.0/action',
+        runtimeExecutable: r('/node_modules/.bin/wskdebug'),
+        runtimeArgs: [
+          'sample-app-1.0.0/action',
           r('actions/action.js'),
           '-v'
         ],
