@@ -109,9 +109,8 @@ beforeEach(() => {
   deployActionsSpy.mockResolvedValue({})
 })
 
-afterAll((done) => {
+afterAll(() => {
   deployActionsSpy.mockRestore()
-  done()
 })
 
 /* ****************** Consts ******************* */
@@ -215,7 +214,7 @@ async function testCleanupNoErrors (done, scripts, postCleanupChecks) {
     expect(process.exit).toHaveBeenCalledWith(0)
     done()
   })
-  await scripts.runDev([], { fetchLogs: false })
+  await scripts.runDev()
   expect(process.exit).toHaveBeenCalledTimes(0)
   // make sure we have only one listener = cleanup listener after each test + no pending promises
   expect(process.listenerCount('SIGINT')).toEqual(1)
@@ -233,7 +232,7 @@ async function testCleanupOnError (scripts, postCleanupChecks) {
       throw error
     }
   })
-  await expect(scripts.runDev([], { fetchLogs: false })).rejects.toBe(error)
+  await expect(scripts.runDev()).rejects.toBe(error)
   postCleanupChecks()
 }
 
@@ -294,13 +293,13 @@ describe('config fail if', () => {
 function runCommonTests (ref) {
   test('should save a previous existing .vscode/config.json file to .vscode/config.json.save', async () => {
     global.addFakeFiles(vol, '.vscode', { 'launch.json': 'fakecontent' })
-    await ref.scripts.runDev([], { fetchLogs: false })
+    await ref.scripts.runDev()
     expect(vol.existsSync('/.vscode/launch.json.save')).toEqual(true)
     expect(vol.readFileSync('/.vscode/launch.json.save').toString()).toEqual('fakecontent')
   })
 
   test('should not save to .vscode/config.json.save if there is no existing .vscode/config.json file', async () => {
-    await ref.scripts.runDev([], { fetchLogs: false })
+    await ref.scripts.runDev()
     expect(vol.existsSync('/.vscode/launch.json.save')).toEqual(false)
   })
 
@@ -308,7 +307,7 @@ function runCommonTests (ref) {
     // why? because it might be because previous restore failed
     global.addFakeFiles(vol, '.vscode', { 'launch.json': 'fakecontent' })
     global.addFakeFiles(vol, '.vscode', { 'launch.json.save': 'fakecontentsaved' })
-    await ref.scripts.runDev([], { fetchLogs: false })
+    await ref.scripts.runDev()
     expect(vol.existsSync('/.vscode/launch.json.save')).toEqual(true)
     expect(vol.readFileSync('/.vscode/launch.json.save').toString()).toEqual('fakecontentsaved')
   })
@@ -370,7 +369,7 @@ function runCommonTests (ref) {
   })
 
   test('should not build and deploy actions if skipActions is set', async () => {
-    await ref.scripts.runDev([], { skipActions: true, fetchLogs: false })
+    await ref.scripts.runDev([], { skipActions: true })
     // build & deploy constructor have been called once to init the scripts
     // here we make sure run has not been called
     expect(BuildActions.mock.instances[0].run).toHaveBeenCalledTimes(0)
@@ -380,7 +379,7 @@ function runCommonTests (ref) {
   })
 
   test('should not set vscode config for actions if skipActions is set', async () => {
-    await ref.scripts.runDev([], { skipActions: true, fetchLogs: false })
+    await ref.scripts.runDev([], { skipActions: true })
     expect(vol.readFileSync('/.vscode/launch.json').toString()).not.toEqual(expect.stringContaining('wskdebug'))
   })
 }
@@ -394,7 +393,7 @@ function runCommonWithBackendTests (ref) {
       ]
     })
 
-    await ref.scripts.runDev([], { fetchLogs: false })
+    await ref.scripts.runDev()
 
     expect(mockOnProgress).toHaveBeenCalledWith(expect.stringContaining('pkg/actionNoUrl'))
     expect(mockOnProgress).toHaveBeenCalledWith(expect.stringContaining('https://fake.com/action'))
@@ -404,7 +403,7 @@ function runCommonWithBackendTests (ref) {
 function runCommonRemoteTests (ref) {
   // eslint-disable-next-line jest/expect-expect
   test('should build and deploy actions to remote', async () => {
-    await ref.scripts.runDev([], { fetchLogs: false })
+    await ref.scripts.runDev()
     expectDevActionBuildAndDeploy(expectedRemoteOWConfig)
 
     BuildActions.mockClear()
@@ -435,12 +434,12 @@ function runCommonRemoteTests (ref) {
   })
 
   test('should not start the local openwhisk stack', async () => {
-    await ref.scripts.runDev([], { fetchLogs: false })
+    await ref.scripts.runDev()
     expect(execa).not.toHaveBeenCalledWith(...execaLocalOWArgs)
   })
 
   test('should generate a .wskdebug.props.tmp file with the remote credentials', async () => {
-    await ref.scripts.runDev([], { fetchLogs: false })
+    await ref.scripts.runDev()
     const debugProps = vol.readFileSync('.wskdebug.props.tmp').toString()
     expect(debugProps).toContain(`NAMESPACE=${remoteOWCredentials.namespace}`)
     expect(debugProps).toContain(`AUTH=${remoteOWCredentials.auth}`)
@@ -450,12 +449,12 @@ function runCommonRemoteTests (ref) {
 
 function runCommonBackendOnlyTests (ref) {
   test('should not start a ui server', async () => {
-    await ref.scripts.runDev([], { fetchLogs: false })
+    await ref.scripts.runDev()
     expect(Bundler.mockConstructor).toHaveBeenCalledTimes(0)
   })
 
   test('should generate a vscode config for actions only', async () => {
-    await ref.scripts.runDev([], { fetchLogs: false })
+    await ref.scripts.runDev()
     expect(JSON.parse(vol.readFileSync('/.vscode/launch.json').toString())).toEqual(expect.objectContaining({
       configurations: [
         getExpectedActionVSCodeDebugConfig('sample-app-1.0.0/action'),
@@ -471,12 +470,12 @@ function runCommonWithFrontendTests (ref) {
   test('should start a ui server', async () => {
     const fakeMiddleware = Symbol('fake middleware')
     Bundler.mockMiddleware.mockReturnValue(fakeMiddleware)
-    await ref.scripts.runDev([], { fetchLogs: false })
+    await ref.scripts.runDev()
     expectUIServer(fakeMiddleware, 9080)
   })
 
   test('should use https cert/key if passed', async () => {
-    const options = { parcel: { https: { cert: 'cert.cert', key: 'key.key' } }, fetchLogs: false }
+    const options = { parcel: { https: { cert: 'cert.cert', key: 'key.key' } } }
     const port = 8888
     await ref.scripts.runDev([port], options)
     expect(Bundler.mockServe).toHaveBeenCalledWith(port, options.parcel.https)
@@ -515,7 +514,7 @@ function runCommonWithFrontendTests (ref) {
       expect(process.exit).toHaveBeenCalledWith(1)
       done()
     })
-    await ref.scripts.runDev([], { fetchLogs: false })
+    await ref.scripts.runDev()
     expect(process.exit).toHaveBeenCalledTimes(0)
     // send cleanup signal
     process.emit('SIGINT')
@@ -524,7 +523,7 @@ function runCommonWithFrontendTests (ref) {
 
   test('should return another available port for the UI server if used', async () => {
     mockUIServerAddressInstance.port = 9999
-    const options = { parcel: { https: { cert: 'cert.cert', key: 'key.key' } }, fetchLogs: false }
+    const options = { parcel: { https: { cert: 'cert.cert', key: 'key.key' } } }
     const resultUrl = await ref.scripts.runDev([8888], options)
     expect(Bundler.mockServe).toHaveBeenCalledWith(8888, options.parcel.https)
     expect(resultUrl).toBe('https://localhost:9999')
@@ -532,7 +531,7 @@ function runCommonWithFrontendTests (ref) {
 
   test('should return the used ui server port', async () => {
     mockUIServerAddressInstance.port = 8888
-    const options = { parcel: { https: { cert: 'cert.cert', key: 'key.key' } }, fetchLogs: false }
+    const options = { parcel: { https: { cert: 'cert.cert', key: 'key.key' } } }
     const resultUrl = await ref.scripts.runDev([8888], options)
     expect(Bundler.mockServe).toHaveBeenCalledWith(8888, options.parcel.https)
     expect(resultUrl).toBe('https://localhost:8888')
@@ -591,7 +590,7 @@ function runCommonLocalTests (ref) {
       body: fakeOwJarStream
     })
 
-    await ref.scripts.runDev([], { fetchLogs: false })
+    await ref.scripts.runDev()
 
     expect(fetch).toHaveBeenCalledWith(owJarUrl)
     expect(vol.existsSync(owJarPath)).toEqual(true)
@@ -635,7 +634,7 @@ function runCommonLocalTests (ref) {
 
   // eslint-disable-next-line jest/expect-expect
   test('should build and deploy actions to local ow', async () => {
-    await ref.scripts.runDev([], { fetchLogs: false })
+    await ref.scripts.runDev()
     expectDevActionBuildAndDeploy(expectedLocalOWConfig)
 
     BuildActions.mockClear()
@@ -677,7 +676,7 @@ function runCommonLocalTests (ref) {
   })
 
   test('should create a tmp .env file with local openwhisk credentials if there is no existing .env', async () => {
-    await ref.scripts.runDev([], { fetchLogs: false })
+    await ref.scripts.runDev()
     expect(vol.existsSync('/.env')).toBe(true)
     const dotenvContent = vol.readFileSync('/.env').toString()
     expect(dotenvContent).toContain(generateDotenvContent(localOWCredentials))
@@ -685,7 +684,7 @@ function runCommonLocalTests (ref) {
 
   test('should backup an existing .env and create a new .env with local openwhisk credentials', async () => {
     vol.writeFileSync('/.env', generateDotenvContent(remoteOWCredentials))
-    await ref.scripts.runDev([], { fetchLogs: false })
+    await ref.scripts.runDev()
     // 1. make sure the new .env is still written properly
     expect(vol.existsSync('/.env')).toBe(true)
     const dotenvContent = vol.readFileSync('/.env').toString()
@@ -711,7 +710,7 @@ MORE_VAR_1=hello2
 `
     vol.writeFileSync('/.env', dotenvOldContent)
 
-    await ref.scripts.runDev([], { fetchLogs: false })
+    await ref.scripts.runDev()
     // 1. make sure the new .env is still written properly
     expect(vol.existsSync('/.env')).toBe(true)
     const dotenvContent = vol.readFileSync('/.env').toString()
@@ -761,7 +760,7 @@ MORE_VAR_1=hello2
   })
 
   test('should start openwhisk-standalone jar', async () => {
-    await ref.scripts.runDev([], { fetchLogs: false })
+    await ref.scripts.runDev()
     expect(execa).toHaveBeenCalledWith(...execaLocalOWArgs)
   })
 
@@ -825,7 +824,7 @@ MORE_VAR_1=hello2
       return { ok: true }
     })
 
-    await ref.scripts.runDev([], { fetchLogs: false })
+    await ref.scripts.runDev()
     expect(execa).toHaveBeenCalledWith(...execaLocalOWArgs)
     expect(fetch).toHaveBeenCalledWith('http://localhost:3233/api/v1')
     expect(fetch).toHaveBeenCalledTimes(5)
@@ -857,7 +856,7 @@ MORE_VAR_1=hello2
       }
       return { ok: true }
     })
-    await ref.scripts.runDev([], { fetchLogs: false })
+    await ref.scripts.runDev()
     expect(execa).toHaveBeenCalledWith(...execaLocalOWArgs)
     expect(fetch).toHaveBeenCalledWith('http://localhost:3233/api/v1')
     expect(setTimeout).toHaveBeenCalledWith(expect.any(Function), waitInitTime) // initial wait
@@ -880,14 +879,14 @@ describe('with remote actions and no frontend', () => {
   runCommonBackendOnlyTests(ref)
 
   test('should start a dummy node background process to wait1 on sigint', async () => {
-    await ref.scripts.runDev([], { fetchLogs: false })
+    await ref.scripts.runDev()
     expect(execa).toHaveBeenCalledWith('node')
   })
 
   test('should kill dummy node background process on sigint', async () => {
     const mockKill = jest.fn()
     execa.mockReturnValue({ kill: mockKill })
-    await ref.scripts.runDev([], { fetchLogs: false })
+    await ref.scripts.runDev()
     return new Promise(resolve => {
       testCleanupNoErrors(resolve, ref.scripts, () => {
         expect(mockKill).toHaveBeenCalledTimes(1)
@@ -898,7 +897,7 @@ describe('with remote actions and no frontend', () => {
   test('should kill dummy node background process on error', async () => {
     const mockKill = jest.fn()
     execa.mockReturnValue({ kill: mockKill })
-    await ref.scripts.runDev([], { fetchLogs: false })
+    await ref.scripts.runDev()
     await testCleanupOnError(ref.scripts, () => {
       expect(mockKill).toHaveBeenCalledTimes(1)
     })
@@ -920,7 +919,7 @@ describe('with remote actions and frontend', () => {
 
   test('should generate a vscode debug config for actions and web-src', async () => {
     mockUIServerAddressInstance.port = 9999
-    await ref.scripts.runDev([], { fetchLogs: false })
+    await ref.scripts.runDev()
     expect(JSON.parse(vol.readFileSync('/.vscode/launch.json').toString())).toEqual(expect.objectContaining({
       configurations: [
         getExpectedActionVSCodeDebugConfig('sample-app-1.0.0/action'),
@@ -931,7 +930,7 @@ describe('with remote actions and frontend', () => {
   })
 
   test('should inject remote action urls into the UI', async () => {
-    await ref.scripts.runDev([], { fetchLogs: false })
+    await ref.scripts.runDev()
     expect(vol.existsSync('/web-src/src/config.json')).toEqual(true)
     const baseUrl = 'https://' + remoteOWCredentials.namespace + '.' + global.defaultOwApiHost.split('https://')[1] + '/api/v1/web/sample-app-1.0.0/'
     expect(JSON.parse(vol.readFileSync('/web-src/src/config.json').toString())).toEqual({
@@ -942,7 +941,7 @@ describe('with remote actions and frontend', () => {
   })
 
   test('should still inject remote action urls into the UI if skipActions is set', async () => {
-    await ref.scripts.runDev([], { fetchLogs: false })
+    await ref.scripts.runDev([], { skipActions: true })
     expect(vol.existsSync('/web-src/src/config.json')).toEqual(true)
     const baseUrl = 'https://' + remoteOWCredentials.namespace + '.' + global.defaultOwApiHost.split('https://')[1] + '/api/v1/web/sample-app-1.0.0/'
     expect(JSON.parse(vol.readFileSync('/web-src/src/config.json').toString())).toEqual({
@@ -1008,7 +1007,7 @@ describe('with local actions and frontend', () => {
 
   test('should generate a vscode debug config for actions and web-src', async () => {
     mockUIServerAddressInstance.port = 9999
-    await ref.scripts.runDev([], { fetchLogs: false })
+    await ref.scripts.runDev()
     expect(JSON.parse(vol.readFileSync('/.vscode/launch.json').toString())).toEqual(expect.objectContaining({
       configurations: [
         getExpectedActionVSCodeDebugConfig('sample-app-1.0.0/action'),
@@ -1019,7 +1018,7 @@ describe('with local actions and frontend', () => {
   })
 
   test('should inject local action urls into the UI', async () => {
-    await ref.scripts.runDev([], { fetchLogs: false })
+    await ref.scripts.runDev()
     expect(vol.existsSync('/web-src/src/config.json')).toEqual(true)
     const baseUrl = localOWCredentials.apihost + '/api/v1/web/' + localOWCredentials.namespace + '/sample-app-1.0.0/'
     expect(JSON.parse(vol.readFileSync('/web-src/src/config.json').toString())).toEqual({
@@ -1030,7 +1029,7 @@ describe('with local actions and frontend', () => {
   })
 
   test('should inject REMOTE action urls into the UI if skipActions is set', async () => {
-    await ref.scripts.runDev([], { skipActions: true, fetchLogs: false })
+    await ref.scripts.runDev([], { skipActions: true })
     expect(vol.existsSync('/web-src/src/config.json')).toEqual(true)
     const baseUrl = 'https://' + remoteOWCredentials.namespace + '.' + global.defaultOwApiHost.split('https://')[1] + '/api/v1/web/sample-app-1.0.0/'
     expect(JSON.parse(vol.readFileSync('/web-src/src/config.json').toString())).toEqual({
@@ -1056,12 +1055,12 @@ describe('with frontend only', () => {
 
   // eslint-disable-next-line jest/expect-expect
   test('should start a ui server', async () => {
-    await ref.scripts.runDev([], { fetchLogs: false })
+    await ref.scripts.runDev()
     expectUIServer(null, 9080)
   })
 
   test('should not call build and deploy', async () => {
-    await ref.scripts.runDev([], { fetchLogs: false })
+    await ref.scripts.runDev()
     // build & deploy constructor have been called once to init the scripts
     // here we make sure run has not been calle
     expect(BuildActions.mock.instances[0].run).toHaveBeenCalledTimes(0)
@@ -1072,7 +1071,7 @@ describe('with frontend only', () => {
 
   test('should generate a vscode config for ui only', async () => {
     mockUIServerAddressInstance.port = 9999
-    await ref.scripts.runDev([], { fetchLogs: false })
+    await ref.scripts.runDev()
     expect(JSON.parse(vol.readFileSync('/.vscode/launch.json').toString())).toEqual(expect.objectContaining({
       configurations: [
         getExpectedUIVSCodeDebugConfig(9999)
@@ -1081,15 +1080,15 @@ describe('with frontend only', () => {
   })
 
   test('should create config.json = {}', async () => {
-    await ref.scripts.runDev([], { fetchLogs: false })
+    await ref.scripts.runDev()
     expect(vol.existsSync('/web-src/src/config.json')).toEqual(true)
     expect(JSON.parse(vol.readFileSync('/web-src/src/config.json').toString())).toEqual({})
   })
 })
 
-// Note: this test can be safely deleted once the require-adobe-auth is
+// Note: these tests can be safely deleted once the require-adobe-auth is
 // natively supported in Adobe I/O Runtime.
-test('vscode wskdebug config with require-adobe-auth annotation', async () => {
+test('vscode wskdebug config with require-adobe-auth annotation && apihost=https://adobeioruntime.net', async () => {
   // create test app
   global.loadFs(vol, 'sample-app')
   vol.unlinkSync('web-src/index.html')
@@ -1098,8 +1097,8 @@ test('vscode wskdebug config with require-adobe-auth annotation', async () => {
   const scripts = AppScripts({})
   // avoid recreating a new fixture
   scripts._config.manifest.package.actions.action.annotations = { 'require-adobe-auth': true }
-
-  await scripts.runDev([], { fetchLogs: false })
+  scripts._config.ow.apihost = 'https://adobeioruntime.net'
+  await scripts.runDev()
 
   expect(JSON.parse(vol.readFileSync('/.vscode/launch.json').toString())).toEqual(expect.objectContaining({
     configurations: expect.arrayContaining([
@@ -1110,6 +1109,37 @@ test('vscode wskdebug config with require-adobe-auth annotation', async () => {
         runtimeExecutable: r('/node_modules/.bin/wskdebug'),
         runtimeArgs: [
           'sample-app-1.0.0/__secured_action',
+          r('actions/action.js'),
+          '-v'
+        ],
+        env: { WSK_CONFIG_FILE: r('/.wskdebug.props.tmp') },
+        localRoot: r('/'),
+        remoteRoot: '/code'
+      })
+    ])
+  }))
+})
+test('vscode wskdebug config with require-adobe-auth annotation && apihost!=https://adobeioruntime.net', async () => {
+  // create test app
+  global.loadFs(vol, 'sample-app')
+  vol.unlinkSync('web-src/index.html')
+  mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
+  process.env.REMOTE_ACTIONS = 'true'
+  const scripts = AppScripts({})
+  // avoid recreating a new fixture
+  scripts._config.manifest.package.actions.action.annotations = { 'require-adobe-auth': true }
+  scripts._config.ow.apihost = 'https://notadobeioruntime.net'
+  await scripts.runDev()
+
+  expect(JSON.parse(vol.readFileSync('/.vscode/launch.json').toString())).toEqual(expect.objectContaining({
+    configurations: expect.arrayContaining([
+      expect.objectContaining({
+        type: 'node',
+        request: 'launch',
+        name: 'Action:' + 'sample-app-1.0.0/action',
+        runtimeExecutable: r('/node_modules/.bin/wskdebug'),
+        runtimeArgs: [
+          'sample-app-1.0.0/action',
           r('actions/action.js'),
           '-v'
         ],
