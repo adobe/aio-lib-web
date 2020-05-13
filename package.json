@@ -15,7 +15,6 @@
   "repository": "adobe/aio-app-scripts",
   "homepage": "https://github.com/adobe/aio-app-scripts",
   "keywords": [
-    "scripts",
     "openwhisk",
     "reactjs",
     "adobe-io",
@@ -27,9 +26,6 @@
     "test": "npm run unit-test && npm run lint",
     "unit-test": "jest --forceExit -c ./jest.config.js",
     "generate-jsdoc": "jsdoc2md -f index.js > doc/api.md"
-  },
-  "bin": {
-    "aio-app-scripts": "./bin/cna-scripts.js"
   },
   "dependencies": {
     "@adobe/aio-cli-plugin-runtime": "^1.7.0",
