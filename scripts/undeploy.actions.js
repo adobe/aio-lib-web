@@ -29,10 +29,16 @@ class UndeployActions extends BaseScript {
     // 1. rewrite wskManifest config
     const manifest = cloneDeep(this.config.manifest.full)
     // replace package name
-    manifest.packages[this.config.ow.package] = manifest.packages[this.config.manifest.packagePlaceholder]
-    delete manifest.packages[this.config.manifest.packagePlaceholder]
-    const manifestPackage = manifest.packages[this.config.ow.package]
-    manifestPackage.version = this.config.app.version
+    let packageName = null
+    if (manifest.packages[this.config.manifest.packagePlaceholder]) {
+      manifest.packages[this.config.ow.package] = manifest.packages[this.config.manifest.packagePlaceholder]
+      delete manifest.packages[this.config.manifest.packagePlaceholder]
+      const manifestPackage = manifest.packages[this.config.ow.package]
+      manifestPackage.version = this.config.app.version
+      packageName = this.config.ow.package
+    } else {
+      packageName = Object.keys(manifest.packages)[0]
+    }
 
     // 2. undeploy
     const owOptions = {
@@ -41,7 +47,7 @@ class UndeployActions extends BaseScript {
       api_key: this.config.ow.auth,
       namespace: this.config.ow.namespace
     }
-    await utils.undeployWsk(this.config.ow.package, manifest, owOptions, this.emit.bind(this, 'progress'))
+    await utils.undeployWsk(packageName, manifest, owOptions, this.emit.bind(this, 'progress'))
 
     this.emit('end', taskName)
   }

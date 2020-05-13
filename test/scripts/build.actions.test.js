@@ -194,6 +194,23 @@ describe('build by bundling js action file with webpack', () => {
     expect(utils.zip).toHaveBeenCalledWith(r('/dist/actions/action.tmp.js'), r('/dist/actions/action.zip'), 'index.js')
   })
 
+  test('should bundle a single action file using webpack and zip it with manifest named package', async () => {
+    global.loadFs(vol, 'named-package')
+    mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
+    scripts = AppScripts()
+
+    await scripts.buildActions()
+    expect(webpackMock.run).toHaveBeenCalledTimes(1)
+    expect(webpack).toHaveBeenCalledWith(expect.objectContaining({
+      entry: [r('/actions/action.js')],
+      output: expect.objectContaining({
+        path: r('/dist/actions'),
+        filename: 'action.tmp.js'
+      })
+    }))
+    expect(utils.zip).toHaveBeenCalledWith(r('/dist/actions/action.tmp.js'), r('/dist/actions/action.zip'), 'index.js')
+  })
+
   test('should still bundle a single action file when there is no ui', async () => {
     vol.unlinkSync('/web-src/index.html')
     await scripts.buildActions()
