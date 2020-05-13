@@ -44,57 +44,6 @@ appScripts.buildUI()
   .catch(e => { console.error(e); process.exit(1) })
 ```
 
-## Install globally to run directly
-_note this interface is experimental and may disappear in the future_
-
-```bash
-npm i -g @adobe/aio-app-scripts
-```
-Commands:
-
-```bash
-aio-app-scripts build.actions
-aio-app-scripts build.ui
-aio-app-scripts deploy.actions
-aio-app-scripts deploy.ui
-aio-app-scripts undeploy.actions
-aio-app-scripts undeploy.ui
-```
-
-## Using aio-app-scripts for local dev
-
-- run dev server, this will spin up a local OpenWhisk stack and run a server for the frontend
-
-> **Requires docker!**
-> **Requires Java!**
-
-```bash
-   aio-app-scripts dev
-```
-
-- only run frontend server, the frontend will point to remotely deployed actions
-
-```bash
-   REMOTE_ACTIONS=true aio-app-scripts dev
-```
-
-### Debugging with VS Code
-
-> **Requires docker!**
-> **Requires @adobe/wskdebug in application**
-
-- Actions can be debugged in both with local dev and remote actions dev modes
-
-- Simply start the dev server `aio-app-scripts dev`, this will generate all needed
-  vscode debug configurations
-
-- Then start the vs code debugger from the configuration you want, i.e. choose
-  `WebAndActions` to debug all actions and UI simultaneously or choose separate
-  debuggers.
-
-- When you stop the dev server all vs code configurations are cleaned up and
-  restored.
-
 ## Explore
 
 - `goto` [API](doc/api.md)
