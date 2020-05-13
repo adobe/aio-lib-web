@@ -21,7 +21,9 @@ const fs = require('fs-extra')
 const httpTerminator = require('http-terminator')
 const BuildActions = require('./build.actions')
 const DeployActions = require('./deploy.actions')
+const ActionLogs = require('./logs')
 const utils = require('../lib/utils')
+const EventPoller = require('../lib/poller')
 const { OW_JAR_FILE, OW_JAR_URL, OW_LOCAL_APIHOST, OW_LOCAL_NAMESPACE, OW_LOCAL_AUTH } = require('../lib/owlocal')
 const execa = require('execa')
 const Bundler = require('parcel-bundler')
@@ -33,6 +35,9 @@ let watcher
 const owWaitInitTime = 2000
 const owWaitPeriodTime = 500
 const owTimeout = 60000
+const fetchLogInterval = 10000
+const logOptions = {}
+const eventPoller = new EventPoller(fetchLogInterval)
 
 class ActionServer extends BaseScript {
   async run (args = [], options = {}) {
@@ -41,6 +46,9 @@ class ActionServer extends BaseScript {
     const bundleOptions = options.parcel || {}
     /* skip actions */
     const skipActions = !!options.skipActions
+
+    /* fetch logs for actions option */
+    const fetchLogs = options.fetchLogs || false
 
     const taskName = 'Local Dev Server'
     this.emit('start', taskName)
@@ -201,12 +209,34 @@ class ActionServer extends BaseScript {
         resources.dummyProc = execa('node')
       }
       this.emit('progress', 'press CTRL+C to terminate dev environment')
+
+      if (this.config.app.hasBackend && fetchLogs) {
+        // fetch action logs
+        resources.stopFetchLogs = false
+        eventPoller.onPoll(this.logListner)
+        eventPoller.poll({ resources: resources, config: devConfig })
+      }
     } catch (e) {
       aioLogger.error('unexpected error, cleaning up...')
       await cleanup(resources)
       throw e
     }
     return frontEndUrl
+  }
+
+  async logListner (args) {
+    const logScript = new ActionLogs(args.config)
+    if (!args.resources.stopFetchLogs) {
+      try {
+        const ret = await logScript.run([], logOptions)
+        logOptions.limit = 30
+        logOptions.startTime = ret.lastActivationTime
+      } catch (e) {
+        aioLogger.error('Error while fetching action logs ' + e)
+      } finally {
+        eventPoller.poll(args)
+      }
+    }
   }
 
   async generateVSCodeDebugConfig (devConfig, withBackend, hasFrontend, frontUrl, wskdebugProps) {
@@ -371,6 +401,7 @@ async function cleanup (resources) {
     aioLogger.info('stopping sigint waiter...')
     resources.dummyProc.kill()
   }
+  resources.stopFetchLogs = true
 }
 
 module.exports = ActionServer
