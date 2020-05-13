@@ -21,6 +21,10 @@ class Logs extends BaseScript {
     this.emit('start', taskName)
 
     let limit = logsOptions.limit
+
+    /* parcel bundle options */
+    const startTime = logsOptions.startTime || 0
+
     // remove this bit if app-scripts becomes a lib
     const i = args.indexOf('-l')
     /* istanbul ignore next */
@@ -48,25 +52,28 @@ class Logs extends BaseScript {
     // get activations
     const listOptions = { limit: limit, skip: 0 }
     const activations = await ow.activations.list(listOptions)
-
-    for (let i = 0; i < activations.length; ++i) {
+    let lastActivationTime = 0
+    for (let i = (activations.length - 1); i >= 0; i--) {
       const activation = activations[i]
-      const results = await ow.activations.logs({ activationId: activation.activationId })
-      // send fetched logs to console
-      if (results.logs.length > 0) {
-        hasLogs = true
-        logger(activation.name + ':' + activation.activationId)
-        results.logs.forEach(function (log) {
-          logger(log)
-        })
-        logger()
+      lastActivationTime = activation.start
+      if (lastActivationTime > startTime) {
+        const results = await ow.activations.logs({ activationId: activation.activationId })
+        // send fetched logs to console
+        if (results.logs.length > 0) {
+          hasLogs = true
+          logger(activation.name + ':' + activation.activationId)
+          results.logs.forEach(function (log) {
+            logger(log)
+          })
+          logger()
+        }
       }
     }
 
     // if we move scripts to lib, return the log instead of logging them?
     this.emit('end', taskName, hasLogs)
 
-    return hasLogs
+    return { hasLogs: hasLogs, lastActivationTime: lastActivationTime }
   }
 }
 module.exports = Logs

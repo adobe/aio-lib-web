@@ -24,7 +24,7 @@
     "lint": "eslint .",
     "beautify": "npm run lint -- --fix",
     "test": "npm run unit-test && npm run lint",
-    "unit-test": "jest -c ./jest.config.js",
+    "unit-test": "jest --forceExit -c ./jest.config.js",
     "generate-jsdoc": "jsdoc2md -f index.js > doc/api.md"
   },
   "dependencies": {
