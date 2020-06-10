@@ -69,7 +69,7 @@ describe('Undeploy static files with tvm', () => {
   test('Should throw an error if there are no deployment', async () => {
     // spies can be restored
     const spy = jest.spyOn(RemoteStorage.prototype, 'folderExists').mockReturnValue(false)
-    await expect(scripts.undeployUI()).rejects.toEqual(expect.objectContaining({ message: 'cannot undeploy static files, there is no deployment for fake_ns/sample-app-1.0.0' }))
+    await expect(scripts.undeployUI()).rejects.toEqual(expect.objectContaining({ message: 'cannot undeploy static files, there is no deployment for fake_ns' }))
     spy.mockRestore()
   })
 })
