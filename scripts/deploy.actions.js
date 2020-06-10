@@ -78,17 +78,9 @@ class DeployActions extends BaseScript {
     }
 
     // 2. deploy manifest
-    const owOptions = {
-      apihost: this.config.ow.apihost,
-      apiversion: this.config.ow.apiversion,
-      api_key: this.config.ow.auth,
-      namespace: this.config.ow.namespace
-    }
     let deployedEntities = await utils.deployWsk(
-      this.config.ow.package,
-      this.config.manifest.src,
+      this.config,
       manifest,
-      owOptions,
       this.emit.bind(this, 'progress'),
       deployConfig.filterEntities
     )
