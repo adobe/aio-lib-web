@@ -113,7 +113,7 @@ describe('deploy static files with tvm', () => {
     // spies can be restored
     await global.addFakeFiles(vol, buildDir, ['index.html'])
     const url = await scripts.deployUI()
-    expect(url).toBe('https://fake_ns.adobeio-static.net/sample-app-1.0.0/index.html')
+    expect(url).toBe('https://fake_ns.adobeio-static.net/index.html')
   })
 
   // below = those are common with s3 credential mode
@@ -123,7 +123,7 @@ describe('deploy static files with tvm', () => {
     const spy = jest.spyOn(RemoteStorage.prototype, 'folderExists').mockReturnValue(true)
     await global.addFakeFiles(vol, buildDir, ['index.html'])
     await scripts.deployUI()
-    expect(mockOnWarning).toHaveBeenCalledWith('an already existing deployment for version 1.0.0 will be overwritten')
+    expect(mockOnWarning).toHaveBeenCalled()
     spy.mockRestore()
   })
 

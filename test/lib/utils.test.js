@@ -53,8 +53,6 @@ describe('lib/utils', () => {
     expect(typeof utils.saveAndReplaceDotEnvCredentials).toBe('function')
     expect(utils.getActionUrls).toBeDefined()
     expect(typeof utils.getActionUrls).toBe('function')
-    expect(utils.getUIUrl).toBeDefined()
-    expect(typeof utils.getUIUrl).toBe('function')
     expect(utils.getActionEntryFile).toBeDefined()
     expect(typeof utils.getActionEntryFile).toBe('function')
   })
