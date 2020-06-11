@@ -487,6 +487,7 @@ test('Deploy actions should fail if there are no build files and action filter',
 test('Deploy actions should pass if there are no build files and filter does not include actions', async () => {
   global.loadFs(vol, 'sample-app')
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
+  ioruntime.processPackage.mockReturnValue({})
 
   const scripts = await AppScripts()
   await expect(scripts.deployActions([], { filterEntities: { triggers: ['trigger1'] } })).resolves.toEqual({})
@@ -521,6 +522,146 @@ test('if actions are deployed and part of the manifest it should return their ur
         url: 'https://fake_ns.adobeioruntime.net/api/v1/web/sample-app-reduced-1.0.0/action'
       },
       { name: 'pkg/actionNotInManifest' }
+    ]
+  })
+})
+
+test('if actions are deployed with custom package and part of the manifest it should return their url', async () => {
+  global.loadFs(vol, 'named-package')
+
+  mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
+  // mock deployed entities
+  ioruntime.processPackage.mockReturnValue({
+    actions: [
+      { name: 'pkg/action' }, // must be referenced in fixture manifest file
+      { name: 'pkg/actionNotInManifest' }
+    ]
+  })
+
+  openwhisk.mockReturnValue({ fake: 'ow' })
+
+  const scripts = await AppScripts()
+  const buildDir = scripts._config.actions.dist
+  // fake a previous build
+  await global.addFakeFiles(vol, buildDir, ['action.js', 'action-zip.zip'])
+
+  const returnedEntities = await scripts.deployActions()
+
+  expect(returnedEntities).toEqual({
+    actions: [
+      {
+        name: 'pkg/action',
+        url: 'https://fake_ns.adobeio-static.net/api/v1/web/bobby-mcgee/action'
+      },
+      { name: 'pkg/actionNotInManifest' }
+    ]
+  })
+})
+
+test('if actions are deployed with the headless validator and there is a UI it should rewrite the sequence with the app-registry validator', async () => {
+  global.loadFs(vol, 'sample-app')
+
+  mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
+  // mock deployed entities
+  ioruntime.processPackage.mockReturnValue({
+    actions: [
+      { name: 'pkg/sequence', exec: { kind: 'sequence', components: ['/adobeio/shared-validators-v1/not-headless', 'pkg/action'] } },
+      { name: 'pkg/sequenceToReplace', exec: { kind: 'sequence', components: ['/adobeio/shared-validators-v1/headless', 'pkg/action'] } }
+    ]
+  })
+
+  openwhisk.mockReturnValue({ fake: 'ow' })
+
+  const scripts = await AppScripts()
+  const buildDir = scripts._config.actions.dist
+  // fake a previous build
+  await global.addFakeFiles(vol, buildDir, ['action.js', 'action-zip.zip'])
+
+  const returnedEntities = await scripts.deployActions()
+
+  expect(returnedEntities).toEqual({
+    actions: [
+      {
+        name: 'pkg/sequence',
+        exec: { kind: 'sequence', components: ['/adobeio/shared-validators-v1/not-headless', 'pkg/action'] }
+        // no url cause not referenced in manifest
+      },
+      {
+        name: 'pkg/sequenceToReplace',
+        exec: { kind: 'sequence', components: ['/adobeio/shared-validators-v1/app-registry', 'pkg/action'] }
+      }
+    ]
+  })
+})
+
+test('if actions are deployed with the headless validator and there is no UI it should NOT rewrite the sequence with the app-registry validator', async () => {
+  global.loadFs(vol, 'sample-app-reduced')
+
+  mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
+  // mock deployed entities
+  ioruntime.processPackage.mockReturnValue({
+    actions: [
+      { name: 'pkg/sequence', exec: { kind: 'sequence', components: ['/adobeio/shared-validators-v1/not-headless', 'pkg/action'] } },
+      { name: 'pkg/sequenceToReplace', exec: { kind: 'sequence', components: ['/adobeio/shared-validators-v1/headless', 'pkg/action'] } }
+    ]
+  })
+
+  openwhisk.mockReturnValue({ fake: 'ow' })
+
+  const scripts = await AppScripts()
+  const buildDir = scripts._config.actions.dist
+  // fake a previous build
+  await global.addFakeFiles(vol, buildDir, ['action.js', 'action-zip.zip'])
+
+  const returnedEntities = await scripts.deployActions()
+
+  expect(returnedEntities).toEqual({
+    actions: [
+      {
+        name: 'pkg/sequence',
+        exec: { kind: 'sequence', components: ['/adobeio/shared-validators-v1/not-headless', 'pkg/action'] }
+        // no url cause not referenced in manifest
+      },
+      {
+        name: 'pkg/sequenceToReplace',
+        exec: { kind: 'sequence', components: ['/adobeio/shared-validators-v1/headless', 'pkg/action'] }
+      }
+    ]
+  })
+})
+
+test('if actions are deployed with the headless validator and custom package and there is a UI it should rewrite the sequence with the app-registry validator', async () => {
+  global.loadFs(vol, 'named-package')
+
+  mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
+  // mock deployed entities
+  ioruntime.processPackage.mockReturnValue({
+    actions: [
+      { name: 'pkg/sequence', exec: { kind: 'sequence', components: ['/adobeio/shared-validators-v1/not-headless', 'pkg/action'] } },
+      { name: 'pkg/sequenceToReplace', exec: { kind: 'sequence', components: ['/adobeio/shared-validators-v1/headless', 'pkg/action'] } }
+    ]
+  })
+
+  openwhisk.mockReturnValue({ fake: 'ow' })
+
+  const scripts = await AppScripts()
+  const buildDir = scripts._config.actions.dist
+  // fake a previous build
+  await global.addFakeFiles(vol, buildDir, ['action.js', 'action-zip.zip'])
+
+  const returnedEntities = await scripts.deployActions()
+
+  expect(returnedEntities).toEqual({
+    actions: [
+      {
+        name: 'pkg/sequence',
+        exec: { kind: 'sequence', components: ['/adobeio/shared-validators-v1/not-headless', 'pkg/action'] }
+        // no url cause not referenced in manifest
+      },
+      {
+        name: 'pkg/sequenceToReplace',
+        exec: { kind: 'sequence', components: ['/adobeio/shared-validators-v1/app-registry', 'pkg/action'] }
+      }
     ]
   })
 })

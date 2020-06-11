@@ -63,6 +63,8 @@ class DeployActions extends BaseScript {
       const packageNames = Object.keys(manifest.packages)
       manifestPackage = manifest.packages[packageNames[0]]
       this.config.ow.package = packageNames[0]
+      // this is needed for getActionUrls not to fail
+      this.config.manifest.package = this.config.manifest.full.packages[packageNames[0]]
     }
 
     manifestPackage.version = this.config.app.version
@@ -78,22 +80,12 @@ class DeployActions extends BaseScript {
     }
 
     // 2. deploy manifest
-    const owOptions = {
-      apihost: this.config.ow.apihost,
-      apiversion: this.config.ow.apiversion,
-      api_key: this.config.ow.auth,
-      namespace: this.config.ow.namespace
-    }
-    let deployedEntities = await utils.deployWsk(
-      this.config.ow.package,
-      this.config.manifest.src,
+    const deployedEntities = await utils.deployWsk(
+      this.config,
       manifest,
-      owOptions,
       this.emit.bind(this, 'progress'),
       deployConfig.filterEntities
     )
-
-    deployedEntities = deployedEntities || {}
 
     // enrich actions array with urls
     if (Array.isArray(deployedEntities.actions)) {
