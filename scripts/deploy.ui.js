@@ -14,7 +14,6 @@ governing permissions and limitations under the License.
 const BaseScript = require('../lib/abstract-script')
 const TvmClient = require('@adobe/aio-lib-core-tvm')
 const RemoteStorage = require('../lib/remote-storage')
-const utils = require('../lib/utils')
 
 const fs = require('fs-extra')
 const path = require('path')
@@ -46,15 +45,14 @@ class DeployUI extends BaseScript {
         })).getAwsS3Credentials()
 
     const remoteStorage = new RemoteStorage(creds)
-
     if (await remoteStorage.folderExists(this.config.s3.folder)) {
-      this.emit('warning', `an already existing deployment for version ${this.config.app.version} will be overwritten`)
+      this.emit('warning', 'an existing deployment will be overwritten')
       await remoteStorage.emptyFolder(this.config.s3.folder)
     }
 
     await remoteStorage.uploadDir(dist, this.config.s3.folder, this.config.app, f => this.emit('progress', path.relative(dist, f)))
 
-    const url = utils.getUIUrl(this.config, creds.params.Bucket)
+    const url = `https://${this.config.ow.namespace}.${this.config.app.hostname}/index.html`
     this.emit('end', taskName, url)
     return url
   }
