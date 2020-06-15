@@ -1,6 +1,6 @@
 {
   "name": "@adobe/aio-app-scripts",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "description": "Utility tooling scripts to build, deploy and run an Adobe I/O App",
   "main": "index.js",
   "directories": {
