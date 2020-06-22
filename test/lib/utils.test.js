@@ -39,8 +39,6 @@ describe('lib/utils', () => {
     expect(typeof utils.undeployWsk).toBe('function')
     expect(utils.writeConfig).toBeDefined()
     expect(typeof utils.writeConfig).toBe('function')
-    expect(utils.getCustomConfig).toBeDefined()
-    expect(typeof utils.getCustomConfig).toBe('function')
     expect(utils.checkOpenWhiskCredentials).toBeDefined()
     expect(typeof utils.checkOpenWhiskCredentials).toBe('function')
     expect(utils.checkFile).toBeDefined()
