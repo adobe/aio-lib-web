@@ -41,6 +41,5 @@ Returns application scripts functions
 | undeployUI | <code>function</code> | removes the deployed static files |
 | undeployActions | <code>function</code> | deletes the deployed OpenWhisk actions |
 | runDev | <code>function</code> | runs the app in a local development server, set env REMOTE_ACTIONS=true to use remotely deployed actions |
-| addAuth | <code>function</code> | adds auth capabilities to the application |
 | logs | <code>function</code> | shows action logs |
 
