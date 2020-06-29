@@ -98,7 +98,7 @@ test('deploy full manifest', async () => {
   global.loadFs(vol, 'sample-app')
 
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
-  ioruntime.processPackage.mockReturnValue(deepCopy(mockEntities))
+  runtimeLibUtils.processPackage.mockReturnValue(deepCopy(mockEntities))
   openwhisk.mockReturnValue({ fake: 'ow' })
 
   const scripts = await AppScripts()
@@ -108,18 +108,18 @@ test('deploy full manifest', async () => {
 
   await scripts.deployActions()
 
-  expect(ioruntime.processPackage).toHaveBeenCalledTimes(1)
-  expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedDistManifest.packages, {}, {}, {}, false, expectedOWOptions)
+  expect(runtimeLibUtils.processPackage).toHaveBeenCalledTimes(1)
+  expect(runtimeLibUtils.processPackage).toHaveBeenCalledWith(expectedDistManifest.packages, {}, {}, {}, false, expectedOWOptions)
 
-  expect(ioruntime.syncProject).toHaveBeenCalledTimes(1)
-  expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, mockEntities, { fake: 'ow' }, expect.anything(), true)
+  expect(runtimeLibUtils.syncProject).toHaveBeenCalledTimes(1)
+  expect(runtimeLibUtils.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, mockEntities, { fake: 'ow' }, expect.anything(), true)
 })
 
 test('deploy full manifest with package name specified', async () => {
   global.loadFs(vol, 'named-package')
 
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
-  ioruntime.processPackage.mockReturnValue(deepCopy(mockEntities))
+  runtimeLibUtils.processPackage.mockReturnValue(deepCopy(mockEntities))
   openwhisk.mockReturnValue({ fake: 'ow' })
 
   const expectedNamedPackage = {
@@ -133,18 +133,18 @@ test('deploy full manifest with package name specified', async () => {
 
   await scripts.deployActions()
 
-  expect(ioruntime.processPackage).toHaveBeenCalledTimes(1)
-  expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedNamedPackage, {}, {}, {}, false, expectedOWOptions)
+  expect(runtimeLibUtils.processPackage).toHaveBeenCalledTimes(1)
+  expect(runtimeLibUtils.processPackage).toHaveBeenCalledWith(expectedNamedPackage, {}, {}, {}, false, expectedOWOptions)
 
-  expect(ioruntime.syncProject).toHaveBeenCalledTimes(1)
-  expect(ioruntime.syncProject).toHaveBeenCalledWith('bobby-mcgee', r('/manifest.yml'), { packages: expectedNamedPackage }, mockEntities, { fake: 'ow' }, expect.anything(), true)
+  expect(runtimeLibUtils.syncProject).toHaveBeenCalledTimes(1)
+  expect(runtimeLibUtils.syncProject).toHaveBeenCalledWith('bobby-mcgee', r('/manifest.yml'), { packages: expectedNamedPackage }, mockEntities, { fake: 'ow' }, expect.anything(), true)
 })
 
 test('use deployConfig.filterEntities to deploy only one action', async () => {
   global.loadFs(vol, 'sample-app')
 
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
-  ioruntime.processPackage.mockReturnValue(deepCopy(mockEntities))
+  runtimeLibUtils.processPackage.mockReturnValue(deepCopy(mockEntities))
   openwhisk.mockReturnValue({ fake: 'ow' })
 
   const scripts = await AppScripts()
@@ -172,18 +172,18 @@ test('use deployConfig.filterEntities to deploy only one action', async () => {
     }
   }
 
-  expect(ioruntime.processPackage).toHaveBeenCalledTimes(1)
-  expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedDistPackagesFiltered, {}, {}, {}, false, expectedOWOptions)
+  expect(runtimeLibUtils.processPackage).toHaveBeenCalledTimes(1)
+  expect(runtimeLibUtils.processPackage).toHaveBeenCalledWith(expectedDistPackagesFiltered, {}, {}, {}, false, expectedOWOptions)
 
-  expect(ioruntime.syncProject).toHaveBeenCalledTimes(1)
-  expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, mockEntities, { fake: 'ow' }, expect.anything(), false)
+  expect(runtimeLibUtils.syncProject).toHaveBeenCalledTimes(1)
+  expect(runtimeLibUtils.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, mockEntities, { fake: 'ow' }, expect.anything(), false)
 })
 
 test('use deployConfig.filterEntities to deploy only one trigger and one action', async () => {
   global.loadFs(vol, 'sample-app')
 
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
-  ioruntime.processPackage.mockReturnValue(deepCopy(mockEntities))
+  runtimeLibUtils.processPackage.mockReturnValue(deepCopy(mockEntities))
   openwhisk.mockReturnValue({ fake: 'ow' })
 
   const scripts = await AppScripts()
@@ -215,18 +215,18 @@ test('use deployConfig.filterEntities to deploy only one trigger and one action'
     }
   }
 
-  expect(ioruntime.processPackage).toHaveBeenCalledTimes(1)
-  expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedDistPackagesFiltered, {}, {}, {}, false, expectedOWOptions)
+  expect(runtimeLibUtils.processPackage).toHaveBeenCalledTimes(1)
+  expect(runtimeLibUtils.processPackage).toHaveBeenCalledWith(expectedDistPackagesFiltered, {}, {}, {}, false, expectedOWOptions)
 
-  expect(ioruntime.syncProject).toHaveBeenCalledTimes(1)
-  expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, mockEntities, { fake: 'ow' }, expect.anything(), false)
+  expect(runtimeLibUtils.syncProject).toHaveBeenCalledTimes(1)
+  expect(runtimeLibUtils.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, mockEntities, { fake: 'ow' }, expect.anything(), false)
 })
 
 test('use deployConfig.filterEntities to deploy only one trigger and one action and one rule', async () => {
   global.loadFs(vol, 'sample-app')
 
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
-  ioruntime.processPackage.mockReturnValue(deepCopy(mockEntities))
+  runtimeLibUtils.processPackage.mockReturnValue(deepCopy(mockEntities))
   openwhisk.mockReturnValue({ fake: 'ow' })
 
   const scripts = await AppScripts()
@@ -266,18 +266,18 @@ test('use deployConfig.filterEntities to deploy only one trigger and one action 
     }
   }
 
-  expect(ioruntime.processPackage).toHaveBeenCalledTimes(1)
-  expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedDistPackagesFiltered, {}, {}, {}, false, expectedOWOptions)
+  expect(runtimeLibUtils.processPackage).toHaveBeenCalledTimes(1)
+  expect(runtimeLibUtils.processPackage).toHaveBeenCalledWith(expectedDistPackagesFiltered, {}, {}, {}, false, expectedOWOptions)
 
-  expect(ioruntime.syncProject).toHaveBeenCalledTimes(1)
-  expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, mockEntities, { fake: 'ow' }, expect.anything(), false)
+  expect(runtimeLibUtils.syncProject).toHaveBeenCalledTimes(1)
+  expect(runtimeLibUtils.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, mockEntities, { fake: 'ow' }, expect.anything(), false)
 })
 
 test('use deployConfig.filterEntities to deploy only one action and one api', async () => {
   global.loadFs(vol, 'sample-app')
 
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
-  ioruntime.processPackage.mockReturnValue(deepCopy(mockEntities))
+  runtimeLibUtils.processPackage.mockReturnValue(deepCopy(mockEntities))
   openwhisk.mockReturnValue({ fake: 'ow' })
 
   const scripts = await AppScripts()
@@ -317,18 +317,18 @@ test('use deployConfig.filterEntities to deploy only one action and one api', as
     }
   }
 
-  expect(ioruntime.processPackage).toHaveBeenCalledTimes(1)
-  expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedDistPackagesFiltered, {}, {}, {}, false, expectedOWOptions)
+  expect(runtimeLibUtils.processPackage).toHaveBeenCalledTimes(1)
+  expect(runtimeLibUtils.processPackage).toHaveBeenCalledWith(expectedDistPackagesFiltered, {}, {}, {}, false, expectedOWOptions)
 
-  expect(ioruntime.syncProject).toHaveBeenCalledTimes(1)
-  expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, mockEntities, { fake: 'ow' }, expect.anything(), false)
+  expect(runtimeLibUtils.syncProject).toHaveBeenCalledTimes(1)
+  expect(runtimeLibUtils.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, mockEntities, { fake: 'ow' }, expect.anything(), false)
 })
 
 test('use deployConfig.filterEntities to deploy only two actions and one sequence', async () => {
   global.loadFs(vol, 'sample-app')
 
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
-  ioruntime.processPackage.mockReturnValue(deepCopy(mockEntities))
+  runtimeLibUtils.processPackage.mockReturnValue(deepCopy(mockEntities))
   openwhisk.mockReturnValue({ fake: 'ow' })
 
   const scripts = await AppScripts()
@@ -368,18 +368,18 @@ test('use deployConfig.filterEntities to deploy only two actions and one sequenc
     }
   }
 
-  expect(ioruntime.processPackage).toHaveBeenCalledTimes(1)
-  expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedDistPackagesFiltered, {}, {}, {}, false, expectedOWOptions)
+  expect(runtimeLibUtils.processPackage).toHaveBeenCalledTimes(1)
+  expect(runtimeLibUtils.processPackage).toHaveBeenCalledWith(expectedDistPackagesFiltered, {}, {}, {}, false, expectedOWOptions)
 
-  expect(ioruntime.syncProject).toHaveBeenCalledTimes(1)
-  expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, mockEntities, { fake: 'ow' }, expect.anything(), false)
+  expect(runtimeLibUtils.syncProject).toHaveBeenCalledTimes(1)
+  expect(runtimeLibUtils.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, mockEntities, { fake: 'ow' }, expect.anything(), false)
 })
 
 test('use deployConfig.filterEntities to deploy only one pkg dependency', async () => {
   global.loadFs(vol, 'sample-app')
 
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
-  ioruntime.processPackage.mockReturnValue(deepCopy(mockEntities))
+  runtimeLibUtils.processPackage.mockReturnValue(deepCopy(mockEntities))
   openwhisk.mockReturnValue({ fake: 'ow' })
 
   const scripts = await AppScripts()
@@ -405,18 +405,18 @@ test('use deployConfig.filterEntities to deploy only one pkg dependency', async 
     }
   }
 
-  expect(ioruntime.processPackage).toHaveBeenCalledTimes(1)
-  expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedDistPackagesFiltered, {}, {}, {}, false, expectedOWOptions)
+  expect(runtimeLibUtils.processPackage).toHaveBeenCalledTimes(1)
+  expect(runtimeLibUtils.processPackage).toHaveBeenCalledWith(expectedDistPackagesFiltered, {}, {}, {}, false, expectedOWOptions)
 
-  expect(ioruntime.syncProject).toHaveBeenCalledTimes(1)
-  expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, mockEntities, { fake: 'ow' }, expect.anything(), false)
+  expect(runtimeLibUtils.syncProject).toHaveBeenCalledTimes(1)
+  expect(runtimeLibUtils.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, mockEntities, { fake: 'ow' }, expect.anything(), false)
 })
 
 test('use deployConfig.filterEntities on non existing pkgEntity should work', async () => {
   global.loadFs(vol, 'sample-app-reduced')
 
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
-  ioruntime.processPackage.mockReturnValue(deepCopy(mockEntities))
+  runtimeLibUtils.processPackage.mockReturnValue(deepCopy(mockEntities))
   openwhisk.mockReturnValue({ fake: 'ow' })
 
   const scripts = await AppScripts()
@@ -459,11 +459,11 @@ test('use deployConfig.filterEntities on non existing pkgEntity should work', as
     }
   }
 
-  expect(ioruntime.processPackage).toHaveBeenCalledTimes(1)
-  expect(ioruntime.processPackage).toHaveBeenCalledWith(expectedDistPackagesFiltered, {}, {}, {}, false, expectedOWOptions)
+  expect(runtimeLibUtils.processPackage).toHaveBeenCalledTimes(1)
+  expect(runtimeLibUtils.processPackage).toHaveBeenCalledWith(expectedDistPackagesFiltered, {}, {}, {}, false, expectedOWOptions)
 
-  expect(ioruntime.syncProject).toHaveBeenCalledTimes(1)
-  expect(ioruntime.syncProject).toHaveBeenCalledWith('sample-app-reduced-1.0.0', r('/manifest.yml'), expectedDistReducedManifest, mockEntities, { fake: 'ow' }, expect.anything(), false)
+  expect(runtimeLibUtils.syncProject).toHaveBeenCalledTimes(1)
+  expect(runtimeLibUtils.syncProject).toHaveBeenCalledWith('sample-app-reduced-1.0.0', r('/manifest.yml'), expectedDistReducedManifest, mockEntities, { fake: 'ow' }, expect.anything(), false)
 })
 
 test('Deploy actions should fail if there are no build files and no filters', async () => {
@@ -487,7 +487,7 @@ test('Deploy actions should fail if there are no build files and action filter',
 test('Deploy actions should pass if there are no build files and filter does not include actions', async () => {
   global.loadFs(vol, 'sample-app')
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
-  ioruntime.processPackage.mockReturnValue({})
+  runtimeLibUtils.processPackage.mockReturnValue({})
 
   const scripts = await AppScripts()
   await expect(scripts.deployActions([], { filterEntities: { triggers: ['trigger1'] } })).resolves.toEqual({})
@@ -498,7 +498,7 @@ test('if actions are deployed and part of the manifest it should return their ur
 
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
   // mock deployed entities
-  ioruntime.processPackage.mockReturnValue({
+  runtimeLibUtils.processPackage.mockReturnValue({
     actions: [
       { name: 'pkg/action' }, // must be referenced in fixture manifest file
       { name: 'pkg/actionNotInManifest' }
@@ -531,7 +531,7 @@ test('if actions are deployed with custom package and part of the manifest it sh
 
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
   // mock deployed entities
-  ioruntime.processPackage.mockReturnValue({
+  runtimeLibUtils.processPackage.mockReturnValue({
     actions: [
       { name: 'pkg/action' }, // must be referenced in fixture manifest file
       { name: 'pkg/actionNotInManifest' }
@@ -563,7 +563,7 @@ test('if actions are deployed with the headless validator and there is a UI it s
 
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
   // mock deployed entities
-  ioruntime.processPackage.mockReturnValue({
+  runtimeLibUtils.processPackage.mockReturnValue({
     actions: [
       { name: 'pkg/sequence', exec: { kind: 'sequence', components: ['/adobeio/shared-validators-v1/not-headless', 'pkg/action'] } },
       { name: 'pkg/sequenceToReplace', exec: { kind: 'sequence', components: ['/adobeio/shared-validators-v1/headless', 'pkg/action'] } }
@@ -599,7 +599,7 @@ test('if actions are deployed with the headless validator and there is no UI it 
 
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
   // mock deployed entities
-  ioruntime.processPackage.mockReturnValue({
+  runtimeLibUtils.processPackage.mockReturnValue({
     actions: [
       { name: 'pkg/sequence', exec: { kind: 'sequence', components: ['/adobeio/shared-validators-v1/not-headless', 'pkg/action'] } },
       { name: 'pkg/sequenceToReplace', exec: { kind: 'sequence', components: ['/adobeio/shared-validators-v1/headless', 'pkg/action'] } }
@@ -635,7 +635,7 @@ test('if actions are deployed with the headless validator and custom package and
 
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
   // mock deployed entities
-  ioruntime.processPackage.mockReturnValue({
+  runtimeLibUtils.processPackage.mockReturnValue({
     actions: [
       { name: 'pkg/sequence', exec: { kind: 'sequence', components: ['/adobeio/shared-validators-v1/not-headless', 'pkg/action'] } },
       { name: 'pkg/sequenceToReplace', exec: { kind: 'sequence', components: ['/adobeio/shared-validators-v1/headless', 'pkg/action'] } }

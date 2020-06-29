@@ -13,7 +13,7 @@ const { vol } = global.mockFs()
 
 const AppScripts = require('../..')
 
-const runtimeLibUtils = require('@adobe/aio-lib-runtime')
+const runtimeLibUtils = require('@adobe/aio-lib-runtime').utils
 jest.mock('@adobe/aio-lib-runtime')
 
 const openwhisk = require('openwhisk')
