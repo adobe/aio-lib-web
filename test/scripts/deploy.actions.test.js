@@ -18,8 +18,8 @@ const mockAIOConfig = require('@adobe/aio-lib-core-config')
 const ioruntime = require('@adobe/aio-cli-plugin-runtime')
 jest.mock('@adobe/aio-cli-plugin-runtime')
 
-const openwhisk = require('openwhisk')
-jest.mock('openwhisk')
+const openwhisk = require('@adobe/aio-lib-runtime').init
+jest.mock('@adobe/aio-lib-runtime')
 
 const deepCopy = require('lodash.clonedeep')
 
