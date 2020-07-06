@@ -10,7 +10,7 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-const Openwhisk = require('openwhisk')
+const RuntimeLib = require('@adobe/aio-lib-runtime')
 const BaseScript = require('../lib/abstract-script')
 const utils = require('../lib/utils')
 
@@ -39,7 +39,7 @@ class Logs extends BaseScript {
     // check for runtime credentials
     utils.checkOpenWhiskCredentials(this.config)
 
-    const ow = Openwhisk({
+    const ow = await RuntimeLib.init({
       // todo make this.config.ow compatible with Openwhisk config
       apihost: this.config.ow.apihost,
       apiversion: this.config.ow.apiversion,

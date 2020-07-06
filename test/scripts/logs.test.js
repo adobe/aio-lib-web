@@ -15,8 +15,8 @@ const mockAIOConfig = require('@adobe/aio-lib-core-config')
 
 const deepCopy = require('lodash.clonedeep')
 
-const Openwhisk = require('openwhisk')
-jest.mock('openwhisk')
+const Openwhisk = require('@adobe/aio-lib-runtime').init
+jest.mock('@adobe/aio-lib-runtime')
 
 const mockOWActivationList = jest.fn()
 const mockOWActivationLogs = jest.fn()
@@ -59,7 +59,7 @@ test('Should fail if missing runtime auth', async () => {
   await expect(scripts.logs()).rejects.toThrow('missing Adobe I/O Runtime auth')
 })
 
-test('no options, no activations availaible', async () => {
+test('no options, no activations available', async () => {
   global.loadFs(vol, 'sample-app')
   const config = deepCopy(global.fakeConfig.tvm)
   mockAIOConfig.get.mockReturnValue(config)

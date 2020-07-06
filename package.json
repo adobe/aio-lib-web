@@ -1,6 +1,6 @@
 {
   "name": "@adobe/aio-app-scripts",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Utility tooling scripts to build, deploy and run an Adobe I/O App",
   "main": "index.js",
   "directories": {
@@ -32,6 +32,7 @@
     "@adobe/aio-lib-core-config": "^2.0.0",
     "@adobe/aio-lib-core-logging": "^1.1.0",
     "@adobe/aio-lib-core-tvm": "^1.0.3",
+    "@adobe/aio-lib-runtime": "0.0.3",
     "@hapi/joi": "^16.1.7",
     "archiver": "^3.1.1",
     "aws-sdk": "^2.600.0",
@@ -47,7 +48,6 @@
     "mime-types": "^2.1.24",
     "node-fetch": "^2.6.0",
     "open": "^7.0.0",
-    "openwhisk": "^3.20.0",
     "parcel-bundler": "^1.12.4",
     "webpack": "^4.41.5"
   },

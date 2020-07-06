@@ -168,7 +168,6 @@ global.fakeTVMResponse = {
 
 global.expectedScripts = expect.objectContaining({
   runDev: expect.any(Function),
-  addAuth: expect.any(Function),
   buildUI: expect.any(Function),
   buildActions: expect.any(Function),
   deployUI: expect.any(Function),
