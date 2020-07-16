@@ -288,6 +288,10 @@ class ActionServer extends BaseScript {
           /* instanbul ignore next */
           config.runtimeArgs[0] = `${packageName}/__secured_${an}`
         }
+        if (action.runtime) {
+          config.runtimeArgs.push('--kind')
+          config.runtimeArgs.push(action.runtime)
+        }
         return config
       })
     }
