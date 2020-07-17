@@ -138,11 +138,12 @@ const expectedRemoteOWConfig = expect.objectContaining({
 
 // those must match the ones defined in dev.js
 const owJarPath = path.resolve(__dirname, '../../bin/openwhisk-standalone.jar')
-const owJarUrl = 'https://github.com/adobe/aio-app-scripts/raw/binaries/bin/openwhisk-standalone-0.10.jar'
+const owRuntimesConfig = path.resolve(__dirname, '../../bin/openwhisk-standalone-config/runtimes.json')
+const owJarUrl = 'https://dl.bintray.com/adobeio-firefly/aio/openwhisk-standalone.jar'
 const waitInitTime = 2000
 const waitPeriodTime = 500
 
-const execaLocalOWArgs = ['java', expect.arrayContaining(['-jar', r(owJarPath)]), expect.anything()]
+const execaLocalOWArgs = ['java', expect.arrayContaining(['-jar', r(owJarPath), '-m', owRuntimesConfig, '--no-ui']), expect.anything()]
 
 /* ****************** Helpers ******************* */
 function generateDotenvContent (credentials) {
