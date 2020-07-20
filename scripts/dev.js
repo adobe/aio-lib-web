@@ -24,7 +24,7 @@ const DeployActions = require('./deploy.actions')
 const ActionLogs = require('./logs')
 const utils = require('../lib/utils')
 const EventPoller = require('../lib/poller')
-const { OW_JAR_FILE, OW_JAR_URL, OW_LOCAL_APIHOST, OW_LOCAL_NAMESPACE, OW_LOCAL_AUTH } = require('../lib/owlocal')
+const { OW_JAR_FILE, OW_CONFIG_RUNTIMES_FILE, OW_JAR_URL, OW_LOCAL_APIHOST, OW_LOCAL_NAMESPACE, OW_LOCAL_AUTH } = require('../lib/owlocal')
 const execa = require('execa')
 const Bundler = require('parcel-bundler')
 const chokidar = require('chokidar')
@@ -109,7 +109,7 @@ class ActionServer extends BaseScript {
           }
 
           this.emit('progress', 'starting local OpenWhisk stack..')
-          const res = await utils.runOpenWhiskJar(OW_JAR_FILE, OW_LOCAL_APIHOST, owWaitInitTime, owWaitPeriodTime, owTimeout, { stderr: 'inherit' })
+          const res = await utils.runOpenWhiskJar(OW_JAR_FILE, OW_CONFIG_RUNTIMES_FILE, OW_LOCAL_APIHOST, owWaitInitTime, owWaitPeriodTime, owTimeout, { stderr: 'inherit' })
           resources.owProc = res.proc
 
           // case1: no dotenv file => expose local credentials in .env, delete on cleanup
@@ -287,6 +287,10 @@ class ActionServer extends BaseScript {
           // be needed anymore.
           /* instanbul ignore next */
           config.runtimeArgs[0] = `${packageName}/__secured_${an}`
+        }
+        if (action.runtime) {
+          config.runtimeArgs.push('--kind')
+          config.runtimeArgs.push(action.runtime)
         }
         return config
       })

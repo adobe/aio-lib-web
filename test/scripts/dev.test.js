@@ -138,11 +138,12 @@ const expectedRemoteOWConfig = expect.objectContaining({
 
 // those must match the ones defined in dev.js
 const owJarPath = path.resolve(__dirname, '../../bin/openwhisk-standalone.jar')
-const owJarUrl = 'https://github.com/adobe/aio-app-scripts/raw/binaries/bin/openwhisk-standalone-0.10.jar'
+const owRuntimesConfig = path.resolve(__dirname, '../../bin/openwhisk-standalone-config/runtimes.json')
+const owJarUrl = 'https://dl.bintray.com/adobeio-firefly/aio/openwhisk-standalone.jar'
 const waitInitTime = 2000
 const waitPeriodTime = 500
 
-const execaLocalOWArgs = ['java', expect.arrayContaining(['-jar', r(owJarPath)]), expect.anything()]
+const execaLocalOWArgs = ['java', expect.arrayContaining(['-jar', r(owJarPath), '-m', owRuntimesConfig, '--no-ui']), expect.anything()]
 
 /* ****************** Helpers ******************* */
 function generateDotenvContent (credentials) {
@@ -245,7 +246,9 @@ const getExpectedActionVSCodeDebugConfig = actionName =>
     runtimeArgs: [
       actionName,
       expect.stringContaining(actionName.split('/')[1]),
-      '-v'
+      '-v',
+      '--kind',
+      'nodejs:12'
     ],
     env: { WSK_CONFIG_FILE: r('/.wskdebug.props.tmp') },
     localRoot: r('/'),
@@ -1110,7 +1113,9 @@ test('vscode wskdebug config with require-adobe-auth annotation && apihost=https
         runtimeArgs: [
           'sample-app-1.0.0/__secured_action',
           r('actions/action.js'),
-          '-v'
+          '-v',
+          '--kind',
+          'nodejs:12'
         ],
         env: { WSK_CONFIG_FILE: r('/.wskdebug.props.tmp') },
         localRoot: r('/'),
@@ -1119,6 +1124,7 @@ test('vscode wskdebug config with require-adobe-auth annotation && apihost=https
     ])
   }))
 })
+
 test('vscode wskdebug config with require-adobe-auth annotation && apihost!=https://adobeioruntime.net', async () => {
   // create test app
   global.loadFs(vol, 'sample-app')
@@ -1141,7 +1147,41 @@ test('vscode wskdebug config with require-adobe-auth annotation && apihost!=http
         runtimeArgs: [
           'sample-app-1.0.0/action',
           r('actions/action.js'),
+          '-v',
+          '--kind',
+          'nodejs:12'
+        ],
+        env: { WSK_CONFIG_FILE: r('/.wskdebug.props.tmp') },
+        localRoot: r('/'),
+        remoteRoot: '/code'
+      })
+    ])
+  }))
+})
+
+test('vscode wskdebug config without runtime option', async () => {
+  // create test app
+  global.loadFs(vol, 'sample-app')
+  vol.unlinkSync('web-src/index.html')
+  mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
+  process.env.REMOTE_ACTIONS = 'true'
+  const scripts = AppScripts({})
+  // avoid recreating a new fixture
+  delete scripts._config.manifest.package.actions.action.runtime
+  await scripts.runDev()
+
+  expect(JSON.parse(vol.readFileSync('/.vscode/launch.json').toString())).toEqual(expect.objectContaining({
+    configurations: expect.arrayContaining([
+      expect.objectContaining({
+        type: 'node',
+        request: 'launch',
+        name: 'Action:' + 'sample-app-1.0.0/action',
+        runtimeExecutable: r('/node_modules/.bin/wskdebug'),
+        runtimeArgs: [
+          'sample-app-1.0.0/action',
+          r('actions/action.js'),
           '-v'
+          // no kind
         ],
         env: { WSK_CONFIG_FILE: r('/.wskdebug.props.tmp') },
         localRoot: r('/'),

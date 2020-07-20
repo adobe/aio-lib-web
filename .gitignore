@@ -2,7 +2,7 @@
 node_modules
 jspm_packages
 
-bin/openwhisk-standalone.jar
+bin/openwhisk-standalone*.jar
 
 # Serverless directories
 .serverless
