@@ -44,21 +44,27 @@ class BuildActions extends BaseScript {
       const outPath = path.join(this.config.actions.dist, `${name}.zip`)
       const actionFileStats = fs.lstatSync(actionPath)
 
-      if (!actionFileStats.isDirectory() && !actionFileStats.isFile()) throw new Error(`${action.function} is not a valid file or directory`)
+      if (!actionFileStats.isDirectory() && !actionFileStats.isFile()) {
+        throw new Error(`${action.function} is not a valid file or directory`)
+      }
 
       if (actionFileStats.isDirectory()) {
         // make sure package.json exists
         const packageJsonPath = path.join(actionPath, 'package.json')
         if (!fs.existsSync(packageJsonPath)) {
-          throw new Error(`missing required ${this._relApp(packageJsonPath)} for folder actions`)
+          if (!fs.existsSync(path.join(actionPath, 'index.js'))) {
+            throw new Error(`missing required ${this._relApp(packageJsonPath)} for folder actions`)
+          }
+          aioLogger.debug('found an index.js, allowing zip')
+        } else {
+          // make sure package.json exposes main or there is an index.js
+          const expectedActionName = utils.getActionEntryFile(packageJsonPath)
+          if (!fs.existsSync(path.join(actionPath, expectedActionName))) {
+            throw new Error(`the directory ${action.function} must contain either a package.json with a 'main' flag or an index.js file at its root`)
+          }
+          // install dependencies
+          await utils.installDeps(actionPath)
         }
-        // make sure package.json exposes main or there is an index.js
-        const expectedActionName = utils.getActionEntryFile(packageJsonPath)
-        if (!fs.existsSync(path.join(actionPath, expectedActionName))) {
-          throw new Error(`the directory ${action.function} must contain either a package.json with a 'main' flag or an index.js file at its root`)
-        }
-        // install dependencies
-        await utils.installDeps(actionPath)
         // zip the action
         await utils.zip(actionPath, outPath)
       } else {
@@ -92,11 +98,17 @@ class BuildActions extends BaseScript {
         })
 
         await new Promise((resolve, reject) => compiler.run((err, stats) => {
-          if (err) reject(err)
+          if (err) {
+            reject(err)
+          }
           // stats must be defined at this point
           const info = stats.toJson()
-          if (stats.hasWarnings()) aioLogger.debug(`webpack compilation warnings:\n${info.warnings}`)
-          if (stats.hasErrors()) reject(new Error(`action build failed, webpack compilation errors:\n${info.errors}`))
+          if (stats.hasWarnings()) {
+            aioLogger.debug(`webpack compilation warnings:\n${info.warnings}`)
+          }
+          if (stats.hasErrors()) {
+            reject(new Error(`action build failed, webpack compilation errors:\n${info.errors}`))
+          }
           return resolve(stats)
         }))
 
