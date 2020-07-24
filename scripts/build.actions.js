@@ -49,11 +49,11 @@ class BuildActions extends BaseScript {
       }
 
       if (actionFileStats.isDirectory()) {
-        // make sure package.json exists
+        // make sure package.json exists OR index.js
         const packageJsonPath = path.join(actionPath, 'package.json')
         if (!fs.existsSync(packageJsonPath)) {
           if (!fs.existsSync(path.join(actionPath, 'index.js'))) {
-            throw new Error(`missing required ${this._relApp(packageJsonPath)} for folder actions`)
+            throw new Error(`missing required ${this._relApp(packageJsonPath)} or index.js for folder actions`)
           }
           aioLogger.debug('found an index.js, allowing zip')
         } else {
