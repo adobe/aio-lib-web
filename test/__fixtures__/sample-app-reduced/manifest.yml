@@ -5,6 +5,6 @@ packages:
       action:
         function: actions/action.js
         web: yes
-        runtime: 'nodejs:10'
+        runtime: 'nodejs:12'
     triggers:
       trigger1:

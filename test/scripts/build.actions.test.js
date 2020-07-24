@@ -97,10 +97,19 @@ describe('build by zipping js action folder', () => {
     expect(utils.zip).toHaveBeenCalledWith(r('/actions/action-zip'), r('/dist/actions/action-zip.zip'))
   })
 
-  test('should fail if no package.json', async () => {
+  test('should not fail if no package.json if there is an index.js', async () => {
     // delete package.json
     vol.unlinkSync('/actions/action-zip/package.json')
-    await expect(scripts.buildActions()).rejects.toThrow(`missing required ${n('actions/action-zip/package.json')} for folder actions`)
+    await scripts.buildActions()
+    expect(utils.zip).toHaveBeenCalledWith(r('/actions/action-zip'), r('/dist/actions/action-zip.zip'))
+    expect(execa).not.toHaveBeenCalled()
+  })
+
+  test('should fail if no package.json and no index.js', async () => {
+    // delete package.json
+    vol.unlinkSync('/actions/action-zip/package.json')
+    vol.unlinkSync('/actions/action-zip/index.js')
+    await expect(scripts.buildActions()).rejects.toThrow(`missing required ${n('actions/action-zip/package.json')} or index.js for folder actions`)
   })
 
   test('should fail if package.json main field is not defined and there is no index.js file', async () => {

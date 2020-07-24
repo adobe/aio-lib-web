@@ -5,11 +5,11 @@ packages:
       action:
         function: actions/action.js
         web: yes
-        runtime: 'nodejs:10'
+        runtime: 'nodejs:12'
       action-zip:
         function: actions/action-zip
         web: yes
-        runtime: 'nodejs:10'
+        runtime: 'nodejs:12'
     sequences:
       action-sequence:
         actions: action, action-zip

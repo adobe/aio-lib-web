@@ -18,8 +18,8 @@ const mockAIOConfig = require('@adobe/aio-lib-core-config')
 const runtimeLibUtils = require('@adobe/aio-lib-runtime').utils
 jest.mock('@adobe/aio-lib-runtime')
 
-const openwhisk = require('openwhisk')
-jest.mock('openwhisk')
+const openwhisk = require('@adobe/aio-lib-runtime').init
+jest.mock('@adobe/aio-lib-runtime')
 
 const deepCopy = require('lodash.clonedeep')
 
@@ -39,12 +39,12 @@ const expectedDistManifest = {
       actions: {
         action: {
           function: n('dist/actions/action.zip'),
-          runtime: 'nodejs:10',
+          runtime: 'nodejs:12',
           web: 'yes'
         },
         'action-zip': {
           function: n('dist/actions/action-zip.zip'),
-          runtime: 'nodejs:10',
+          runtime: 'nodejs:12',
           web: 'yes'
         }
       },
@@ -165,7 +165,7 @@ test('use deployConfig.filterEntities to deploy only one action', async () => {
       actions: {
         action: {
           function: n('dist/actions/action.zip'),
-          runtime: 'nodejs:10',
+          runtime: 'nodejs:12',
           web: 'yes'
         }
       }
@@ -205,7 +205,7 @@ test('use deployConfig.filterEntities to deploy only one trigger and one action'
       actions: {
         action: {
           function: n('dist/actions/action.zip'),
-          runtime: 'nodejs:10',
+          runtime: 'nodejs:12',
           web: 'yes'
         }
       },
@@ -249,7 +249,7 @@ test('use deployConfig.filterEntities to deploy only one trigger and one action 
       actions: {
         action: {
           function: n('dist/actions/action.zip'),
-          runtime: 'nodejs:10',
+          runtime: 'nodejs:12',
           web: 'yes'
         }
       },
@@ -299,7 +299,7 @@ test('use deployConfig.filterEntities to deploy only one action and one api', as
       actions: {
         action: {
           function: n('dist/actions/action.zip'),
-          runtime: 'nodejs:10',
+          runtime: 'nodejs:12',
           web: 'yes'
         }
       },
@@ -350,12 +350,12 @@ test('use deployConfig.filterEntities to deploy only two actions and one sequenc
       actions: {
         action: {
           function: n('dist/actions/action.zip'),
-          runtime: 'nodejs:10',
+          runtime: 'nodejs:12',
           web: 'yes'
         },
         'action-zip': {
           function: n('dist/actions/action-zip.zip'),
-          runtime: 'nodejs:10',
+          runtime: 'nodejs:12',
           web: 'yes'
         }
       },
@@ -439,7 +439,7 @@ test('use deployConfig.filterEntities on non existing pkgEntity should work', as
         actions: {
           action: {
             function: n('dist/actions/action.zip'),
-            runtime: 'nodejs:10',
+            runtime: 'nodejs:12',
             web: 'yes'
           }
         },
