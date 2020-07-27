@@ -174,7 +174,7 @@ test('should undeploy apis defined in the manifest with named package', async ()
 test('should undeploy rules defined in the manifest', async () => {
   setOwGetPackageMockResponse('sample-app-1.0.0', [])
   setRuntimeGetProjectEntitiesMock('sample-app-1.0.0', [])
-  ioruntime.processPackage.mockReturnValue({ apis: [], rules: [{ name: 'fakeRule' }] })
+  runtimeLibUtils.processPackage.mockReturnValue({ apis: [], rules: [{ name: 'fakeRule' }] })
 
   const expectedEntities = {
     actions: [],
@@ -185,8 +185,8 @@ test('should undeploy rules defined in the manifest', async () => {
   }
 
   await scripts.undeployActions()
-  expect(ioruntime.undeployPackage).toHaveBeenCalledTimes(1)
-  expect(ioruntime.undeployPackage).toHaveBeenCalledWith(expectedEntities, owMock, expect.anything())
+  expect(runtimeLibUtils.undeployPackage).toHaveBeenCalledTimes(1)
+  expect(runtimeLibUtils.undeployPackage).toHaveBeenCalledWith(expectedEntities, owMock, expect.anything())
 })
 
 test('should undeploy rules defined in the manifest with named package', async () => {
@@ -195,7 +195,7 @@ test('should undeploy rules defined in the manifest with named package', async (
 
   setOwGetPackageMockResponse('bobby-mcgeee', [])
   setRuntimeGetProjectEntitiesMock('bobby-mcgeee', [])
-  ioruntime.processPackage.mockReturnValue({ apis: [], rules: [{ name: 'fakeRule' }] })
+  runtimeLibUtils.processPackage.mockReturnValue({ apis: [], rules: [{ name: 'fakeRule' }] })
 
   const expectedEntities = {
     actions: [],
@@ -206,8 +206,8 @@ test('should undeploy rules defined in the manifest with named package', async (
   }
 
   await scripts.undeployActions()
-  expect(ioruntime.undeployPackage).toHaveBeenCalledTimes(1)
-  expect(ioruntime.undeployPackage).toHaveBeenCalledWith(expectedEntities, owMock, expect.anything())
+  expect(runtimeLibUtils.undeployPackage).toHaveBeenCalledTimes(1)
+  expect(runtimeLibUtils.undeployPackage).toHaveBeenCalledWith(expectedEntities, owMock, expect.anything())
 })
 
 test('should not attempt to undeploy actions that are defined in manifest but not deployed', async () => {
