@@ -312,7 +312,7 @@ test('should build 1 zip action and 1 bundled action in one go', async () => {
   expect(webpack).toHaveBeenCalledWith(expect.objectContaining({
     entry: [r('/actions/action.js')],
     output: expect.objectContaining({
-      path: expect.stringContaining('/dist/actions/action-temp'),
+      path: expect.stringContaining(r('/dist/actions/action-temp')),
       filename: 'index.js'
     })
   }))
@@ -341,7 +341,7 @@ test('use buildConfig.filterActions to build only action called `action`', async
   expect(webpack).toHaveBeenCalledWith(expect.objectContaining({
     entry: [r('/actions/action.js')],
     output: expect.objectContaining({
-      path: '/dist/actions/action-temp',
+      path: r('/dist/actions/action-temp'),
       filename: 'index.js'
     })
   }))
@@ -359,7 +359,7 @@ test('use buildConfig.filterActions to build only action called `action-zip`', a
 
   // expect(execa).toHaveBeenCalledWith(...getExpectedExecaNPMInstallArgs(r('/actions/action-zip')))
   expect(utils.zip).toHaveBeenCalledTimes(1)
-  expect(utils.zip).toHaveBeenCalledWith(expect.stringContaining('/actions/action-zip'),
+  expect(utils.zip).toHaveBeenCalledWith(expect.stringContaining(r('/actions/action-zip')),
     r('/dist/actions/action-zip.zip'))
 })
 
