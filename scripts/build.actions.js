@@ -45,7 +45,7 @@ class BuildActions extends BaseScript {
     const build = async (name, action) => {
       const actionPath = this._absApp(action.function)
       const outPath = path.join(this.config.actions.dist, `${name}.zip`)
-      const tempBuildDir = path.join(path.dirname(outPath), `${name}-temp/`) // build all to tempDir first
+      const tempBuildDir = path.join(path.dirname(outPath), `${name}-temp`) // build all to tempDir first
       const actionFileStats = fs.lstatSync(actionPath)
 
       // make sure temp/ exists
@@ -135,10 +135,10 @@ class BuildActions extends BaseScript {
       await utils.zip(tempBuildDir, outPath)
       // fs.remove(tempBuildDir) // remove the build file, don't need to wait ...
 
-      const fStats = fs.statSync(outPath)
-      if (fStats.size > (22 * 1024 * 1024)) {
-        this.emit('warning', `file size exceeds 22 MB, you may not be able to deploy this action. file size is ${fStats.size} Bytes`)
-      }
+      // const fStats = fs.statSync(outPath)
+      // if (fStats && fStats.size > (22 * 1024 * 1024)) {
+      //   this.emit('warning', `file size exceeds 22 MB, you may not be able to deploy this action. file size is ${fStats.size} Bytes`)
+      // }
       return outPath
     }
 
