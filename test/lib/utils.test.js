@@ -13,6 +13,7 @@ const { vol } = global.mockFs()
 // const path = require('path')
 const utils = require('../../lib/utils')
 let mockResult = jest.fn()
+const execa = require('execa')
 jest.mock('execa', () => jest.fn().mockImplementation(() => {
   return mockResult()
 }))
@@ -53,6 +54,10 @@ describe('lib/utils', () => {
     expect(typeof utils.getActionUrls).toBe('function')
     expect(utils.getActionEntryFile).toBeDefined()
     expect(typeof utils.getActionEntryFile).toBe('function')
+    expect(utils.getMatchingFileList).toBeDefined()
+    expect(typeof utils.getMatchingFileList).toBe('function')
+    expect(utils.getIncludesForAction).toBeDefined()
+    expect(typeof utils.getIncludesForAction).toBe('function')
   })
 
   test('urlJoin', () => {
@@ -117,7 +122,7 @@ describe('lib/utils', () => {
 
   test('hasDockerCLI mock false', async () => {
     mockResult = () => {
-      throw Error('fake exception')
+      throw new Error('fake exception')
     }
     const hasDocker = await utils.hasDockerCLI()
     expect(hasDocker).toBe(false)
@@ -133,10 +138,54 @@ describe('lib/utils', () => {
 
   test('isDockerRunning mock false', async () => {
     mockResult = () => {
-      throw Error('fake exception')
+      throw new Error('fake exception')
     }
     const isRunning = await utils.isDockerRunning()
     expect(isRunning).toBe(false)
+  })
+
+  test('getMatchingFileList', async () => {
+    global.addFakeFiles(vol, '/indir', ['fake1.js'])
+    let fileList = await utils.getMatchingFileList('/indir/*.js')
+    expect(fileList.length).toBe(1)
+    expect(fileList).toStrictEqual(expect.arrayContaining(['/indir/fake1.js']))
+
+    fileList = await utils.getMatchingFileList('/**')
+    expect(fileList.length).toBe(1)
+    expect(fileList).toStrictEqual(expect.arrayContaining(['/indir/fake1.js']))
+
+    fileList = await utils.getMatchingFileList('/does-not-exist')
+    expect(fileList.length).toBe(0)
+  })
+
+  test('getIncludesForAction', async () => {
+
+    global.addFakeFiles(vol, '/indir', ['fake1.js'])
+    // returns [] if no action.include
+    let res = await utils.getIncludesForAction({})
+    expect(res.length).toBe(0)
+
+    // include[0] has no elements
+    await expect(utils.getIncludesForAction({ include: [[]] })).rejects.toThrow('Invalid manifest')
+    // include has more than 2 elements
+    await expect(utils.getIncludesForAction({ include: [[1, 2, 3]] })).rejects.toThrow('Invalid manifest')
+
+    // matches, with dest
+    res = await utils.getIncludesForAction({ include: [['/indir/*.js', '/out']] })
+    expect(res).toStrictEqual(expect.arrayContaining([{ dest: '/out', sources: ['/indir/fake1.js'] }]))
+
+    // matches, no dest
+    res = await utils.getIncludesForAction({ include: [['/indir/*.js']] })
+    expect(res).toStrictEqual(expect.arrayContaining([{ dest: undefined, sources: ['/indir/fake1.js'] }]))
+  })
+
+  test('installDeps', async () => {
+    mockResult = () => {
+      return 'ok'
+    }
+    // installDeps
+    await utils.installDeps('some-dir')
+    expect(execa).toHaveBeenCalledWith('npm', expect.arrayContaining(['install']), expect.objectContaining({ cwd: 'some-dir' }))
   })
 })
 
