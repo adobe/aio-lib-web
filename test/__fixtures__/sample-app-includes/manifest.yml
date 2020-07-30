@@ -1,0 +1,11 @@
+packages:
+  __APP_PACKAGE__:
+    actions:
+      action:
+        function: actions/action.js
+        web: yes
+        runtime: 'nodejs:12'
+        include:
+            - ["*.txt", "text/"]
+
+
