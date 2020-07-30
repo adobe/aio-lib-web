@@ -17,6 +17,8 @@ const utils = require('../../lib/utils')
 const execa = require('execa')
 jest.mock('execa')
 
+const fs = require('fs-extra')
+
 const mockLogger = require('@adobe/aio-lib-core-logging')
 
 // zip implementation is complex to test => tested in utils.test.js
@@ -53,7 +55,7 @@ beforeEach(() => {
   utils.zip.mockReset()
 })
 
-const getExpectedExecaNPMInstallArgs = actionFolder => ['npm', ['install', '--no-package-lock', '--only=prod'], expect.objectContaining({ cwd: actionFolder })]
+// const getExpectedExecaNPMInstallArgs = actionFolder => ['npm', ['install', '--no-package-lock', '--only=prod'], expect.objectContaining({ cwd: actionFolder })]
 
 describe('build by zipping js action folder', () => {
   let scripts
@@ -201,6 +203,22 @@ describe('build by bundling js action file with webpack', () => {
       })
     }))
     expect(utils.zip).toHaveBeenCalledWith(r('/dist/actions/action-temp'), r('/dist/actions/action.zip'))
+  })
+
+  test('should bundle a single action file using webpack and zip it with includes', async () => {
+    global.loadFs(vol, 'sample-app-includes')
+    scripts = await AppScripts()
+    await scripts.buildActions()
+    expect(webpackMock.run).toHaveBeenCalledTimes(1)
+    expect(webpack).toHaveBeenCalledWith(expect.objectContaining({
+      entry: [r('/actions/action.js')],
+      output: expect.objectContaining({
+        path: r('/dist/actions/action-temp'),
+        filename: 'index.js'
+      })
+    }))
+    expect(utils.zip).toHaveBeenCalledWith(r('/dist/actions/action-temp'), r('/dist/actions/action.zip'))
+    expect(fs.existsSync('dist/actions/action-temp/text/includeme.txt')).toBe(true)
   })
 
   test('should bundle a single action file using webpack and zip it with manifest named package', async () => {
