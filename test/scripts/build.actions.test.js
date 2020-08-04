@@ -318,9 +318,9 @@ test('should build 1 zip action and 1 bundled action in one go', async () => {
   }))
   // expect(execa).toHaveBeenCalledWith(...getExpectedExecaNPMInstallArgs(r('/actions/action-zip')))
   expect(utils.zip).toHaveBeenCalledTimes(2)
-  expect(utils.zip).toHaveBeenCalledWith('/dist/actions/action-temp',
+  expect(utils.zip).toHaveBeenCalledWith(r('/dist/actions/action-temp'),
     r('/dist/actions/action.zip'))
-  expect(utils.zip).toHaveBeenCalledWith('/dist/actions/action-zip-temp',
+  expect(utils.zip).toHaveBeenCalledWith(r('/dist/actions/action-zip-temp'),
     r('/dist/actions/action-zip.zip'))
 })
 
@@ -346,7 +346,7 @@ test('use buildConfig.filterActions to build only action called `action`', async
     })
   }))
   expect(utils.zip).toHaveBeenCalledTimes(1)
-  expect(utils.zip).toHaveBeenCalledWith(expect.stringContaining('/dist/actions/action-temp'),
+  expect(utils.zip).toHaveBeenCalledWith(expect.stringContaining(r('/dist/actions/action-temp')),
     r('/dist/actions/action.zip'))
 })
 
@@ -359,7 +359,7 @@ test('use buildConfig.filterActions to build only action called `action-zip`', a
 
   // expect(execa).toHaveBeenCalledWith(...getExpectedExecaNPMInstallArgs(r('/actions/action-zip')))
   expect(utils.zip).toHaveBeenCalledTimes(1)
-  expect(utils.zip).toHaveBeenCalledWith(expect.stringContaining(r('/actions/action-zip')),
+  expect(utils.zip).toHaveBeenCalledWith(expect.stringContaining(r('/dist/actions/action-zip-temp')),
     r('/dist/actions/action-zip.zip'))
 })
 
