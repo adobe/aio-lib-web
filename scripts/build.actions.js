@@ -39,7 +39,6 @@ class BuildActions extends BaseScript {
     const taskName = 'Build actions'
     this.emit('start', taskName)
 
-    // this isn't 100% necessary, everything seems fine without it
     fs.emptyDirSync(this.config.actions.dist)
 
     const build = async (name, action) => {
