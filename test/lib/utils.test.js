@@ -190,7 +190,7 @@ describe('getIncludesForAction', () => {
   })
 
   test('matches, with dest specified', async () => {
-    const res = await utils.getIncludesForAction({ include: [[n('/indir/*.js'), '/out']] })
+    const res = await utils.getIncludesForAction({ include: [['/indir/*.js', '/out']] })
     expect(res).toStrictEqual(expect.arrayContaining([{ dest: '/out', sources: [expect.stringContaining('fake1.js')] }]))
   })
 
