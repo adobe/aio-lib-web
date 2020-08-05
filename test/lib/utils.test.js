@@ -54,8 +54,6 @@ describe('lib/utils', () => {
     expect(typeof utils.getActionUrls).toBe('function')
     expect(utils.getActionEntryFile).toBeDefined()
     expect(typeof utils.getActionEntryFile).toBe('function')
-    expect(utils.getMatchingFileList).toBeDefined()
-    expect(typeof utils.getMatchingFileList).toBe('function')
     expect(utils.getIncludesForAction).toBeDefined()
     expect(typeof utils.getIncludesForAction).toBe('function')
   })
@@ -199,36 +197,6 @@ describe('getIncludesForAction', () => {
   test('matches without dest specified', async () => {
     const res = await utils.getIncludesForAction({ include: [['/indir/*.js']] })
     expect(res).toStrictEqual(expect.arrayContaining([{ dest: undefined, sources: [expect.stringContaining('fake1.js')] }]))
-  })
-})
-
-describe('getMatchingFileList', () => {
-  beforeAll(() => {
-    global.addFakeFiles(vol, '/indir', ['fake1.js'])
-  })
-
-  // beforeEach(() => {})
-  // afterEach(() => {})
-
-  test('match single *.ext', async () => {
-    const fileList = await utils.getMatchingFileList('/indir/*.js')
-    expect(fileList.length).toBe(1)
-    expect(fileList).toStrictEqual(expect.arrayContaining([expect.stringContaining('fake1.js')]))
-  })
-
-  test('/**', async () => {
-    const fileList = await utils.getMatchingFileList('/**')
-    expect(fileList.length).toBe(1)
-    expect(fileList).toStrictEqual(expect.arrayContaining([expect.stringContaining('fake1.js')]))
-  })
-
-  test('no matches returns empty array', async () => {
-    const fileList = await utils.getMatchingFileList('/does-not-exist')
-    expect(fileList.length).toBe(0)
-  })
-
-  test('should reject if glob returns error', async () => {
-    await expect(utils.getMatchingFileList()).rejects.toThrow('glob pattern string required')
   })
 })
 
