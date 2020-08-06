@@ -79,8 +79,6 @@ class BuildActions extends BaseScript {
           if (!fs.existsSync(path.join(actionPath, expectedActionName))) {
             throw new Error(`the directory ${action.function} must contain either a package.json with a 'main' flag or an index.js file at its root`)
           }
-          // install dependencies
-          // await utils.installDeps(actionPath) // TODO: this should be flaggable/avoidable
         }
         // TODO: when we get to excludes, use a filter function here.
         fs.copySync(actionPath, tempBuildDir, { dereference: true })
