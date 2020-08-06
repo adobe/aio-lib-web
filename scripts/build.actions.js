@@ -33,7 +33,9 @@ class BuildActions extends BaseScript {
    * @memberof DeployActions
    */
   async run (args = [], buildConfig = {}) {
-    if (!this.config.app.hasBackend) throw new Error('cannot build actions, app has no backend')
+    if (!this.config.app.hasBackend) {
+      throw new Error('cannot build actions, app has no backend')
+    }
     const taskName = 'Build actions'
     this.emit('start', taskName)
 
@@ -42,11 +44,26 @@ class BuildActions extends BaseScript {
     const build = async (name, action) => {
       const actionPath = this._absApp(action.function)
       const outPath = path.join(this.config.actions.dist, `${name}.zip`)
+      const tempBuildDir = path.join(path.dirname(outPath), `${name}-temp`) // build all to tempDir first
       const actionFileStats = fs.lstatSync(actionPath)
+
+      // make sure temp/ exists
+      fs.ensureDirSync(tempBuildDir)
 
       if (!actionFileStats.isDirectory() && !actionFileStats.isFile()) {
         throw new Error(`${action.function} is not a valid file or directory`)
       }
+
+      // Process include(d) files
+      const includeFiles = await utils.getIncludesForAction(action)
+      includeFiles.forEach(incFile => {
+        const dest = path.join(tempBuildDir, incFile.dest)
+        fs.ensureDirSync(dest)
+        // dest is expected to be a dir ...
+        incFile.sources.forEach(file => {
+          fs.copyFileSync(file, path.join(dest, path.parse(file).base))
+        })
+      })
 
       if (actionFileStats.isDirectory()) {
         // make sure package.json exists OR index.js
@@ -55,28 +72,25 @@ class BuildActions extends BaseScript {
           if (!fs.existsSync(path.join(actionPath, 'index.js'))) {
             throw new Error(`missing required ${this._relApp(packageJsonPath)} or index.js for folder actions`)
           }
-          aioLogger.debug('found an index.js, allowing zip')
+          aioLogger.debug('action directory has an index.js, allowing zip')
         } else {
           // make sure package.json exposes main or there is an index.js
           const expectedActionName = utils.getActionEntryFile(packageJsonPath)
           if (!fs.existsSync(path.join(actionPath, expectedActionName))) {
             throw new Error(`the directory ${action.function} must contain either a package.json with a 'main' flag or an index.js file at its root`)
           }
-          // install dependencies
-          await utils.installDeps(actionPath)
         }
-        // zip the action
-        await utils.zip(actionPath, outPath)
+        // TODO: when we get to excludes, use a filter function here.
+        fs.copySync(actionPath, tempBuildDir, { dereference: true })
       } else {
-        const outBuildFilename = `${name}.tmp.js`
-        const outBuildDir = path.dirname(outPath)
+        const outBuildFilename = 'index.js' // `${name}.tmp.js`
         // if not directory => package and minify to single file
         const compiler = webpack({
           entry: [
             actionPath
           ],
           output: {
-            path: outBuildDir,
+            path: tempBuildDir,
             filename: outBuildFilename,
             libraryTarget: 'commonjs2'
           },
@@ -97,6 +111,7 @@ class BuildActions extends BaseScript {
           // ,externals: ['express', 'request', 'request-promise', 'body-parser', 'openwhisk']
         })
 
+        // run the compiler and wait for a result
         await new Promise((resolve, reject) => compiler.run((err, stats) => {
           if (err) {
             reject(err)
@@ -111,17 +126,16 @@ class BuildActions extends BaseScript {
           }
           return resolve(stats)
         }))
-
-        // zip the bundled file
-        // the path in zip must be renamed to index.js even if buildFilename is not index.js
-        const zipSrcPath = path.join(outBuildDir, outBuildFilename)
-        if (fs.existsSync(zipSrcPath)) {
-          await utils.zip(zipSrcPath, outPath, 'index.js')
-          fs.removeSync(zipSrcPath) // remove the build file
-        } else {
-          throw new Error(`could not find bundled output ${zipSrcPath}, building action '${name}' has likely failed`)
-        }
       }
+
+      // zip the dir
+      await utils.zip(tempBuildDir, outPath)
+      // fs.remove(tempBuildDir) // remove the build file, don't need to wait ...
+
+      // const fStats = fs.statSync(outPath)
+      // if (fStats && fStats.size > (22 * 1024 * 1024)) {
+      //   this.emit('warning', `file size exceeds 22 MB, you may not be able to deploy this action. file size is ${fStats.size} Bytes`)
+      // }
       return outPath
     }
 
