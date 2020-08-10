@@ -18,6 +18,8 @@ const fs = require('fs-extra')
 const path = require('path')
 const webpack = require('webpack')
 
+const rtUtils = require('@adobe/aio-lib-runtime').utils
+
 const aioLogger = require('@adobe/aio-lib-core-logging')('@adobe/aio-app-scripts:build.actions', { provider: 'debug' })
 
 // const Bundler = require('parcel-bundler')
@@ -75,7 +77,7 @@ class BuildActions extends BaseScript {
           aioLogger.debug('action directory has an index.js, allowing zip')
         } else {
           // make sure package.json exposes main or there is an index.js
-          const expectedActionName = utils.getActionEntryFile(packageJsonPath)
+          const expectedActionName = rtUtils.getActionEntryFile(packageJsonPath)
           if (!fs.existsSync(path.join(actionPath, expectedActionName))) {
             throw new Error(`the directory ${action.function} must contain either a package.json with a 'main' flag or an index.js file at its root`)
           }
