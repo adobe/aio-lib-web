@@ -1,0 +1,3 @@
+AIO_runtime_namespace=my-remote-namespace
+AIO_runtime_auth=my-remote-auth
+AIO_runtime_apihost=my-remote-apihost
