@@ -1,0 +1,4 @@
+FOO=bar
+AIO_RUNTIME_NAMESPACE=local-namespace
+AIO_RUNTIME_AUTH=local-auth
+AIO_RUNTIME_APIHOST=local-apihost

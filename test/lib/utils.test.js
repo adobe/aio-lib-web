@@ -10,6 +10,8 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 const { vol } = global.mockFs()
+const fs = require('fs')
+const eol = require('eol')
 
 const utils = require('../../lib/utils')
 let mockResult = jest.fn()
@@ -256,6 +258,32 @@ describe('lib/utils.zip', () => {
     archiver.setFakeError(new Error('fake stream error'))
     await expect(utils.zip('/indir/fake1.js', '/out.zip')).rejects.toThrow('fake stream error')
   })
+})
+
+test('saveAndReplaceDotEnvCredentials', () => {
+  global.loadFs(vol, 'app-env')
+
+  const localCredentials = {
+    APIHOST: 'local-apihost',
+    NAMESPACE: 'local-namespace',
+    AUTH: 'local-auth'
+  }
+
+  const envFile = 'my-env.original'
+  const envBackupFile = 'my-env.save'
+  const envExpectedOutputFixture = 'my-env.expected'
+
+  expect(
+    () => utils.saveAndReplaceDotEnvCredentials(envFile, envBackupFile, localCredentials.APIHOST, localCredentials.NAMESPACE, localCredentials.AUTH)
+  ).not.toThrowError()
+
+  expect(fs.existsSync(envFile)).toEqual(true)
+  expect(fs.existsSync(envBackupFile)).toEqual(true)
+
+  const envFileContents = fs.readFileSync(envFile).toString()
+  const expectedEnvFileContents = fs.readFileSync(envExpectedOutputFixture).toString()
+
+  expect(eol.auto(envFileContents)).toEqual(eol.auto(expectedEnvFileContents))
 })
 
 // todo test utils independently + mock utils in scripts once it is exposed as a library
