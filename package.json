@@ -1,6 +1,6 @@
 {
   "name": "@adobe/aio-app-scripts",
-  "version": "2.5.0",
+  "version": "2.5.1",
   "description": "Utility tooling scripts to build, deploy and run an Adobe I/O App",
   "main": "index.js",
   "directories": {
@@ -54,6 +54,7 @@
   "devDependencies": {
     "@types/hapi__joi": "^16.0.2",
     "@types/jest": "^25.1.0",
+    "eol": "^0.9.1",
     "eslint": "^6.5.1",
     "eslint-config-standard": "^14.1.0",
     "eslint-plugin-import": "^2.18.2",

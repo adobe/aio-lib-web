@@ -1,0 +1,7 @@
+FOO=bar
+AIO_runtime_namespace=my-remote-namespace
+AIO_runtime_auth=my-remote-auth
+AIO_runtime_apihost=my-remote-apihost
+AIO__runtime_namespace=my-remote-namespace2
+AIO__runtime_auth=my-remote-auth2
+AIO__runtime_apihost=my-remote-apihost2

@@ -112,7 +112,7 @@ test('deploy full manifest', async () => {
   expect(runtimeLibUtils.processPackage).toHaveBeenCalledWith(expectedDistManifest.packages, {}, {}, {}, false, expectedOWOptions)
 
   expect(runtimeLibUtils.syncProject).toHaveBeenCalledTimes(1)
-  expect(runtimeLibUtils.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, mockEntities, { fake: 'ow' }, expect.anything(), true)
+  expect(runtimeLibUtils.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, mockEntities, { fake: 'ow' }, expect.anything(), global.fakeConfig.tvm, true)
 })
 
 test('deploy full manifest with package name specified', async () => {
@@ -137,7 +137,7 @@ test('deploy full manifest with package name specified', async () => {
   expect(runtimeLibUtils.processPackage).toHaveBeenCalledWith(expectedNamedPackage, {}, {}, {}, false, expectedOWOptions)
 
   expect(runtimeLibUtils.syncProject).toHaveBeenCalledTimes(1)
-  expect(runtimeLibUtils.syncProject).toHaveBeenCalledWith('bobby-mcgee', r('/manifest.yml'), { packages: expectedNamedPackage }, mockEntities, { fake: 'ow' }, expect.anything(), true)
+  expect(runtimeLibUtils.syncProject).toHaveBeenCalledWith('bobby-mcgee', r('/manifest.yml'), { packages: expectedNamedPackage }, mockEntities, { fake: 'ow' }, expect.anything(), global.fakeConfig.tvm, true)
 })
 
 test('use deployConfig.filterEntities to deploy only one action', async () => {
@@ -176,7 +176,7 @@ test('use deployConfig.filterEntities to deploy only one action', async () => {
   expect(runtimeLibUtils.processPackage).toHaveBeenCalledWith(expectedDistPackagesFiltered, {}, {}, {}, false, expectedOWOptions)
 
   expect(runtimeLibUtils.syncProject).toHaveBeenCalledTimes(1)
-  expect(runtimeLibUtils.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, mockEntities, { fake: 'ow' }, expect.anything(), false)
+  expect(runtimeLibUtils.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, mockEntities, { fake: 'ow' }, expect.anything(), global.fakeConfig.tvm, false)
 })
 
 test('use deployConfig.filterEntities to deploy only one trigger and one action', async () => {
@@ -219,7 +219,7 @@ test('use deployConfig.filterEntities to deploy only one trigger and one action'
   expect(runtimeLibUtils.processPackage).toHaveBeenCalledWith(expectedDistPackagesFiltered, {}, {}, {}, false, expectedOWOptions)
 
   expect(runtimeLibUtils.syncProject).toHaveBeenCalledTimes(1)
-  expect(runtimeLibUtils.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, mockEntities, { fake: 'ow' }, expect.anything(), false)
+  expect(runtimeLibUtils.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, mockEntities, { fake: 'ow' }, expect.anything(), global.fakeConfig.tvm, false)
 })
 
 test('use deployConfig.filterEntities to deploy only one trigger and one action and one rule', async () => {
@@ -270,7 +270,7 @@ test('use deployConfig.filterEntities to deploy only one trigger and one action 
   expect(runtimeLibUtils.processPackage).toHaveBeenCalledWith(expectedDistPackagesFiltered, {}, {}, {}, false, expectedOWOptions)
 
   expect(runtimeLibUtils.syncProject).toHaveBeenCalledTimes(1)
-  expect(runtimeLibUtils.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, mockEntities, { fake: 'ow' }, expect.anything(), false)
+  expect(runtimeLibUtils.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, mockEntities, { fake: 'ow' }, expect.anything(), global.fakeConfig.tvm, false)
 })
 
 test('use deployConfig.filterEntities to deploy only one action and one api', async () => {
@@ -321,7 +321,7 @@ test('use deployConfig.filterEntities to deploy only one action and one api', as
   expect(runtimeLibUtils.processPackage).toHaveBeenCalledWith(expectedDistPackagesFiltered, {}, {}, {}, false, expectedOWOptions)
 
   expect(runtimeLibUtils.syncProject).toHaveBeenCalledTimes(1)
-  expect(runtimeLibUtils.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, mockEntities, { fake: 'ow' }, expect.anything(), false)
+  expect(runtimeLibUtils.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, mockEntities, { fake: 'ow' }, expect.anything(), global.fakeConfig.tvm, false)
 })
 
 test('use deployConfig.filterEntities to deploy only two actions and one sequence', async () => {
@@ -372,7 +372,7 @@ test('use deployConfig.filterEntities to deploy only two actions and one sequenc
   expect(runtimeLibUtils.processPackage).toHaveBeenCalledWith(expectedDistPackagesFiltered, {}, {}, {}, false, expectedOWOptions)
 
   expect(runtimeLibUtils.syncProject).toHaveBeenCalledTimes(1)
-  expect(runtimeLibUtils.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, mockEntities, { fake: 'ow' }, expect.anything(), false)
+  expect(runtimeLibUtils.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, mockEntities, { fake: 'ow' }, expect.anything(), global.fakeConfig.tvm, false)
 })
 
 test('use deployConfig.filterEntities to deploy only one pkg dependency', async () => {
@@ -409,7 +409,7 @@ test('use deployConfig.filterEntities to deploy only one pkg dependency', async 
   expect(runtimeLibUtils.processPackage).toHaveBeenCalledWith(expectedDistPackagesFiltered, {}, {}, {}, false, expectedOWOptions)
 
   expect(runtimeLibUtils.syncProject).toHaveBeenCalledTimes(1)
-  expect(runtimeLibUtils.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, mockEntities, { fake: 'ow' }, expect.anything(), false)
+  expect(runtimeLibUtils.syncProject).toHaveBeenCalledWith('sample-app-1.0.0', r('/manifest.yml'), expectedDistManifest, mockEntities, { fake: 'ow' }, expect.anything(), global.fakeConfig.tvm, false)
 })
 
 test('use deployConfig.filterEntities on non existing pkgEntity should work', async () => {
@@ -463,7 +463,7 @@ test('use deployConfig.filterEntities on non existing pkgEntity should work', as
   expect(runtimeLibUtils.processPackage).toHaveBeenCalledWith(expectedDistPackagesFiltered, {}, {}, {}, false, expectedOWOptions)
 
   expect(runtimeLibUtils.syncProject).toHaveBeenCalledTimes(1)
-  expect(runtimeLibUtils.syncProject).toHaveBeenCalledWith('sample-app-reduced-1.0.0', r('/manifest.yml'), expectedDistReducedManifest, mockEntities, { fake: 'ow' }, expect.anything(), false)
+  expect(runtimeLibUtils.syncProject).toHaveBeenCalledWith('sample-app-reduced-1.0.0', r('/manifest.yml'), expectedDistReducedManifest, mockEntities, { fake: 'ow' }, expect.anything(), global.fakeConfig.tvm, false)
 })
 
 test('Deploy actions should fail if there are no build files and no filters', async () => {
