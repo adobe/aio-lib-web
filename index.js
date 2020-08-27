@@ -13,14 +13,8 @@ const loadConfig = require('./lib/config-loader')
 
 const aioLogger = require('@adobe/aio-lib-core-logging')('@adobe/aio-app-scripts:index', { provider: 'debug' })
 const BuildUI = require('./scripts/build.ui')
-const BuildActions = require('./scripts/build.actions')
 const DeployUI = require('./scripts/deploy.ui')
-const DeployActions = require('./scripts/deploy.actions')
 const UndeployUI = require('./scripts/undeploy.ui')
-const UndeployActions = require('./scripts/undeploy.actions')
-const RunDev = require('./scripts/dev')
-const Logs = require('./scripts/logs')
-const GetUrl = require('./scripts/get.url')
 
 /**
  * Adobe I/O application scripts
@@ -31,15 +25,8 @@ const GetUrl = require('./scripts/get.url')
  * @typedef AppScripts
  * @type {object}
  * @property {function(object):Promise<undefined>} buildUI - bundles the application's static files
- * @property {function(object):Promise<undefined>} buildActions - zips and/or bundles the application's serverless functions
  * @property {function(object):Promise<string>} deployUI - deploys the static files to a CDN, returns the URL
- * @property {function(object):Promise<undefined>} deployActions - deploys the serverless functions to OpenWhisk
  * @property {function(object):Promise<undefined>} undeployUI - removes the deployed static files
- * @property {function(object):Promise<undefined>} undeployActions - deletes the deployed OpenWhisk actions
- * @property {function(object):Promise<undefined>} runDev - runs the app in a local development server, set env
- * REMOTE_ACTIONS=true to use remotely deployed actions
- * @property {function(object, object):Promise<boolean>} logs - shows action logs
- * @property {function(object, object):Promise<Object>} getUrls - shows action urls
  */
 
 /**
@@ -86,14 +73,8 @@ module.exports = function (options) {
   // interface
   return {
     buildUI: instantiate(BuildUI),
-    buildActions: instantiate(BuildActions),
     deployUI: instantiate(DeployUI),
-    deployActions: instantiate(DeployActions),
     undeployUI: instantiate(UndeployUI),
-    undeployActions: instantiate(UndeployActions),
-    runDev: instantiate(RunDev),
-    logs: instantiate(Logs),
-    getUrls: instantiate(GetUrl),
     // for unit testing
     _config: appConfig
   }
