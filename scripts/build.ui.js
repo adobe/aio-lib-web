@@ -19,6 +19,15 @@ const Bundler = require('parcel-bundler')
 
 const utils = require('../lib/utils')
 
+function writeConfig (file, config) {
+  fs.ensureDirSync(path.dirname(file))
+  // for now only action URLs
+  fs.writeFileSync(
+    file,
+    JSON.stringify(config), { encoding: 'utf-8' }
+  )
+}
+
 class BuildUI extends BaseScript {
   async run () {
     const taskName = 'Build static files'
@@ -41,7 +50,7 @@ class BuildUI extends BaseScript {
     let urls = {}
     if (this.config.app.hasBackend) { urls = await utils.getActionUrls(this.config) }
 
-    await utils.writeConfig(this.config.web.injectedConfig, urls)
+    await writeConfig(this.config.web.injectedConfig, urls)
 
     // 2. build UI files
     const bundler = new Bundler(path.join(src, 'index.html'), {

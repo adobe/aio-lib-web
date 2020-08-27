@@ -35,11 +35,6 @@ Returns application scripts functions
 | Name | Type | Description |
 | --- | --- | --- |
 | buildUI | <code>function</code> | bundles the application's static files |
-| buildActions | <code>function</code> | zips and/or bundles the application's serverless functions |
 | deployUI | <code>function</code> | deploys the static files to a CDN, returns the URL |
-| deployActions | <code>function</code> | deploys the serverless functions to OpenWhisk |
 | undeployUI | <code>function</code> | removes the deployed static files |
-| undeployActions | <code>function</code> | deletes the deployed OpenWhisk actions |
-| runDev | <code>function</code> | runs the app in a local development server, set env REMOTE_ACTIONS=true to use remotely deployed actions |
-| logs | <code>function</code> | shows action logs |
 

@@ -13,12 +13,6 @@ governing permissions and limitations under the License.
 const cloneDeep = require('lodash.clonedeep')
 const path = require('path')
 
-// const { stdout, stderr } = require('stdout-stderr')
-
-// trap console log
-// beforeEach(() => { stdout.start(); stderr.start() })
-// afterEach(() => { stdout.stop(); stderr.stop() })
-
 jest.setTimeout(10000)
 
 process.on('unhandledRejection', error => {
@@ -167,13 +161,9 @@ global.fakeTVMResponse = {
 }
 
 global.expectedScripts = expect.objectContaining({
-  runDev: expect.any(Function),
   buildUI: expect.any(Function),
-  buildActions: expect.any(Function),
   deployUI: expect.any(Function),
-  deployActions: expect.any(Function),
-  undeployUI: expect.any(Function),
-  undeployActions: expect.any(Function)
+  undeployUI: expect.any(Function)
 })
 
 global.expectedS3ENVCreds = expect.objectContaining({
