@@ -13,10 +13,8 @@ governing permissions and limitations under the License.
 const { vol } = global.mockFs()
 
 const AppScripts = require('../index')
-const utils = require('../lib/utils')
 
 const mockAIOConfig = require('@adobe/aio-lib-core-config')
-utils.spawnAioRuntimeDeploy = jest.fn()
 
 let mockListener
 beforeEach(async () => {

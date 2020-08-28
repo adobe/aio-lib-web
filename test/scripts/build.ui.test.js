@@ -58,14 +58,6 @@ test('should build static files from web-src/index.html', async () => {
 
   await scripts.buildUI()
 
-  // make sure action and sequence urls are available to the UI
-  const uiConfig = JSON.parse((vol.readFileSync(scripts._config.web.injectedConfig)).toString())
-  expect(uiConfig).toEqual(expect.objectContaining({
-    action: expect.any(String),
-    'action-zip': expect.any(String),
-    'action-sequence': expect.any(String)
-  }))
-
   expect(Bundler.mockConstructor).toHaveBeenCalledWith(r('/web-src/index.html'), expect.objectContaining({
     publicUrl: './',
     outDir: r('/dist/web-src-prod')
@@ -75,44 +67,6 @@ test('should build static files from web-src/index.html', async () => {
   expect(mockOnProgress).toHaveBeenCalledWith(n('dist/web-src-prod/fake.js.map'))
 })
 
-test('should generate and inject web action Urls into web-src/src/config.json, including action sequence url', async () => {
-  global.loadFs(vol, 'sample-app')
-  mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
-
-  const scripts = await AppScripts()
-
-  await scripts.buildUI()
-  const remoteOWCredentials = global.fakeConfig.tvm.runtime
-  expect(vol.existsSync('/web-src/src/config.json')).toBe(true)
-  const baseUrl = 'https://' + remoteOWCredentials.namespace + '.' + global.defaultAppHostName + '/api/v1/web/sample-app-1.0.0/'
-  expect(JSON.parse(vol.readFileSync('/web-src/src/config.json').toString())).toEqual({
-    action: baseUrl + 'action',
-    'action-zip': baseUrl + 'action-zip',
-    'action-sequence': baseUrl + 'action-sequence'
-  })
-})
-
-test('should generate and inject web and non web action urls into web-src/src/config.json', async () => {
-  global.loadFs(vol, 'sample-app')
-  mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
-
-  const scripts = await AppScripts()
-  // delete sequence action to make sure url generation works without sequences as well
-  delete scripts._config.manifest.package.sequences
-  // also make sure to test urls for non web actions
-  delete scripts._config.manifest.package.actions.action.web
-
-  await scripts.buildUI()
-  const remoteOWCredentials = global.fakeConfig.tvm.runtime
-  expect(vol.existsSync('/web-src/src/config.json')).toBe(true)
-  const baseUrl = 'https://' + remoteOWCredentials.namespace + '.' + global.defaultAppHostName + '/api/v1/web/sample-app-1.0.0/'
-  const baseUrlNonWeb = 'https://' + remoteOWCredentials.namespace + '.' + global.defaultOwApiHost.split('https://')[1] + '/api/v1/sample-app-1.0.0/'
-  expect(JSON.parse(vol.readFileSync('/web-src/src/config.json').toString())).toEqual({
-    action: baseUrlNonWeb + 'action', // fake non web action
-    'action-zip': baseUrl + 'action-zip'
-  })
-})
-
 test('No backend is present', async () => {
   global.loadFs(vol, 'sample-app')
   mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
@@ -120,7 +74,5 @@ test('No backend is present', async () => {
 
   const scripts = await AppScripts()
   await scripts.buildUI()
-  expect(vol.existsSync('/web-src/src/config.json')).toBe(true)
-  expect(JSON.parse(vol.readFileSync('/web-src/src/config.json').toString())).toEqual({})
   expect(scripts._config.app.hasBackend).toBe(false)
 })
