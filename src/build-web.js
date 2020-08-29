@@ -41,7 +41,7 @@ const buildWeb = async (config, log) => {
   // 3. show built files
   const files = await fs.readdir(dist)
 
-  files.forEach(f => log(`progress: building ${f}`))
+  files.forEach(f => log(`building ${f}`))
 }
 
 module.exports = buildWeb

@@ -10,8 +10,8 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-const TvmClient = require('@adobe/aio-lib-core-tvm')
 const RemoteStorage = require('../lib/remote-storage')
+const getTvmCredentials = require('../lib/getTvmCreds')
 
 const undeployWeb = async (config, log) => {
   if (!config || !config.app || !config.app.hasFrontend) {
@@ -20,15 +20,7 @@ const undeployWeb = async (config, log) => {
 
   log = log || console.log
 
-  const creds = config.s3.creds ||
-  await (await TvmClient.init({
-    ow: {
-      namespace: config.ow.namespace,
-      auth: config.ow.auth
-    },
-    apiUrl: config.s3.tvmUrl,
-    cacheFile: config.s3.credsCacheFile
-  })).getAwsS3Credentials()
+  const creds = config.s3.creds || await getTvmCredentials(config.ow.namespace, config.ow.auth, config.s3.tvmUrl, config.s3.credsCacheFile)
 
   const remoteStorage = new RemoteStorage(creds)
 
