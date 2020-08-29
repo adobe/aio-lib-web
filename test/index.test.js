@@ -34,6 +34,4 @@ describe('AppScripts has expected interface ', () => {
     await expect(AppScripts.undeployWeb()).rejects.toThrow('cannot undeploy web')
     await expect(AppScripts.undeployWeb({})).rejects.toThrow('cannot undeploy web')
   })
-
-
 })
