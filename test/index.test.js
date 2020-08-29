@@ -10,39 +10,30 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-const { vol } = global.mockFs()
-
 const AppScripts = require('../index')
 
-const mockAIOConfig = require('@adobe/aio-lib-core-config')
-
-let mockListener
-beforeEach(async () => {
-  // create test app and switch cwd
-  global.loadFs(vol, 'sample-app')
-  mockAIOConfig.get.mockReturnValue(global.fakeConfig.tvm)
-  mockListener = {
-    onStart: jest.fn(),
-    onEnd: jest.fn(),
-    onProgress: jest.fn(),
-    onResource: jest.fn(),
-    onWarning: jest.fn()
-  }
-})
-
-afterEach(() => global.cleanFs(vol))
-
 describe('AppScripts has expected interface ', () => {
-  test('Load AppScripts without listener', async () => {
-    const scripts = AppScripts()
-    expect(scripts).toBeDefined()
-    expect(scripts).toEqual(global.expectedScripts)
+  test('exports functions', async () => {
+    expect(AppScripts.buildWeb).toBeDefined()
+    expect(typeof AppScripts.buildWeb).toBe('function')
+
+    expect(AppScripts.deployWeb).toBeDefined()
+    expect(typeof AppScripts.deployWeb).toBe('function')
+
+    expect(AppScripts.undeployWeb).toBeDefined()
+    expect(typeof AppScripts.undeployWeb).toBe('function')
   })
 
-  test('Load AppScripts with listener', async () => {
-    const scripts = AppScripts({ listeners: mockListener })
+  test('requires config.app to be passed', async () => {
+    await expect(AppScripts.buildWeb()).rejects.toThrow('cannot build web')
+    await expect(AppScripts.buildWeb({})).rejects.toThrow('cannot build web')
 
-    expect(scripts).toBeDefined()
-    expect(scripts).toEqual(global.expectedScripts)
+    await expect(AppScripts.deployWeb()).rejects.toThrow('cannot deploy web')
+    await expect(AppScripts.deployWeb({})).rejects.toThrow('cannot deploy web')
+
+    await expect(AppScripts.undeployWeb()).rejects.toThrow('cannot undeploy web')
+    await expect(AppScripts.undeployWeb({})).rejects.toThrow('cannot undeploy web')
   })
+
+
 })
