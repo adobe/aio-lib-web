@@ -22,9 +22,6 @@ const buildWeb = async (config, log) => {
   const dist = config.web.distProd
   const src = config.web.src
 
-  console.log('src = ', src)
-  console.log('dist = ', dist)
-
   // clean/create needed dirs
   await fs.emptyDir(dist)
 

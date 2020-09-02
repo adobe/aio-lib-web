@@ -16,7 +16,7 @@ const getTvmCredentials = require('../lib/getTvmCreds')
 const fs = require('fs-extra')
 const path = require('path')
 
-const deployWeb = async (config, log = console.log) => {
+const deployWeb = async (config, log) => {
   if (!config || !config.app || !config.app.hasFrontend) {
     throw new Error('cannot deploy web, app has no frontend or config is invalid')
   }
@@ -49,11 +49,13 @@ const deployWeb = async (config, log = console.log) => {
   const exists = await remoteStorage.folderExists(config.s3.folder)
 
   if (exists) {
-    log('warning: an existing deployment will be overwritten')
+    if (log) {
+      log('warning: an existing deployment will be overwritten')
+    }
     await remoteStorage.emptyFolder(config.s3.folder)
   }
-
-  await remoteStorage.uploadDir(dist, config.s3.folder, config.app, f => log(`deploying ${path.relative(dist, f)}`))
+  const _log = log ? (f) => log(`deploying ${path.relative(dist, f)}`) : null
+  await remoteStorage.uploadDir(dist, config.s3.folder, config.app, _log)
 
   const url = `https://${config.ow.namespace}.${config.app.hostname}/index.html`
   return url

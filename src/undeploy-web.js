@@ -13,7 +13,7 @@ governing permissions and limitations under the License.
 const RemoteStorage = require('../lib/remote-storage')
 const getTvmCredentials = require('../lib/getTvmCreds')
 
-const undeployWeb = async (config, log = console.log) => {
+const undeployWeb = async (config) => {
   if (!config || !config.app || !config.app.hasFrontend) {
     throw new Error('cannot undeploy web, app has no frontend or config is invalid')
   }
