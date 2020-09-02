@@ -19,10 +19,11 @@ const buildWeb = async (config, log) => {
     throw new Error('cannot build web, app has no frontend or config is invalid')
   }
 
-  log = log || console.log
-
   const dist = config.web.distProd
   const src = config.web.src
+
+  console.log('src = ', src)
+  console.log('dist = ', dist)
 
   // clean/create needed dirs
   await fs.emptyDir(dist)
@@ -38,10 +39,12 @@ const buildWeb = async (config, log) => {
 
   await bundler.bundle()
 
-  // 3. show built files
+  // 3. show built files ( if we are passed a log function )
   const files = await fs.readdir(dist)
-
-  files.forEach(f => log(`building ${f}`))
+  if (log) {
+    files.forEach(f => log(`building ${f}`))
+  }
+  return files
 }
 
 module.exports = buildWeb

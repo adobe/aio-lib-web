@@ -27,7 +27,6 @@ function spyS3 (funcs) {
 }
 
 describe('RemoteStorage', () => {
-
   beforeEach(() => {
     // restores all spies
     jest.restoreAllMocks()
@@ -144,6 +143,19 @@ describe('RemoteStorage', () => {
     expect(uploadMock).toHaveBeenCalledWith(expect.objectContaining({ Key: 'fakeprefix/index.js', Body: body }))
   })
 
+  test('uploadFile should call S3#upload with the correct parameters and slash-prefix', async () => {
+    global.addFakeFiles(vol, 'fakeDir', { 'index.js': 'fake content' })
+    const uploadMock = jest.fn()
+    spyS3({
+      upload: uploadMock
+    })
+    const rs = new RemoteStorage(global.fakeTVMResponse)
+    const fakeConfig = {}
+    await rs.uploadFile('fakeDir/index.js', '/slash-prefix', fakeConfig)
+    const body = Buffer.from('fake content', 'utf8')
+    expect(uploadMock).toHaveBeenCalledWith(expect.objectContaining({ Key: '/slash-prefix/index.js', Body: body }))
+  })
+
   test('uploadDir should call S3#upload one time per file', async () => {
     await global.addFakeFiles(vol, 'fakeDir', ['index.js', 'index.css', 'index.html'])
     const uploadMock = jest.fn()
@@ -197,5 +209,4 @@ describe('RemoteStorage', () => {
     const response = rs._getCacheControlConfig('application/pdf', global.fakeConfig.cna)
     expect(response).toBe('s-maxage=0')
   })
-
 })

@@ -16,25 +16,38 @@ const getTvmCredentials = require('../lib/getTvmCreds')
 const fs = require('fs-extra')
 const path = require('path')
 
-const deployWeb = async (config, log) => {
+const deployWeb = async (config, log = console.log) => {
   if (!config || !config.app || !config.app.hasFrontend) {
     throw new Error('cannot deploy web, app has no frontend or config is invalid')
   }
-
-  log = log || console.log
+  if (!config.s3) {
+    throw new Error('missing credentials or tvmUrl+credsCacheFile in config.s3')
+  } else {
+    if (!config.s3.creds) {
+      if (!config.ow ||
+        !config.ow.namespace ||
+        !config.ow.auth ||
+        !config.s3.tvmUrl ||
+        !config.s3.credsCacheFile) {
+        throw new Error('missing config.ow namespace+auth or tvmUrl+credsCacheFile in config.s3')
+      }
+    }
+  }
   /// build files
   const dist = config.web.distProd
-  if (!(fs.existsSync(dist)) ||
-    !(fs.lstatSync(dist)).isDirectory() ||
-    !(fs.readdirSync(dist)).length === 0) {
+  if (!fs.existsSync(dist) ||
+    !fs.lstatSync(dist).isDirectory() ||
+    (fs.readdirSync(dist).length === 0)) {
     // note: removed this._relApp(dist)
     throw new Error(`missing files in ${dist}, maybe you forgot to build your UI ?`)
   }
 
-  const creds = config.s3.creds || await getTvmCredentials(config.ow.namespace, config.ow.auth, config.s3.tvmUrl, config.s3.credsCacheFile)
+  const creds = config.s3.creds ||
+    await getTvmCredentials(config.ow.namespace, config.ow.auth, config.s3.tvmUrl, config.s3.credsCacheFile)
 
   const remoteStorage = new RemoteStorage(creds)
   const exists = await remoteStorage.folderExists(config.s3.folder)
+
   if (exists) {
     log('warning: an existing deployment will be overwritten')
     await remoteStorage.emptyFolder(config.s3.folder)

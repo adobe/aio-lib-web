@@ -12,10 +12,7 @@ governing permissions and limitations under the License.
 
 const getTvmCredentials = require('../../lib/getTvmCreds')
 
-const tvmMock = jest.mock('@adobe/aio-lib-core-tvm')
-
 describe('getTvmCredentials', () => {
-
   beforeEach(() => {
     // restores all spies
     jest.restoreAllMocks()

@@ -27,5 +27,5 @@ module.exports = {
       statements: 100
     }
   },
-  coverageReporters: ['json', 'lcovonly', 'text', 'clover']
+  coverageReporters: ['json', 'lcovonly', 'text', 'clover', 'html']
 }
