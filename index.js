@@ -22,7 +22,7 @@ const undeployWeb = require('./src/undeploy-web')
 /**
  * @typedef AppScripts
  * @type {object}
- * @property static {function(object):Promise<undefined>} buildWeb - bundles the application's static files
+ * @property {function(object):Promise<undefined>} buildWeb - bundles the application's static files
  * @property {function(object):Promise<string>} deployWeb - deploys the static files to a CDN, returns the URL
  * @property {function(object):Promise<undefined>} undeployWeb - removes the deployed static files
  */
