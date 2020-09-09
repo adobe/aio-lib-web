@@ -9,12 +9,10 @@ the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTA
 OF ANY KIND, either express or implied. See the License for the specific language
 governing permissions and limitations under the License.
 */
-const loadConfig = require('./lib/config-loader')
 
-const aioLogger = require('@adobe/aio-lib-core-logging')('@adobe/aio-app-scripts:index', { provider: 'debug' })
-const BuildUI = require('./scripts/build.ui')
-const DeployUI = require('./scripts/deploy.ui')
-const UndeployUI = require('./scripts/undeploy.ui')
+const buildWeb = require('./src/build-web')
+const deployWeb = require('./src/deploy-web')
+const undeployWeb = require('./src/undeploy-web')
 
 /**
  * Adobe I/O application scripts
@@ -24,58 +22,13 @@ const UndeployUI = require('./scripts/undeploy.ui')
 /**
  * @typedef AppScripts
  * @type {object}
- * @property {function(object):Promise<undefined>} buildUI - bundles the application's static files
- * @property {function(object):Promise<string>} deployUI - deploys the static files to a CDN, returns the URL
- * @property {function(object):Promise<undefined>} undeployUI - removes the deployed static files
+ * @property {function(object):Promise<undefined>} buildWeb - bundles the application's static files
+ * @property {function(object):Promise<string>} deployWeb - deploys the static files to a CDN, returns the URL
+ * @property {function(object):Promise<undefined>} undeployWeb - removes the deployed static files
  */
 
-/**
- * Returns application scripts functions
- * @function
- * @param {object} [options]
- * @param {object} [options.listeners]
- * @param {function} [options.listeners.onStart]
- * @param {function} [options.listeners.onEnd]
- * @param {function} [options.listeners.onProgress]
- * @param {function} [options.listeners.onResource]
- * @param {function} [options.listeners.onWarning]
- * @returns {AppScripts} With all script functions
- */
-module.exports = function (options) {
-  aioLogger.debug('exportScripts')
-
-  options = options || {}
-  const listeners = options.listeners || {}
-
-  const appConfig = loadConfig()
-
-  const instantiate = (ClassDesc) => {
-    const instance = new ClassDesc(appConfig)
-
-    if (listeners.onStart) {
-      instance.on('start', listeners.onStart)
-    }
-    if (listeners.onEnd) {
-      instance.on('end', listeners.onEnd)
-    }
-    if (listeners.onProgress) {
-      instance.on('progress', listeners.onProgress)
-    }
-    if (listeners.onResource) {
-      instance.on('resource', listeners.onResource)
-    }
-    if (listeners.onWarning) {
-      instance.on('warning', listeners.onWarning)
-    }
-    // todo: refactor this away
-    return instance.run.bind(instance)
-  }
-  // interface
-  return {
-    buildUI: instantiate(BuildUI),
-    deployUI: instantiate(DeployUI),
-    undeployUI: instantiate(UndeployUI),
-    // for unit testing
-    _config: appConfig
-  }
+module.exports = {
+  buildWeb,
+  deployWeb,
+  undeployWeb
 }

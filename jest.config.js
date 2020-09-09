@@ -18,7 +18,7 @@ module.exports = {
   collectCoverageFrom: [
     'index.js',
     'lib/**/*.js',
-    'scripts/**/*.js'
+    'src/**/*.js'
   ],
   coverageThreshold: {
     global: {
@@ -27,5 +27,5 @@ module.exports = {
       statements: 100
     }
   },
-  coverageReporters: ['json', 'lcovonly', 'text', 'clover']
+  coverageReporters: ['json', 'lcovonly', 'text', 'clover', 'html']
 }
