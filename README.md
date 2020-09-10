@@ -10,42 +10,16 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 -->
 
-[![Version](https://img.shields.io/npm/v/@adobe/aio-app-scripts.svg)](https://npmjs.org/package/@adobe/aio-app-scripts)
-[![Downloads/week](https://img.shields.io/npm/dw/@adobe/aio-app-scripts.svg)](https://npmjs.org/package/@adobe/aio-app-scripts)
-[![Build Status](https://travis-ci.com/adobe/aio-app-scripts.svg?branch=master)](https://travis-ci.com/adobe/aio-app-scripts)
+[![Version](https://img.shields.io/npm/v/@adobe/aio-lib-web.svg)](https://npmjs.org/package/@adobe/aio-lib-web)
+[![Downloads/week](https://img.shields.io/npm/dw/@adobe/aio-lib-web.svg)](https://npmjs.org/package/@adobe/aio-lib-web)
+[![Build Status](https://travis-ci.com/adobe/aio-lib-web.svg?branch=master)](https://travis-ci.com/adobe/aio-lib-web)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0) 
-[![Codecov Coverage](https://img.shields.io/codecov/c/github/adobe/aio-app-scripts/master.svg?style=flat-square)](https://codecov.io/gh/adobe/aio-app-scripts/)
+[![Codecov Coverage](https://img.shields.io/codecov/c/github/adobe/aio-lib-web/master.svg?style=flat-square)](https://codecov.io/gh/adobe/aio-lib-web/)
 
-**IMPORTANT NOTICE: `adobe/aio-app-scripts` will be removed entirely soon, the logic is being moved to [adobe/aio-cli-plugin-app](https://github.com/adobe/aio-cli-plugin-app) and [adobe/aio-lib-runtime](https://github.com/adobe/aio-lib-runtime).**
 
-**Please make sure to not depend on `@adobe/aio-app-scripts` anymore.**
+# aio-lib-web
 
-**No contributions to this repository will be accepted.**
-
-# AIO App Scripts
-
-Utility tooling scripts to build, deploy and run Adobe I/O Apps
-
-## Include as a library in your nodejs project
-
-```bash
-npm i --save @adobe/aio-app-scripts
-```
-
-```js
-const appScripts = require('@adobe/aio-app-scripts')({
-  listeners: {
-    onStart: taskName => console.error(`${taskName} ...`),
-    onEnd: (taskName, res) => { console.error(`${taskName} done!`); if (res) console.log(res) },
-    onWarning: warning => console.error(warning),
-    onProgress: item => console.error(`  > ${item}`)
-  }
-})
-
-appScripts.buildUI()
-  .then(appScripts.deployUI)
-  .catch(e => { console.error(e); process.exit(1) })
-```
+Utility tooling library to build and deploy Adobe I/O Project Firefly app static sites to CDN
 
 ## Explore
 

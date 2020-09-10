@@ -1,7 +1,7 @@
 {
-  "name": "@adobe/aio-app-scripts",
+  "name": "@adobe/aio-lib-web",
   "version": "2.5.1",
-  "description": "Utility tooling scripts to build, deploy and run an Adobe I/O App",
+  "description": "Utility tooling library to build and deploy Adobe I/O Project Firefly app static sites to CDN",
   "main": "index.js",
   "directories": {
     "lib": "lib",
@@ -12,8 +12,8 @@
   "engines": {
     "node": ">=10.0.0"
   },
-  "repository": "adobe/aio-app-scripts",
-  "homepage": "https://github.com/adobe/aio-app-scripts",
+  "repository": "adobe/aio-lib-web",
+  "homepage": "https://github.com/adobe/aio-lib-web",
   "keywords": [
     "openwhisk",
     "reactjs",

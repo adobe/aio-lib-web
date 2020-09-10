@@ -15,12 +15,12 @@ const deployWeb = require('./src/deploy-web')
 const undeployWeb = require('./src/undeploy-web')
 
 /**
- * Adobe I/O application scripts
- * @module adobe/aio-app-scripts
+ * Adobe I/O app lib web, build / deploy webapps to cdn
+ * @module adobe/aio-lib-web
  */
 
 /**
- * @typedef AppScripts
+ * @typedef AppLibWeb
  * @type {object}
  * @property {function(object):Promise<undefined>} buildWeb - bundles the application's static files
  * @property {function(object):Promise<string>} deployWeb - deploys the static files to a CDN, returns the URL

@@ -1,40 +1,17 @@
-<a name="module_adobe/aio-app-scripts"></a>
+<a name="module_adobe/aio-lib-web"></a>
 
-## adobe/aio-app-scripts
-Adobe I/O application scripts
+## adobe/aio-lib-web
+Adobe I/O app lib web, build / deploy webapps to cdn
 
+<a name="module_adobe/aio-lib-web..AppLibWeb"></a>
 
-* [adobe/aio-app-scripts](#module_adobe/aio-app-scripts)
-    * [module.exports([options])](#exp_module_adobe/aio-app-scripts--module.exports) ⇒ <code>AppScripts</code> ⏏
-        * [~AppScripts](#module_adobe/aio-app-scripts--module.exports..AppScripts) : <code>object</code>
-
-<a name="exp_module_adobe/aio-app-scripts--module.exports"></a>
-
-### module.exports([options]) ⇒ <code>AppScripts</code> ⏏
-Returns application scripts functions
-
-**Kind**: Exported function  
-**Returns**: <code>AppScripts</code> - With all script functions  
-
-| Param | Type |
-| --- | --- |
-| [options] | <code>object</code> | 
-| [options.listeners] | <code>object</code> | 
-| [options.listeners.onStart] | <code>function</code> | 
-| [options.listeners.onEnd] | <code>function</code> | 
-| [options.listeners.onProgress] | <code>function</code> | 
-| [options.listeners.onResource] | <code>function</code> | 
-| [options.listeners.onWarning] | <code>function</code> | 
-
-<a name="module_adobe/aio-app-scripts--module.exports..AppScripts"></a>
-
-#### module.exports~AppScripts : <code>object</code>
-**Kind**: inner typedef of [<code>module.exports</code>](#exp_module_adobe/aio-app-scripts--module.exports)  
+### adobe/aio-lib-web~AppLibWeb : <code>object</code>
+**Kind**: inner typedef of [<code>adobe/aio-lib-web</code>](#module_adobe/aio-lib-web)  
 **Properties**
 
 | Name | Type | Description |
 | --- | --- | --- |
-| buildUI | <code>function</code> | bundles the application's static files |
-| deployUI | <code>function</code> | deploys the static files to a CDN, returns the URL |
-| undeployUI | <code>function</code> | removes the deployed static files |
+| buildWeb | <code>function</code> | bundles the application's static files |
+| deployWeb | <code>function</code> | deploys the static files to a CDN, returns the URL |
+| undeployWeb | <code>function</code> | removes the deployed static files |
 
