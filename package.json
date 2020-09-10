@@ -1,7 +1,7 @@
 {
   "name": "@adobe/aio-lib-web",
   "version": "2.5.1",
-  "description": "Utility tooling library to build, deploy and run an Adobe I/O App static website to cdn",
+  "description": "Utility tooling library to build and deploy Adobe I/O Project Firefly app static sites to CDN",
   "main": "index.js",
   "directories": {
     "lib": "lib",

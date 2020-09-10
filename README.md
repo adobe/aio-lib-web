@@ -19,7 +19,7 @@ governing permissions and limitations under the License.
 
 # aio-lib-web
 
-Utility tooling scripts to build, deploy and run Project Firefly app static sites to CDN
+Utility tooling library to build and deploy Adobe I/O Project Firefly app static sites to CDN
 
 ## Explore
 
