@@ -19,6 +19,7 @@ const mockStop = jest.fn()
 // hack to expose constructor, somehow returning a jest.fn doesn't work as expected for commonjs (only es6)
 const Bundler = function (...args) {
   mockConstructor(...args)
+  global._bundler__arguments = args
   return {
     bundle: mockBundle,
     middleware: mockMiddleware,

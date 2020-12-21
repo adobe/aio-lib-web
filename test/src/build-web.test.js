@@ -48,4 +48,20 @@ describe('build-web', () => {
     // no log
     await expect(buildWeb(config)).resolves.toEqual(['output.html'])
   })
+
+  test('check build options', async () => {
+    const config = {
+      app: {
+        hasFrontend: true
+      },
+      web: {
+        distProd: 'dist',
+        src: 'fakeDir'
+      }
+    }
+    global.addFakeFiles(vol, 'fakeDir', { 'index.html': '' })
+    fs.readdir.mockReturnValue(['output.html'])
+    await expect(buildWeb(config)).resolves.toEqual(['output.html'])
+    expect(global._bundler__arguments).toEqual(['fakeDir/index.html', { cache: false, contentHash: true, logLevel: 0, outDir: 'dist', publicUrl: './', watch: false }])
+  })
 })
