@@ -31,7 +31,8 @@ const buildWeb = async (config, log) => {
     outDir: dist,
     publicUrl: './',
     watch: false,
-    logLevel: 0
+    logLevel: 0,
+    contentHash: true
   })
 
   await bundler.bundle()
