@@ -31,6 +31,7 @@ jest.mock('../../lib/remote-storage', () => {
 })
 
 describe('deploy-web', () => {
+  const errString = 'Please check your .env file to ensure your credentials are correct. You can also use "aio app use" to load/refresh your credentials'
   beforeEach(() => {
     // restores all spies
     RemoteStorage.mockClear()
@@ -106,19 +107,19 @@ describe('deploy-web', () => {
     await expect(deployWeb(config)).rejects.toThrow('missing credentials')
 
     config.s3 = {}
-    await expect(deployWeb(config)).rejects.toThrow('missing config.ow')
+    await expect(deployWeb(config)).rejects.toThrow(errString)
 
     config.ow = {}
-    await expect(deployWeb(config)).rejects.toThrow('missing config.ow')
+    await expect(deployWeb(config)).rejects.toThrow(errString)
 
     config.ow.namespace = '_'
-    await expect(deployWeb(config)).rejects.toThrow('missing config.ow')
+    await expect(deployWeb(config)).rejects.toThrow(errString)
 
     config.ow.auth = '_'
-    await expect(deployWeb(config)).rejects.toThrow('missing config.ow')
+    await expect(deployWeb(config)).rejects.toThrow(errString)
 
     config.s3.tvmUrl = 'asd'
-    await expect(deployWeb(config)).rejects.toThrow('missing config.ow')
+    await expect(deployWeb(config)).rejects.toThrow(errString)
 
     config.s3.credsCacheFile = 'asd'
     await expect(deployWeb(config)).rejects.toThrow('missing files')

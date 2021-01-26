@@ -29,7 +29,7 @@ const deployWeb = async (config, log) => {
         !config.ow.auth ||
         !config.s3.tvmUrl ||
         !config.s3.credsCacheFile) {
-        throw new Error('missing config.ow namespace+auth or tvmUrl+credsCacheFile in config.s3')
+        throw new Error('Please check your .env file to ensure your credentials are correct. You can also use "aio app use" to load/refresh your credentials')
       }
     }
   }
