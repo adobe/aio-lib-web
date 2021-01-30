@@ -23,6 +23,7 @@ const bundle = require('./src/bundle')
 /**
  * @typedef AppLibWeb
  * @type {object}
+ * @property {function(object):Promise<undefined>} bundles - bundles the application's static files
  * @property {function(object):Promise<undefined>} buildWeb - bundles the application's static files
  * @property {function(object):Promise<string>} deployWeb - deploys the static files to a CDN, returns the URL
  * @property {function(object):Promise<undefined>} undeployWeb - removes the deployed static files

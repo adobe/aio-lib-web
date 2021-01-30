@@ -14,6 +14,9 @@ const fs = require('fs-extra')
 const path = require('path')
 const Bundler = require('parcel-bundler')
 
+/**
+ * @deprecated since 4.1.0 ( January, 2021 ), use `bundle` instead
+ */
 const buildWeb = async (config, log) => {
   if (!config || !config.app || !config.app.hasFrontend) {
     throw new Error('cannot build web, app has no frontend or config is invalid')
