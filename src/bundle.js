@@ -12,7 +12,7 @@ governing permissions and limitations under the License.
 
 const Bundler = require('parcel-bundler')
 const aioLogger = require('@adobe/aio-lib-core-logging')('@adobe/aio-lib-web:bundle', { provider: 'debug' })
-
+const fs = require('fs-extra')
 /**
  * @typedef {object} BundleWebObject
  * @property {object} the Parcel bundler object
@@ -40,18 +40,26 @@ const aioLogger = require('@adobe/aio-lib-core-logging')('@adobe/aio-lib-web:bun
 module.exports = async (entryFile, dest, options = {}, log = () => {}) => {
   aioLogger.debug(`bundle options: ${JSON.stringify(options, null, 2)}`)
 
+  if (!entryFile || !fs.existsSync(entryFile)) {
+    throw new Error('cannot build web, entyFile not specified, or does not exist')
+  }
+  if (!dest) {
+    throw new Error('cannot build web, missing destination')
+  }
+
   // set defaults, but allow override by passed in values
   const parcelBundleOptions = {
     cache: true,
     outDir: dest,
     contentHash: true, // false if dev, true if prod ??
-    watch: true, // currently false if dev true if prod,
+    watch: false, // currently false if dev true if prod,
     minify: false,
     logLevel: 1,
     ...options
   }
 
   aioLogger.debug(`bundle bundleOptions: ${JSON.stringify(parcelBundleOptions, null, 2)}`)
+  log(`bundling ${entryFile}`)
   const bundler = new Bundler(entryFile, parcelBundleOptions)
 
   await bundler.bundle()
