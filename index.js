@@ -13,6 +13,7 @@ governing permissions and limitations under the License.
 const buildWeb = require('./src/build-web')
 const deployWeb = require('./src/deploy-web')
 const undeployWeb = require('./src/undeploy-web')
+const bundle = require('./src/bundle')
 
 /**
  * Adobe I/O app lib web, build / deploy webapps to cdn
@@ -22,12 +23,14 @@ const undeployWeb = require('./src/undeploy-web')
 /**
  * @typedef AppLibWeb
  * @type {object}
+ * @property {function(object):Promise<undefined>} bundles - bundles the application's static files
  * @property {function(object):Promise<undefined>} buildWeb - bundles the application's static files
  * @property {function(object):Promise<string>} deployWeb - deploys the static files to a CDN, returns the URL
  * @property {function(object):Promise<undefined>} undeployWeb - removes the deployed static files
  */
 
 module.exports = {
+  bundle,
   buildWeb,
   deployWeb,
   undeployWeb
