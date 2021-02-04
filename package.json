@@ -1,6 +1,6 @@
 {
   "name": "@adobe/aio-lib-web",
-  "version": "4.0.1",
+  "version": "4.1.0",
   "description": "Utility tooling library to build and deploy Adobe I/O Project Firefly app static sites to CDN",
   "main": "index.js",
   "directories": {
