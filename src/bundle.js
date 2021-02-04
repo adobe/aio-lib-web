@@ -62,7 +62,6 @@ module.exports = async (entryFile, dest, options = {}, log = () => {}) => {
   log(`bundling ${entryFile}`)
   const bundler = new Bundler(entryFile, parcelBundleOptions)
 
-  await bundler.bundle()
   const cleanup = async () => {
     aioLogger.debug('cleanup bundler...')
     await bundler.stop()
