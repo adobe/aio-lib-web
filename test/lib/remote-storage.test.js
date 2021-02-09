@@ -140,7 +140,7 @@ describe('RemoteStorage', () => {
     const fakeConfig = {}
     await rs.uploadFile('fakeDir/index.js', 'fakeprefix', fakeConfig)
     const body = Buffer.from('fake content', 'utf8')
-    expect(uploadMock).toHaveBeenCalledWith(expect.objectContaining({ Key: 'fakeprefix/index.js', Body: body }))
+    expect(uploadMock).toHaveBeenCalledWith(expect.objectContaining({ Key: 'fakeprefix/index.js', Body: body, ContentType: 'application/javascript' }))
   })
 
   test('uploadFile should call S3#upload with the correct parameters and slash-prefix', async () => {
@@ -153,7 +153,21 @@ describe('RemoteStorage', () => {
     const fakeConfig = {}
     await rs.uploadFile('fakeDir/index.js', '/slash-prefix', fakeConfig)
     const body = Buffer.from('fake content', 'utf8')
-    expect(uploadMock).toHaveBeenCalledWith(expect.objectContaining({ Key: '/slash-prefix/index.js', Body: body }))
+    expect(uploadMock).toHaveBeenCalledWith(expect.objectContaining({ Key: '/slash-prefix/index.js', Body: body, ContentType: 'application/javascript' }))
+  })
+
+  test('uploadFile S3#upload with string ContentType', async () => {
+    global.addFakeFiles(vol, 'fakeDir', { 'index.mst': 'fake content' })
+    let uploadParams
+    const uploadMock = jest.fn((params) => { uploadParams = params })
+    spyS3({
+      upload: uploadMock
+    })
+    const rs = new RemoteStorage(global.fakeTVMResponse)
+    const fakeConfig = {}
+    await rs.uploadFile('fakeDir/index.mst', 'fakeprefix', fakeConfig)
+    expect(uploadMock).toHaveBeenCalledWith(expect.objectContaining({ Key: 'fakeprefix/index.mst' }))
+    expect(uploadParams.ContentType).toBeUndefined()
   })
 
   test('uploadDir should call S3#upload one time per file', async () => {
