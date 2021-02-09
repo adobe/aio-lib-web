@@ -157,7 +157,7 @@ describe('RemoteStorage', () => {
   })
 
   test('uploadFile S3#upload with string ContentType', async () => {
-    global.addFakeFiles(vol, 'fakeDir', { 'index.xyz': 'fake content' })
+    global.addFakeFiles(vol, 'fakeDir', { 'index.mst': 'fake content' })
     let uploadParams
     const uploadMock = jest.fn((params) => { uploadParams = params })
     spyS3({
@@ -166,7 +166,7 @@ describe('RemoteStorage', () => {
     const rs = new RemoteStorage(global.fakeTVMResponse)
     const fakeConfig = {}
     await rs.uploadFile('fakeDir/index.mst', 'fakeprefix', fakeConfig)
-    expect(uploadMock).toHaveBeenCalledWith(expect.objectContaining({ Key: 'fakeprefix/index.xyz' }))
+    expect(uploadMock).toHaveBeenCalledWith(expect.objectContaining({ Key: 'fakeprefix/index.mst' }))
     expect(uploadParams.ContentType).toBeUndefined()
   })
 
