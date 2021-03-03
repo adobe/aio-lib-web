@@ -1,11 +1,11 @@
-const bundle = require('../src/bundle')
-const deployWeb = require('../src/deploy-web')
-const undeployWeb = require('../src/undeploy-web')
 const path = require('path')
 const fs = require('fs-extra')
 const superagent = require('superagent')
-
 require('dotenv').config()
+
+const bundle = require('../src/bundle')
+const deployWeb = require('../src/deploy-web')
+const undeployWeb = require('../src/undeploy-web')
 const ENTRY_FILE = path.join(__dirname, 'sample-app/index.html')
 const DEST_FOLDER = path.join(__dirname, 'dist/')
 const CACHE_FILE = path.join(__dirname, '.cache')
