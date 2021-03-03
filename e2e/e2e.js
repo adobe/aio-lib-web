@@ -44,7 +44,6 @@ beforeAll(async () => {
  * Test bundler
  */
 describe('e2e', () => {
-
   let url
 
   test('check bundle output dir', async () => {
