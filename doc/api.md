@@ -11,7 +11,6 @@ Adobe I/O app lib web, build / deploy webapps to cdn
 
 | Name | Type | Description |
 | --- | --- | --- |
-| bundles | <code>function</code> | bundles the application's static files |
 | buildWeb | <code>function</code> | bundles the application's static files |
 | deployWeb | <code>function</code> | deploys the static files to a CDN, returns the URL |
 | undeployWeb | <code>function</code> | removes the deployed static files |
