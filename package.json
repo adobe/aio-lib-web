@@ -54,6 +54,6 @@
     "jest": "^24.9.0",
     "jsdoc-to-markdown": "^6.0.1",
     "memfs": "^3.0.1",
-    "superagent": "^6.1.0"
+    "node-fetch": "^2.6.1"
   }
 }

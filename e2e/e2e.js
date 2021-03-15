@@ -12,7 +12,7 @@ governing permissions and limitations under the License.
 
 const path = require('path')
 const fs = require('fs-extra')
-const superagent = require('superagent')
+const fetch = require('node-fetch')
 require('dotenv').config()
 
 const bundle = require('../src/bundle')
@@ -86,8 +86,8 @@ describe('e2e', () => {
     let error, contents
     try {
       url = await deployWeb(config)
-      const response = await superagent.get(url)
-      contents = response.res.text
+      const response = await fetch(url)
+      contents = await response.text()
     } catch (e) {
       error = e
     }
@@ -98,14 +98,14 @@ describe('e2e', () => {
   })
 
   test('undeploy', async () => {
-    let error
+    let error, response
     try {
       await undeployWeb(config)
-      await superagent.get(url)
+      response = await fetch(url)
     } catch (e) {
       error = e
     }
-    expect(error).not.toBeUndefined()
-    expect(error.status).toEqual(404)
+    expect(error).toBeUndefined()
+    expect(response.status).toEqual(404)
   })
 })
