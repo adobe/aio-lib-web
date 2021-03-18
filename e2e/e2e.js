@@ -42,14 +42,8 @@ const config = {
   }
 }
 
-async function cleanupTemp () {
-  fs.removeSync(DEST_FOLDER)
-  fs.unlinkSync(CACHE_FILE)
-}
-
 beforeAll(async () => {
   jest.setTimeout(240000)
-  cleanupTemp()
 })
 
 /**
