@@ -31,25 +31,19 @@ const config = {
   s3: {
     tvmUrl: 'https://firefly-tvm.adobe.io', // default tvm url
     credsCacheFile: CACHE_FILE,
-    folder: process.env.AIO_runtime_namespace
+    folder: process.env.RUNTIME_NAMESPACE
   },
   ow: {
-    namespace: process.env.AIO_runtime_namespace,
-    auth: process.env.AIO_runtime_auth
+    namespace: process.env.RUNTIME_NAMESPACE,
+    auth: process.env.RUNTIME_AUTH
   },
   web: {
     distProd: DEST_FOLDER
   }
 }
 
-async function cleanupTemp () {
-  fs.removeSync(DEST_FOLDER)
-  fs.unlinkSync(CACHE_FILE)
-}
-
 beforeAll(async () => {
   jest.setTimeout(240000)
-  cleanupTemp()
 })
 
 /**

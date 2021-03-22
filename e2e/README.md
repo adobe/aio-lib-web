@@ -1,7 +1,7 @@
 # E2E Tests
 The e2e tests require the following env vars
-- `AIO_runtime_namespace`
-- `AIO_runtime_auth`
+- `RUNTIME_NAMESPACE`
+- `RUNTIME_AUTH`
 
 The tests include
 - Test bundler output with default settings
