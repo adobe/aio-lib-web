@@ -11,7 +11,7 @@ governing permissions and limitations under the License.
 */
 
 const RemoteStorage = require('../lib/remote-storage')
-const getTvmCredentials = require('../lib/getTvmCreds')
+const getS3Credentials = require('../lib/getS3Creds')
 
 const fs = require('fs-extra')
 const path = require('path')
@@ -20,19 +20,7 @@ const deployWeb = async (config, log) => {
   if (!config || !config.app || !config.app.hasFrontend) {
     throw new Error('cannot deploy web, app has no frontend or config is invalid')
   }
-  if (!config.s3) {
-    throw new Error('missing credentials or tvmUrl+credsCacheFile in config.s3')
-  } else {
-    if (!config.s3.creds) {
-      if (!config.ow ||
-        !config.ow.namespace ||
-        !config.ow.auth ||
-        !config.s3.tvmUrl ||
-        !config.s3.credsCacheFile) {
-        throw new Error('Please check your .env file to ensure your credentials are correct. You can also use "aio app use" to load/refresh your credentials')
-      }
-    }
-  }
+
   /// build files
   const dist = config.web.distProd
   if (!fs.existsSync(dist) ||
@@ -42,8 +30,7 @@ const deployWeb = async (config, log) => {
     throw new Error(`missing files in ${dist}, maybe you forgot to build your UI ?`)
   }
 
-  const creds = config.s3.creds ||
-    await getTvmCredentials(config.ow.namespace, config.ow.auth, config.s3.tvmUrl, config.s3.credsCacheFile)
+  const creds = await getS3Credentials(config)
 
   const remoteStorage = new RemoteStorage(creds)
   const exists = await remoteStorage.folderExists(config.s3.folder)
