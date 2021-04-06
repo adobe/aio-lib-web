@@ -46,13 +46,13 @@ const deployWeb = async (config, log) => {
     await getTvmCredentials(config.ow.namespace, config.ow.auth, config.s3.tvmUrl, config.s3.credsCacheFile)
 
   const remoteStorage = new RemoteStorage(creds)
-  const exists = await remoteStorage.folderExists(config.s3.folder)
+  const exists = await remoteStorage.folderExists(config.s3.folder + '/')
 
   if (exists) {
     if (log) {
       log('warning: an existing deployment will be overwritten')
     }
-    await remoteStorage.emptyFolder(config.s3.folder)
+    await remoteStorage.emptyFolder(config.s3.folder + '/')
   }
   const _log = log ? (f) => log(`deploying ${path.relative(dist, f)}`) : null
   await remoteStorage.uploadDir(dist, config.s3.folder, config.app, _log)
