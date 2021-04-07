@@ -214,5 +214,44 @@ describe('deploy-web', () => {
     expect(RemoteStorage).toHaveBeenCalledTimes(1)
   })
 
+  test('calls to s3 should use ending slash', async () => {
+    const config = {
+      ow: {
+        namespace: 'ns',
+        auth: 'password'
+      },
+      s3: {
+        credsCacheFile: 'file',
+        tvmUrl: 'url',
+        folder: 'nsfolder'
+      },
+      app: {
+        hasFrontend: true,
+        hostname: 'host'
+      },
+      web: {
+        distProd: 'dist'
+      }
+    }
+    const emptyFolder = jest.fn()
+    const folderExists = jest.fn(() => true)
+    RemoteStorage.mockImplementation(() => {
+      return {
+        emptyFolder,
+        folderExists,
+        uploadDir: jest.fn()
+      }
+    })
+    fs.existsSync.mockReturnValue(true)
+    fs.lstatSync.mockReturnValue({ isDirectory: () => true })
+    const mockLogger = jest.fn()
+    fs.readdirSync.mockReturnValue({ length: 1 })
+    await expect(deployWeb(config, mockLogger)).resolves.toEqual('https://ns.host/index.html')
+    expect(getTvmCredentials).toHaveBeenCalled()
+    expect(RemoteStorage).toHaveBeenCalledTimes(1)
+    expect(folderExists).toHaveBeenLastCalledWith('nsfolder/')
+    expect(emptyFolder).toHaveBeenLastCalledWith('nsfolder/')
+  })
+
   // if !tvm creds, then we require config.ow.namespace, config.ow.auth, config.s3.tvmUrl, config.s3.credsCacheFile
 })
