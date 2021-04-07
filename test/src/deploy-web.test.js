@@ -125,7 +125,7 @@ describe('deploy-web', () => {
     expect(RemoteStorage).toHaveBeenCalledWith('fakecreds')
     expect(mockRemoteStorageInstance.uploadDir).toHaveBeenCalledWith('dist', 'somefolder', config.app, null)
     expect(mockRemoteStorageInstance.emptyFolder).not.toHaveBeenCalled()
-    expect(mockRemoteStorageInstance.folderExists).toHaveBeenCalledWith('somefolder')
+    expect(mockRemoteStorageInstance.folderExists).toHaveBeenCalledWith('somefolder/')
   })
 
   test('uploads files with log func', async () => {
@@ -158,7 +158,7 @@ describe('deploy-web', () => {
     expect(RemoteStorage).toHaveBeenCalledWith('fakecreds')
     expect(mockRemoteStorageInstance.uploadDir).toHaveBeenCalledWith('dist', 'somefolder', config.app, expect.any(Function))
     expect(mockRemoteStorageInstance.emptyFolder).not.toHaveBeenCalled()
-    expect(mockRemoteStorageInstance.folderExists).toHaveBeenCalledWith('somefolder')
+    expect(mockRemoteStorageInstance.folderExists).toHaveBeenCalledWith('somefolder/')
   })
 
   test('overwrites remote files', async () => {
@@ -190,10 +190,10 @@ describe('deploy-web', () => {
     expect(getS3Credentials).toHaveBeenCalledWith(config)
     expect(mockLogger).toHaveBeenCalledWith('warning: an existing deployment will be overwritten')
     expect(RemoteStorage).toHaveBeenCalledWith('fakecreds')
-    expect(mockRemoteStorageInstance.folderExists).toHaveBeenCalledWith('somefolder')
+    expect(mockRemoteStorageInstance.folderExists).toHaveBeenCalledWith('somefolder/')
     expect(mockRemoteStorageInstance.uploadDir).toHaveBeenCalledWith('dist', 'somefolder', config.app, expect.any(Function))
     // empty dir!
-    expect(mockRemoteStorageInstance.emptyFolder).toHaveBeenCalledWith('somefolder')
+    expect(mockRemoteStorageInstance.emptyFolder).toHaveBeenCalledWith('somefolder/')
   })
 
   test('overwrites remote files no log func', async () => {
@@ -221,9 +221,48 @@ describe('deploy-web', () => {
 
     await expect(deployWeb(config)).resolves.toEqual('https://ns.host/index.html')
     expect(getS3Credentials).toHaveBeenCalledWith(config)
-    expect(mockRemoteStorageInstance.folderExists).toHaveBeenCalledWith('somefolder')
+    expect(mockRemoteStorageInstance.folderExists).toHaveBeenCalledWith('somefolder/')
     expect(mockRemoteStorageInstance.uploadDir).toHaveBeenCalledWith('dist', 'somefolder', config.app, null)
     // empty dir!
-    expect(mockRemoteStorageInstance.emptyFolder).toHaveBeenCalledWith('somefolder')
+    expect(mockRemoteStorageInstance.emptyFolder).toHaveBeenCalledWith('somefolder/')
+  })
+
+  test('calls to s3 should use ending slash', async () => {
+    const config = {
+      ow: {
+        namespace: 'ns',
+        auth: 'password'
+      },
+      s3: {
+        credsCacheFile: 'file',
+        tvmUrl: 'url',
+        folder: 'nsfolder'
+      },
+      app: {
+        hasFrontend: true,
+        hostname: 'host'
+      },
+      web: {
+        distProd: 'dist'
+      }
+    }
+    const emptyFolder = jest.fn()
+    const folderExists = jest.fn(() => true)
+    RemoteStorage.mockImplementation(() => {
+      return {
+        emptyFolder,
+        folderExists,
+        uploadDir: jest.fn()
+      }
+    })
+    fs.existsSync.mockReturnValue(true)
+    fs.lstatSync.mockReturnValue({ isDirectory: () => true })
+    const mockLogger = jest.fn()
+    fs.readdirSync.mockReturnValue({ length: 1 })
+    await expect(deployWeb(config, mockLogger)).resolves.toEqual('https://ns.host/index.html')
+    expect(getS3Credentials).toHaveBeenCalled()
+    expect(RemoteStorage).toHaveBeenCalledTimes(1)
+    expect(folderExists).toHaveBeenLastCalledWith('nsfolder/')
+    expect(emptyFolder).toHaveBeenLastCalledWith('nsfolder/')
   })
 })
