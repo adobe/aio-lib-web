@@ -11,14 +11,14 @@ governing permissions and limitations under the License.
 */
 
 const RemoteStorage = require('../lib/remote-storage')
-const getTvmCredentials = require('../lib/getTvmCreds')
+const getS3Credentials = require('../lib/getS3Creds')
 
 const undeployWeb = async (config) => {
   if (!config || !config.app || !config.app.hasFrontend) {
     throw new Error('cannot undeploy web, app has no frontend or config is invalid')
   }
 
-  const creds = config.s3.creds || await getTvmCredentials(config.ow.namespace, config.ow.auth, config.s3.tvmUrl, config.s3.credsCacheFile)
+  const creds = await getS3Credentials(config)
 
   const remoteStorage = new RemoteStorage(creds)
 

@@ -11,23 +11,28 @@ governing permissions and limitations under the License.
 */
 
 const undeployWeb = require('../../src/undeploy-web')
-const getTvmCredentials = require('../../lib/getTvmCreds')
-jest.mock('../../lib/getTvmCreds')
+
+jest.mock('../../lib/getS3Creds')
+const getS3Credentials = require('../../lib/getS3Creds')
+getS3Credentials.mockResolvedValue('fakecreds')
+
+const mockRemoteStorageInstance = {
+  emptyFolder: jest.fn(),
+  folderExists: jest.fn()
+}
 const RemoteStorage = require('../../lib/remote-storage')
 jest.mock('../../lib/remote-storage', () => {
   return jest.fn().mockImplementation(() => {
-    return {
-      emptyFolder: jest.fn(),
-      folderExists: jest.fn().mockResolvedValue(true),
-      uploadDir: jest.fn()
-    }
+    return mockRemoteStorageInstance
   })
 })
 
 describe('undeploy-web', () => {
   beforeEach(() => {
     RemoteStorage.mockClear()
-    jest.restoreAllMocks()
+    mockRemoteStorageInstance.emptyFolder.mockReset()
+    mockRemoteStorageInstance.folderExists.mockReset()
+    getS3Credentials.mockClear()
   })
 
   test('throws if config does not have an app, or frontEnd', async () => {
@@ -36,20 +41,31 @@ describe('undeploy-web', () => {
     await expect(undeployWeb({ app: { hasFrontEnd: false } })).rejects.toThrow('cannot undeploy web')
   })
 
-  test('succeeds with proper config', async () => {
+  test('calls getS3Credentials and empties folder', async () => {
     const config = {
+      ow: {
+        namespace: 'ns',
+        auth: 'password'
+      },
       s3: {
-        creds: 'not-null'
+        creds: 'fakes3creds',
+        tvmUrl: 'url',
+        folder: 'somefolder'
       },
       app: {
-        hasFrontend: true
+        hasFrontend: true,
+        hostname: 'host'
       },
       web: {
         distProd: 'dist'
       }
     }
-    await expect(undeployWeb(config)).resolves.toBe(undefined)
-    expect(getTvmCredentials).not.toHaveBeenCalled()
+    mockRemoteStorageInstance.folderExists.mockResolvedValue(true)
+    await undeployWeb(config)
+    expect(getS3Credentials).toHaveBeenCalledWith(config)
+    expect(RemoteStorage).toHaveBeenCalledWith('fakecreds')
+    expect(mockRemoteStorageInstance.folderExists).toHaveBeenCalledWith('somefolder')
+    expect(mockRemoteStorageInstance.emptyFolder).toHaveBeenCalledWith('somefolder')
   })
 
   test('throws if remoteStorage folder does not exist', async () => {
@@ -60,7 +76,8 @@ describe('undeploy-web', () => {
       },
       s3: {
         credsCacheFile: 'file',
-        tvmUrl: 'url'
+        tvmUrl: 'url',
+        folder: 'somefolder'
       },
       app: {
         hasFrontend: true
@@ -69,14 +86,10 @@ describe('undeploy-web', () => {
         distProd: 'dist'
       }
     }
-    RemoteStorage.mockImplementation(() => {
-      return {
-        emptyFolder: jest.fn(),
-        folderExists: jest.fn().mockResolvedValue(false),
-        uploadDir: jest.fn()
-      }
-    })
     await expect(undeployWeb(config)).rejects.toThrow('cannot undeploy static files')
-    expect(getTvmCredentials).toHaveBeenCalled()
+    expect(getS3Credentials).toHaveBeenCalledWith(config)
+    expect(RemoteStorage).toHaveBeenCalledWith('fakecreds')
+    expect(mockRemoteStorageInstance.folderExists).toHaveBeenCalledWith('somefolder')
+    expect(mockRemoteStorageInstance.emptyFolder).not.toHaveBeenCalled()
   })
 })
