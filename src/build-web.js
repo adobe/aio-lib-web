@@ -33,11 +33,11 @@ const buildWeb = async (config, log) => {
     entryFiles: path.join(src, 'index.html'),
     defaultConfig: require.resolve("@parcel/config-default"),
     shouldDisableCache: true,
-    /* outDir: dist, */
-    targets: { ['action']: { distDir: dist } },
-    publicUrl: './',
-    /* watch: false, */
-    logLevel: 0,
+    defaultTargetOptions: {
+      distDir: dist,
+      publicUrl: './',
+    },
+    logLevel: 'none',
     shouldContentHash: true
   })
 

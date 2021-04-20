@@ -52,13 +52,12 @@ module.exports = async (entryFile, dest, options = {}, log = () => {}) => {
     entries: entryFile,
     defaultConfig: require.resolve("@parcel/config-default"),
     shouldDisableCache: false,
-    /* outDir: dest, */
-    targets: { ['action']: { distDir: dest } },
-    shouldPatchConsole: false,
-    shouldContentHash: true, // false if dev, true if prod ??
-    /* watch: false, */ // currently false if dev true if prod,
-    /* minify: false, */
-    logLevel: 1,
+    defaultTargetOptions: {
+      distDir: dest,
+      shouldOptimize: false,
+    },
+    shouldContentHash: true,
+    logLevel: 'error',
     ...options
   }
 
@@ -68,7 +67,7 @@ module.exports = async (entryFile, dest, options = {}, log = () => {}) => {
 
   const cleanup = async () => {
     aioLogger.debug('cleanup bundler...')
-    await bundler.stop()
+    // await bundler.stop()
   }
 
   return {
