@@ -14,6 +14,7 @@ const { vol } = global.mockFs()
 const bundle = require('../../src/bundle')
 const fs = require('fs-extra')
 jest.mock('fs-extra')
+const path = require('path')
 
 describe('bundle', () => {
   beforeEach(() => {
@@ -53,7 +54,7 @@ describe('bundle', () => {
       expect.objectContaining({ bundler: expect.any(Object) }))
     expect(global._bundler__arguments).toEqual([
       expect.objectContaining({
-        defaultConfig: expect.stringContaining('@parcel/config-default/index.json'),
+        defaultConfig: expect.stringContaining(path.join('parcel', 'config-default', 'index.json')),
         defaultTargetOptions: expect.objectContaining({
           distDir: 'distProd',
           shouldOptimize: false
@@ -71,7 +72,7 @@ describe('bundle', () => {
       .resolves.toEqual(expect.objectContaining({ bundler: expect.any(Object) }))
     expect(global._bundler__arguments).toEqual([
       expect.objectContaining({
-        defaultConfig: expect.stringContaining('@parcel/config-default/index.json'),
+        defaultConfig: expect.stringContaining(path.join('parcel', 'config-default', 'index.json')),
         defaultTargetOptions: expect.objectContaining({
           distDir: 'distProd',
           shouldOptimize: false
