@@ -30,18 +30,18 @@ const buildWeb = async (config, log) => {
 
   // 2. build files
   const bundler = new Bundler({
-    entryFiles: path.join(src, 'index.html'),
-    defaultConfig: require.resolve("@parcel/config-default"),
+    entries: path.join(src, 'index.html'),
+    defaultConfig: require.resolve('@parcel/config-default'),
     shouldDisableCache: true,
     defaultTargetOptions: {
       distDir: dist,
-      publicUrl: './',
+      publicUrl: './'
     },
     logLevel: 'none',
     shouldContentHash: true
   })
 
-  await bundler.bundle()
+  await bundler.run()
 
   // 3. show built files ( if we are passed a log function )
   const files = await fs.readdir(dist)

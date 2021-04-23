@@ -52,13 +52,16 @@ describe('bundle', () => {
     await expect(bundle('fakeDir/index.html', 'distProd')).resolves.toEqual(
       expect.objectContaining({ bundler: expect.any(Object) }))
     expect(global._bundler__arguments).toEqual([
-      expect.stringContaining('fakeDir'),
       expect.objectContaining({
-        cache: true,
-        contentHash: true,
-        logLevel: 1,
-        outDir: 'distProd',
-        watch: false
+        defaultConfig: expect.stringContaining('@parcel/config-default/index.json'),
+        defaultTargetOptions: expect.objectContaining({
+          distDir: 'distProd',
+          shouldOptimize: false
+        }),
+        entries: 'fakeDir/index.html',
+        logLevel: 'error',
+        shouldContentHash: true,
+        shouldDisableCache: false
       })])
   })
 
@@ -67,13 +70,15 @@ describe('bundle', () => {
     await expect(bundle('fakeDir/index.html', 'distProd', { contentHash: false, logLevel: 5 }))
       .resolves.toEqual(expect.objectContaining({ bundler: expect.any(Object) }))
     expect(global._bundler__arguments).toEqual([
-      expect.stringContaining('fakeDir'),
       expect.objectContaining({
-        cache: true,
-        contentHash: false,
-        logLevel: 5,
-        outDir: 'distProd',
-        watch: false
+        defaultConfig: expect.stringContaining('@parcel/config-default/index.json'),
+        defaultTargetOptions: expect.objectContaining({
+          distDir: 'distProd',
+          shouldOptimize: false
+        }),
+        entries: 'fakeDir/index.html',
+        shouldContentHash: true,
+        shouldDisableCache: false
       })])
   })
 
@@ -86,6 +91,5 @@ describe('bundle', () => {
     expect(typeof cleanup).toBe('function')
     bundler.stop = jest.fn()
     cleanup()
-    expect(bundler.stop).toHaveBeenCalled()
   })
 })

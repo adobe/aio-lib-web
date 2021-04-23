@@ -10,7 +10,6 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-const path = require('path')
 const { vol } = global.mockFs()
 const buildWeb = require('../../src/build-web')
 const fs = require('fs-extra')
@@ -63,6 +62,18 @@ describe('build-web', () => {
     global.addFakeFiles(vol, 'fakeDir', { 'index.html': '' })
     fs.readdir.mockReturnValue(['output.html'])
     await expect(buildWeb(config)).resolves.toEqual(['output.html'])
-    expect(global._bundler__arguments).toEqual([path.join('fakeDir', 'index.html'), { cache: false, contentHash: true, logLevel: 0, outDir: 'dist', publicUrl: './', watch: false }])
+    expect(global._bundler__arguments).toEqual([
+      expect.objectContaining({
+        defaultConfig: expect.stringContaining('@parcel/config-default/index.json'),
+        defaultTargetOptions: expect.objectContaining({
+          distDir: 'dist',
+          publicUrl: './'
+        }),
+        entries: 'fakeDir/index.html',
+        logLevel: 'none',
+        shouldContentHash: true,
+        shouldDisableCache: true
+      })
+    ])
   })
 })

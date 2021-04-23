@@ -50,11 +50,11 @@ module.exports = async (entryFile, dest, options = {}, log = () => {}) => {
   // set defaults, but allow override by passed in values
   const parcelBundleOptions = {
     entries: entryFile,
-    defaultConfig: require.resolve("@parcel/config-default"),
+    defaultConfig: require.resolve('@parcel/config-default'),
     shouldDisableCache: false,
     defaultTargetOptions: {
       distDir: dest,
-      shouldOptimize: false,
+      shouldOptimize: false
     },
     shouldContentHash: true,
     logLevel: 'error',
@@ -67,7 +67,6 @@ module.exports = async (entryFile, dest, options = {}, log = () => {}) => {
 
   const cleanup = async () => {
     aioLogger.debug('cleanup bundler...')
-    // await bundler.stop()
   }
 
   return {
