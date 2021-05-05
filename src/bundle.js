@@ -52,6 +52,12 @@ module.exports = async (entryFile, dest, options = {}, log = () => {}) => {
     entries: entryFile,
     defaultConfig: require.resolve('@parcel/config-default'),
     shouldDisableCache: false,
+    targets: {
+      action: {
+        includeNodeModules: true,
+        distDir: dest
+      }
+    },
     defaultTargetOptions: {
       distDir: dest,
       shouldOptimize: false
