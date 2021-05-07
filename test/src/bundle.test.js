@@ -50,8 +50,7 @@ describe('bundle', () => {
 
   test('check build options', async () => {
     global.addFakeFiles(vol, 'fakeDir', { 'index.html': '' })
-    await expect(bundle('fakeDir/index.html', 'distProd')).resolves.toEqual(
-      expect.objectContaining({ bundler: expect.any(Object) }))
+    await expect(bundle('fakeDir/index.html', 'distProd')).resolves.toEqual(expect.any(Object))
     expect(global._bundler__arguments).toEqual([
       expect.objectContaining({
         defaultConfig: expect.stringContaining(path.join('parcel', 'config-default', 'index.json')),
@@ -69,7 +68,7 @@ describe('bundle', () => {
   test('uses build options', async () => {
     global.addFakeFiles(vol, 'fakeDir', { 'index.html': '' })
     await expect(bundle('fakeDir/index.html', 'distProd', { contentHash: false, logLevel: 5 }))
-      .resolves.toEqual(expect.objectContaining({ bundler: expect.any(Object) }))
+      .resolves.toEqual(expect.any(Object))
     expect(global._bundler__arguments).toEqual([
       expect.objectContaining({
         defaultConfig: expect.stringContaining(path.join('parcel', 'config-default', 'index.json')),
@@ -86,11 +85,7 @@ describe('bundle', () => {
   test('returns {bundle, cleanup}', async () => {
     global.addFakeFiles(vol, 'fakeDir', { 'index.html': '' })
 
-    const { bundler, cleanup } = await bundle('fakeDir/index.html', 'distProd', { contentHash: false, logLevel: 5 })
+    const bundler = await bundle('fakeDir/index.html', 'distProd', { contentHash: false, logLevel: 5 })
     expect(bundler).toBeDefined()
-    expect(cleanup).toBeDefined()
-    expect(typeof cleanup).toBe('function')
-    bundler.stop = jest.fn()
-    cleanup()
   })
 })

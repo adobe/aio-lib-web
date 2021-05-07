@@ -62,6 +62,7 @@ module.exports = async (entryFile, dest, options = {}, log = () => {}) => {
       distDir: dest,
       shouldOptimize: false
     },
+    shouldPatchConsole: false,
     shouldContentHash: true,
     logLevel: 'error',
     ...options
@@ -71,12 +72,5 @@ module.exports = async (entryFile, dest, options = {}, log = () => {}) => {
   log(`bundling ${entryFile}`)
   const bundler = new Bundler(parcelBundleOptions)
 
-  const cleanup = async () => {
-    aioLogger.debug('cleanup bundler...')
-  }
-
-  return {
-    bundler,
-    cleanup
-  }
+  return bundler
 }
