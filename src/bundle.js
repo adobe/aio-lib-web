@@ -53,7 +53,7 @@ module.exports = async (entryFile, dest, options = {}, log = () => {}) => {
     defaultConfig: require.resolve('@parcel/config-default'),
     shouldDisableCache: false,
     targets: {
-      action: {
+      webassets: {
         includeNodeModules: true,
         distDir: dest
       }
