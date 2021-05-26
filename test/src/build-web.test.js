@@ -63,6 +63,18 @@ describe('build-web', () => {
     global.addFakeFiles(vol, 'fakeDir', { 'index.html': '' })
     fs.readdir.mockReturnValue(['output.html'])
     await expect(buildWeb(config)).resolves.toEqual(['output.html'])
-    expect(global._bundler__arguments).toEqual([path.join('fakeDir', 'index.html'), { cache: false, contentHash: true, logLevel: 0, outDir: 'dist', publicUrl: './', watch: false }])
+    expect(global._bundler__arguments).toEqual([
+      expect.objectContaining({
+        defaultConfig: expect.stringContaining(path.join('parcel', 'config-default', 'index.json')),
+        defaultTargetOptions: expect.objectContaining({
+          distDir: 'dist',
+          publicUrl: './'
+        }),
+        entries: path.join('fakeDir', 'index.html'),
+        logLevel: 'none',
+        shouldContentHash: true,
+        shouldDisableCache: true
+      })
+    ])
   })
 })

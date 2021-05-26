@@ -10,7 +10,7 @@ OF ANY KIND, either express or implied. See the License for the specific languag
 governing permissions and limitations under the License.
 */
 
-const Bundler = require('parcel-bundler')
+const Bundler = require('@parcel/core').default
 const aioLogger = require('@adobe/aio-lib-core-logging')('@adobe/aio-lib-web:bundle', { provider: 'debug' })
 const fs = require('fs-extra')
 /**
@@ -49,26 +49,28 @@ module.exports = async (entryFile, dest, options = {}, log = () => {}) => {
 
   // set defaults, but allow override by passed in values
   const parcelBundleOptions = {
-    cache: true,
-    outDir: dest,
-    contentHash: true, // false if dev, true if prod ??
-    watch: false, // currently false if dev true if prod,
-    minify: false,
-    logLevel: 1,
+    entries: entryFile,
+    defaultConfig: require.resolve('@parcel/config-default'),
+    shouldDisableCache: false,
+    targets: {
+      webassets: {
+        includeNodeModules: true,
+        distDir: dest
+      }
+    },
+    defaultTargetOptions: {
+      distDir: dest,
+      shouldOptimize: false
+    },
+    shouldPatchConsole: false,
+    shouldContentHash: true,
+    logLevel: 'error',
     ...options
   }
 
   aioLogger.debug(`bundle bundleOptions: ${JSON.stringify(parcelBundleOptions, null, 2)}`)
   log(`bundling ${entryFile}`)
-  const bundler = new Bundler(entryFile, parcelBundleOptions)
+  const bundler = new Bundler(parcelBundleOptions)
 
-  const cleanup = async () => {
-    aioLogger.debug('cleanup bundler...')
-    await bundler.stop()
-  }
-
-  return {
-    bundler,
-    cleanup
-  }
+  return bundler
 }

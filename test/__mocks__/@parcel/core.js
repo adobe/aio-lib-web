@@ -11,35 +11,35 @@ governing permissions and limitations under the License.
 */
 
 const mockBundle = jest.fn()
-const mockMiddleware = jest.fn()
 const mockConstructor = jest.fn()
 const mockServe = jest.fn()
-const mockStop = jest.fn()
 
 // hack to expose constructor, somehow returning a jest.fn doesn't work as expected for commonjs (only es6)
-const Bundler = function (...args) {
-  mockConstructor(...args)
-  global._bundler__arguments = args
-  return {
-    bundle: mockBundle,
-    middleware: mockMiddleware,
-    serve: mockServe,
-    stop: mockStop
+class core {
+  constructor (...args) {
+    mockConstructor(...args)
+    global._bundler__arguments = args
+  }
+
+  run () {
+    mockBundle()
+  }
+
+  watch () {
+    mockServe()
   }
 }
-Bundler.mockBundle = mockBundle
-Bundler.mockConstructor = mockConstructor
-Bundler.mockMiddleware = mockMiddleware
-Bundler.mockServe = mockServe
-Bundler.mockStop = mockStop
+core.mockBundle = mockBundle
+core.mockConstructor = mockConstructor
+core.mockServe = mockServe
 
 // alias
-Bundler.mockReset = () => {
-  Bundler.mockConstructor.mockReset()
-  Bundler.mockBundle.mockReset()
-  Bundler.mockMiddleware.mockReset()
-  Bundler.mockServe.mockReset()
-  Bundler.mockStop.mockReset()
+core.mockReset = () => {
+  core.mockConstructor.mockReset()
+  core.mockBundle.mockReset()
+  core.mockServe.mockReset()
 }
 
-module.exports = Bundler
+module.exports = {
+  default: core
+}

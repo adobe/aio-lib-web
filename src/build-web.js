@@ -12,7 +12,7 @@ governing permissions and limitations under the License.
 
 const fs = require('fs-extra')
 const path = require('path')
-const Bundler = require('parcel-bundler')
+const Bundler = require('@parcel/core').default
 
 /**
  * @deprecated since 4.1.0 ( January, 2021 ), use `bundle` instead
@@ -29,16 +29,19 @@ const buildWeb = async (config, log) => {
   await fs.emptyDir(dist)
 
   // 2. build files
-  const bundler = new Bundler(path.join(src, 'index.html'), {
-    cache: false,
-    outDir: dist,
-    publicUrl: './',
-    watch: false,
-    logLevel: 0,
-    contentHash: true
+  const bundler = new Bundler({
+    entries: path.join(src, 'index.html'),
+    defaultConfig: require.resolve('@parcel/config-default'),
+    shouldDisableCache: true,
+    defaultTargetOptions: {
+      distDir: dist,
+      publicUrl: './'
+    },
+    logLevel: 'none',
+    shouldContentHash: true
   })
 
-  await bundler.bundle()
+  await bundler.run()
 
   // 3. show built files ( if we are passed a log function )
   const files = await fs.readdir(dist)
