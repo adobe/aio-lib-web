@@ -22,6 +22,7 @@ config.json
 .vscode
 coverage
 .aws.tmp.creds.json
+.parcel-cache
 
 # OSX
 .DS_Store
