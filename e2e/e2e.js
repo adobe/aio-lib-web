@@ -61,7 +61,7 @@ describe('e2e', () => {
         DEST_FOLDER,
         {}
       )
-      await parcelBundle.bundler.bundle()
+      await parcelBundle.run()
     } catch (e) {
       error = e
       console.error(e)
