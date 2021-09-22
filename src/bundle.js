@@ -37,7 +37,7 @@ const fs = require('fs-extra')
  * @param {Function} [log] the app logger
  * @returns {BundleWebObject} the BundleWebObject
  */
-module.exports = async (entryFile, dest, options = {}, log = () => {}) => {
+module.exports = async (entryFile, dest, options = { shouldOptimize: false }, log = () => {}) => {
   aioLogger.debug(`bundle options: ${JSON.stringify(options, null, 2)}`)
 
   if (!entryFile || !fs.existsSync(entryFile)) {

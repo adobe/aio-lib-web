@@ -67,7 +67,7 @@ describe('bundle', () => {
 
   test('uses build options', async () => {
     global.addFakeFiles(vol, 'fakeDir', { 'index.html': '' })
-    await expect(bundle('fakeDir/index.html', 'distProd', { contentHash: false, logLevel: 5 }))
+    await expect(bundle('fakeDir/index.html', 'distProd', { contentHash: false, logLevel: 5, shouldOptimize: false }))
       .resolves.toEqual(expect.any(Object))
     expect(global._bundler__arguments).toEqual([
       expect.objectContaining({
@@ -75,6 +75,23 @@ describe('bundle', () => {
         defaultTargetOptions: expect.objectContaining({
           distDir: 'distProd',
           shouldOptimize: false
+        }),
+        entries: 'fakeDir/index.html',
+        shouldContentHash: true,
+        shouldDisableCache: false
+      })])
+  })
+
+  test('uses build options - shouldOptimize', async () => {
+    global.addFakeFiles(vol, 'fakeDir', { 'index.html': '' })
+    await expect(bundle('fakeDir/index.html', 'distProd', { contentHash: false, logLevel: 5, shouldOptimize: true }))
+      .resolves.toEqual(expect.any(Object))
+    expect(global._bundler__arguments).toEqual([
+      expect.objectContaining({
+        defaultConfig: expect.stringContaining(path.join('parcel', 'config-default', 'index.json')),
+        defaultTargetOptions: expect.objectContaining({
+          distDir: 'distProd',
+          shouldOptimize: true
         }),
         entries: 'fakeDir/index.html',
         shouldContentHash: true,
