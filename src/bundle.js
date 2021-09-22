@@ -60,7 +60,7 @@ module.exports = async (entryFile, dest, options = {}, log = () => {}) => {
     },
     defaultTargetOptions: {
       distDir: dest,
-      shouldOptimize: false
+      shouldOptimize: options.shouldOptimize
     },
     shouldPatchConsole: false,
     shouldContentHash: true,
