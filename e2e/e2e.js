@@ -13,7 +13,9 @@ governing permissions and limitations under the License.
 const path = require('path')
 const fs = require('fs-extra')
 const fetch = require('node-fetch')
-require('dotenv').config()
+
+// load .env values in the e2e folder, if any
+require('dotenv').config({ path: path.join(__dirname, '.env') })
 
 const bundle = require('../src/bundle')
 const deployWeb = require('../src/deploy-web')
@@ -84,6 +86,7 @@ describe('e2e', () => {
       contents = await response.text()
     } catch (e) {
       error = e
+      console.error(e)
     }
     expect(error).toBeUndefined()
     expect(url).not.toBeNull()
@@ -98,6 +101,7 @@ describe('e2e', () => {
       response = await fetch(url)
     } catch (e) {
       error = e
+      console.error(e)
     }
     expect(error).toBeUndefined()
     expect(response.status).toEqual(404)
