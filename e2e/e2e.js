@@ -14,6 +14,8 @@ const path = require('path')
 const fs = require('fs-extra')
 const fetch = require('node-fetch')
 
+jest.setTimeout(30000)
+
 // load .env values in the e2e folder, if any
 require('dotenv').config({ path: path.join(__dirname, '.env') })
 
