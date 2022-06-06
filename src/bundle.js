@@ -12,7 +12,7 @@ governing permissions and limitations under the License.
 
 const Bundler = require('@parcel/core').default
 const aioLogger = require('@adobe/aio-lib-core-logging')('@adobe/aio-lib-web:bundle', { provider: 'debug' })
-const fs = require('fs-extra')
+
 /**
  * @typedef {object} BundleWebObject
  * @property {object} the Parcel bundler object
