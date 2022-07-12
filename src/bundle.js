@@ -12,7 +12,7 @@ governing permissions and limitations under the License.
 
 const Bundler = require('@parcel/core').default
 const aioLogger = require('@adobe/aio-lib-core-logging')('@adobe/aio-lib-web:bundle', { provider: 'debug' })
-const fs = require('fs-extra')
+
 /**
  * @typedef {object} BundleWebObject
  * @property {object} the Parcel bundler object
@@ -31,17 +31,17 @@ const fs = require('fs-extra')
 /**
  * Bundles the web source via Parcel.
  *
- * @param {string} [entryFile] path to entry file to bundle
+ * @param {Array of string} [entries] one or more file paths or globs
  * @param {string} [dest] directory to build to
  * @param {BundleOptions} [options] the Parcel bundler options
  * @param {Function} [log] the app logger
  * @returns {BundleWebObject} the BundleWebObject
  */
-module.exports = async (entryFile, dest, options = { shouldOptimize: false }, log = () => {}) => {
+module.exports = async (entries, dest, options = { shouldOptimize: false }, log = () => {}) => {
   aioLogger.debug(`bundle options: ${JSON.stringify(options, null, 2)}`)
 
-  if (!entryFile || !fs.existsSync(entryFile)) {
-    throw new Error('cannot build web, entyFile not specified, or does not exist')
+  if (!entries) {
+    throw new Error('cannot build web, entries not specified')
   }
   if (!dest) {
     throw new Error('cannot build web, missing destination')
@@ -49,7 +49,7 @@ module.exports = async (entryFile, dest, options = { shouldOptimize: false }, lo
 
   // set defaults, but allow override by passed in values
   const parcelBundleOptions = {
-    entries: entryFile,
+    entries: entries,
     defaultConfig: require.resolve('@parcel/config-default'),
     shouldDisableCache: false,
     targets: {
@@ -69,7 +69,7 @@ module.exports = async (entryFile, dest, options = { shouldOptimize: false }, lo
   }
 
   aioLogger.debug(`bundle bundleOptions: ${JSON.stringify(parcelBundleOptions, null, 2)}`)
-  log(`bundling ${entryFile}`)
+  log(`bundling ${entries}`)
   const bundler = new Bundler(parcelBundleOptions)
 
   return bundler
