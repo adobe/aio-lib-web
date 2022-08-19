@@ -29,9 +29,9 @@
     "e2e": "jest --config='./e2e/jest.config.js' --testRegex './e2e/e2e.js'"
   },
   "dependencies": {
-    "@adobe/aio-lib-core-config": "^2.0.0",
-    "@adobe/aio-lib-core-logging": "^1.1.0",
-    "@adobe/aio-lib-core-tvm": "^2.2.1",
+    "@adobe/aio-lib-core-config": "^3.0.0",
+    "@adobe/aio-lib-core-logging": "^2.0.0",
+    "@adobe/aio-lib-core-tvm": "^3.0.0",
     "aws-sdk": "^2.600.0",
     "fs-extra": "^9.0.0",
     "joi": "^17.2.1",
