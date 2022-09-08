@@ -44,7 +44,7 @@ describe('getS3Credentials', () => {
   test('gets credentials from tvm', async () => {
     await expect(getS3Credentials({ ow: { namespace: 'ns', auth: 'auth' } }))
       .resolves.toEqual(fakeReturnedTvmCreds)
-    expect(mockTVM.init).toBeCalledWith({
+    expect(mockTVM.init).toHaveBeenCalledWith({
       apiUrl: undefined,
       cacheFile: undefined,
       ow: { auth: 'auth', namespace: 'ns' }
@@ -54,7 +54,7 @@ describe('getS3Credentials', () => {
   test('gets credentials from tvm with custom tvmurl', async () => {
     await expect(getS3Credentials({ ow: { namespace: 'ns', auth: 'auth' }, s3: { tvmUrl: 'custom' } }))
       .resolves.toEqual(fakeReturnedTvmCreds)
-    expect(mockTVM.init).toBeCalledWith({
+    expect(mockTVM.init).toHaveBeenCalledWith({
       apiUrl: 'custom',
       cacheFile: undefined,
       ow: { auth: 'auth', namespace: 'ns' }
@@ -64,7 +64,7 @@ describe('getS3Credentials', () => {
   test('gets credentials from tvm with custom credsCacheFile', async () => {
     await expect(getS3Credentials({ ow: { namespace: 'ns', auth: 'auth' }, s3: { credsCacheFile: 'custom' } }))
       .resolves.toEqual(fakeReturnedTvmCreds)
-    expect(mockTVM.init).toBeCalledWith({
+    expect(mockTVM.init).toHaveBeenCalledWith({
       apiUrl: undefined,
       cacheFile: 'custom',
       ow: { auth: 'auth', namespace: 'ns' }

@@ -12,7 +12,7 @@ governing permissions and limitations under the License.
 
 const AppScripts = require('../index')
 
-describe('AppScripts has expected interface ', () => {
+describe('AppScripts has expected interface', () => {
   test('exports functions', async () => {
     expect(AppScripts.buildWeb).toBeDefined()
     expect(typeof AppScripts.buildWeb).toBe('function')

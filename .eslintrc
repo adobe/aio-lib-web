@@ -4,5 +4,8 @@
   "globals": {
     "n": "readonly",
     "r": "readonly"
-  }
+  },
+  "parserOptions": {
+    "ecmaVersion": 2018
+  }  
 }
