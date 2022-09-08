@@ -49,7 +49,7 @@ module.exports = async (entries, dest, options = { shouldOptimize: false }, log 
 
   // set defaults, but allow override by passed in values
   const parcelBundleOptions = {
-    entries: entries,
+    entries,
     defaultConfig: require.resolve('@parcel/config-default'),
     shouldDisableCache: false,
     targets: {

@@ -19,11 +19,6 @@ process.on('unhandledRejection', error => {
   throw error
 })
 
-beforeEach(() => {
-  // expect every test to have assertions
-  expect.hasAssertions()
-})
-
 const fixturePath = path.join(__dirname, '__fixtures__')
 
 // quick normalization to test windows paths
@@ -45,7 +40,7 @@ global.r = p => path.resolve(p)
  * @returns {object}
  */
 function readFilesIntoObjectSync (filePath, toDir) {
-  const fsReal = require.requireActual('fs')
+  const fsReal = jest.requireActual('fs')
   const flatObj = {}
 
   function _readFilesIntoObjectSync (_filePathRec, _toDirRec, first = false) {
@@ -59,7 +54,7 @@ function readFilesIntoObjectSync (filePath, toDir) {
     }
     // is dir
     const files = fsReal.readdirSync(_filePathRec)
-    files.map(f => {
+    files.forEach(f => {
       const fullPath = path.join(_filePathRec, f)
       // skip first dir from path
       _readFilesIntoObjectSync(fullPath, first ? _toDirRec : path.join(_toDirRec, path.basename(_filePathRec)))
