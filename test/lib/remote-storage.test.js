@@ -13,23 +13,34 @@ governing permissions and limitations under the License.
 const { vol } = global.mockFs()
 
 const RemoteStorage = require('../../lib/remote-storage')
-const aws = require('aws-sdk')
 
-function spyS3 (funcs) {
-  const newFuncs = {}
-  // fake .promise() instead
-  Object.keys(funcs).forEach(name => {
-    newFuncs[name] = (...args) => Object({ promise: funcs[name].bind(null, ...args) })
-  })
-  return jest.spyOn(aws, 'S3').mockImplementation(() => {
-    return newFuncs
-  })
+const mockS3 = {
+  listObjectsV2: jest.fn(),
+  deleteObjects: jest.fn(),
+  upload: jest.fn()
+}
+
+jest.mock('@aws-sdk/client-s3', () => Object({
+  S3Client: () => mockS3
+}))
+
+function mockS3Function (name, mockedResolvedValue) {
+  let mockPromise
+  // if mockedResolveValue is a function
+  if (typeof mockedResolvedValue === 'function') {
+    mockPromise = jest.fn().mockImplementation(mockedResolvedValue)
+  } else {
+    mockPromise = jest.fn().mockResolvedValueOnce(mockedResolvedValue)
+  }
+  mockS3[name].mockReturnValue({ promise: mockPromise })
+  return { mockFn: mockS3[name], mockPromise } // might be useful to check if the promise function was called.
 }
 
 describe('RemoteStorage', () => {
   beforeEach(() => {
-    // restores all spies
-    jest.restoreAllMocks()
+    // resets all mock s3 functions
+    jest.resetAllMocks()
+    // resets the mock fs
     global.cleanFs(vol)
   })
 
@@ -59,134 +70,108 @@ describe('RemoteStorage', () => {
   })
 
   test('folderExists should return false if there are no files', async () => {
-    spyS3({ listObjectsV2: () => Object({ Contents: [] }) })
+    const { mockFn } = mockS3Function('listObjectsV2', { Contents: [] })
     const rs = new RemoteStorage(global.fakeTVMResponse)
     expect((await rs.folderExists('fakeprefix'))).toBe(false)
+    expect(mockFn).toHaveBeenCalledWith({ Prefix: 'fakeprefix' })
   })
 
   test('folderExists should return true if there are files', async () => {
-    spyS3({ listObjectsV2: () => Object({ Contents: ['fakeprefix/index.html'] }) })
+    mockS3Function('listObjectsV2', { Contents: ['fakeprefix/index.html'] })
     const rs = new RemoteStorage(global.fakeTVMResponse)
     expect((await rs.folderExists('fakeprefix'))).toBe(true)
   })
 
   test('emptyFolder should not throw if there are no files', async () => {
-    spyS3({ listObjectsV2: () => Object({ Contents: [] }) })
+    mockS3Function('listObjectsV2', { Contents: [] })
     const rs = new RemoteStorage(global.fakeTVMResponse)
     expect(rs.emptyFolder.bind(rs, 'fakeprefix')).not.toThrow()
   })
 
   test('emptyFolder should not call S3#deleteObjects if already empty', async () => {
-    const deleteMock = jest.fn()
-    spyS3({
-      listObjectsV2: () => Object({ Contents: [] }),
-      deleteObjects: deleteMock
-    })
+    mockS3Function('listObjectsV2', { Contents: [] })
+    const { mockFn: mockDelete } = mockS3Function('deleteObjects', {})
     const rs = new RemoteStorage(global.fakeTVMResponse)
     await rs.emptyFolder('fakeprefix')
-    expect(deleteMock).toHaveBeenCalledTimes(0)
+    expect(mockDelete).toHaveBeenCalledTimes(0)
   })
 
   test('emptyFolder should call S3#deleteObjects with correct parameters with one file', async () => {
-    const deleteMock = jest.fn()
     const content = [{ Key: 'fakeprefix/index.html' }]
-    spyS3({
-      listObjectsV2: () => Object({ Contents: content }),
-      deleteObjects: deleteMock
-    })
+    mockS3Function('listObjectsV2', { Contents: content })
+    const { mockFn: mockDelete } = mockS3Function('deleteObjects', {})
     const rs = new RemoteStorage(global.fakeTVMResponse)
     await rs.emptyFolder('fakeprefix')
-    expect(deleteMock).toHaveBeenCalledWith({ Delete: { Objects: content } })
+    expect(mockDelete).toHaveBeenCalledWith({ Delete: { Objects: content } })
   })
 
   test('emptyFolder should call S3#deleteObjects with correct parameters with multiple files', async () => {
-    const deleteMock = jest.fn()
     const content = [{ Key: 'fakeprefix/index.html' }, { Key: 'fakeprefix/index.css' }, { Key: 'fakeprefix/index.css' }]
-    spyS3({
-      listObjectsV2: () => Object({ Contents: content }),
-      deleteObjects: deleteMock
-    })
+    mockS3Function('listObjectsV2', { Contents: content })
+    const { mockFn: mockDelete } = mockS3Function('deleteObjects', {})
     const rs = new RemoteStorage(global.fakeTVMResponse)
     await rs.emptyFolder('fakeprefix')
-    expect(deleteMock).toHaveBeenCalledWith({ Delete: { Objects: content } })
+    expect(mockDelete).toHaveBeenCalledWith({ Delete: { Objects: content } })
   })
 
   test('emptyFolder should call S3#deleteObjects multiple time if listObjects is truncated', async () => {
-    const deleteMock = jest.fn()
     const content = [{ Key: 'fakeprefix/index.html' }, { Key: 'fakeprefix/index.css' }, { Key: 'fakeprefix/index.js' }]
-    let iterations = 3
-    spyS3({
-      listObjectsV2: () => {
-        iterations--
-        const IsTruncated = iterations > 0
-        return Object({ Contents: [content[iterations]], IsTruncated })
-      },
-      deleteObjects: deleteMock
+    let iterations = 2
+    mockS3Function('listObjectsV2', () => {
+      const res = { Contents: [content[iterations]], IsTruncated: iterations > 0 }
+      iterations--
+      return res
     })
+    const { mockFn: mockDelete } = mockS3Function('deleteObjects', {})
     const rs = new RemoteStorage(global.fakeTVMResponse)
     await rs.emptyFolder('fakeprefix')
-    expect(deleteMock).toHaveBeenCalledWith({ Delete: { Objects: [content[0]] } })
-    expect(deleteMock).toHaveBeenCalledWith({ Delete: { Objects: [content[1]] } })
-    expect(deleteMock).toHaveBeenCalledWith({ Delete: { Objects: [content[2]] } })
+    expect(mockDelete).toHaveBeenCalledWith({ Delete: { Objects: [content[0]] } })
+    expect(mockDelete).toHaveBeenCalledWith({ Delete: { Objects: [content[1]] } })
+    expect(mockDelete).toHaveBeenCalledWith({ Delete: { Objects: [content[2]] } })
   })
 
   test('uploadFile should call S3#upload with the correct parameters', async () => {
     global.addFakeFiles(vol, 'fakeDir', { 'index.js': 'fake content' })
-    const uploadMock = jest.fn()
-    spyS3({
-      upload: uploadMock
-    })
+    const { mockFn: mockUpload } = mockS3Function('upload', {})
     const rs = new RemoteStorage(global.fakeTVMResponse)
     const fakeConfig = {}
     await rs.uploadFile('fakeDir/index.js', 'fakeprefix', fakeConfig)
     const body = Buffer.from('fake content', 'utf8')
-    expect(uploadMock).toHaveBeenCalledWith(expect.objectContaining({ Key: 'fakeprefix/index.js', Body: body, ContentType: 'application/javascript' }))
+    expect(mockUpload).toHaveBeenCalledWith(expect.objectContaining({ Key: 'fakeprefix/index.js', Body: body, ContentType: 'application/javascript' }))
   })
 
   test('uploadFile should call S3#upload with the correct parameters and slash-prefix', async () => {
     global.addFakeFiles(vol, 'fakeDir', { 'index.js': 'fake content' })
-    const uploadMock = jest.fn()
-    spyS3({
-      upload: uploadMock
-    })
+    const { mockFn: mockUpload } = mockS3Function('upload', {})
     const rs = new RemoteStorage(global.fakeTVMResponse)
     const fakeConfig = {}
     await rs.uploadFile('fakeDir/index.js', '/slash-prefix', fakeConfig)
     const body = Buffer.from('fake content', 'utf8')
-    expect(uploadMock).toHaveBeenCalledWith(expect.objectContaining({ Key: '/slash-prefix/index.js', Body: body, ContentType: 'application/javascript' }))
+    expect(mockUpload).toHaveBeenCalledWith(expect.objectContaining({ Key: '/slash-prefix/index.js', Body: body, ContentType: 'application/javascript' }))
   })
 
-  test('uploadFile S3#upload with string ContentType', async () => {
+  test('uploadFile S3#upload with an unknown Content-Type', async () => {
     global.addFakeFiles(vol, 'fakeDir', { 'index.mst': 'fake content' })
-    let uploadParams
-    const uploadMock = jest.fn((params) => { uploadParams = params })
-    spyS3({
-      upload: uploadMock
-    })
+    const { mockFn: mockUpload } = mockS3Function('upload', {})
     const rs = new RemoteStorage(global.fakeTVMResponse)
     const fakeConfig = {}
     await rs.uploadFile('fakeDir/index.mst', 'fakeprefix', fakeConfig)
-    expect(uploadMock).toHaveBeenCalledWith(expect.objectContaining({ Key: 'fakeprefix/index.mst' }))
-    expect(uploadParams.ContentType).toBeUndefined()
+    const body = Buffer.from('fake content', 'utf8')
+    expect(mockUpload).toHaveBeenCalledWith(expect.objectContaining({ Key: 'fakeprefix/index.mst', Body: body }))
+    expect(mockUpload.mock.calls[0][0]).not.toHaveProperty('ContentType')
   })
 
   test('uploadDir should call S3#upload one time per file', async () => {
     await global.addFakeFiles(vol, 'fakeDir', ['index.js', 'index.css', 'index.html'])
-    const uploadMock = jest.fn()
-    spyS3({
-      upload: uploadMock
-    })
+    const { mockFn: mockUpload } = mockS3Function('upload', {})
     const rs = new RemoteStorage(global.fakeTVMResponse)
     await rs.uploadDir('fakeDir', 'fakeprefix', global.fakeConfig.creds.cna)
-    expect(uploadMock).toHaveBeenCalledTimes(3)
+    expect(mockUpload).toHaveBeenCalledTimes(3)
   })
 
   test('uploadDir should call a callback once per uploaded file', async () => {
     await global.addFakeFiles(vol, 'fakeDir', ['index.js', 'index.css', 'index.html', 'test/i.js'])
-    const uploadMock = jest.fn()
-    spyS3({
-      upload: uploadMock
-    })
+    mockS3Function('upload', {})
     const cbMock = jest.fn()
     const rs = new RemoteStorage(global.fakeTVMResponse)
 
