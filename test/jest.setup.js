@@ -155,6 +155,12 @@ global.fakeTVMResponse = {
   params: { Bucket: global.fakeS3Bucket }
 }
 
+global.fakeBYOCredentials = {
+  accessKeyId: 'fake',
+  secretAccessKey: 'fake',
+  params: { Bucket: global.fakeS3Bucket }
+}
+
 global.expectedScripts = expect.objectContaining({
   buildUI: expect.any(Function),
   deployUI: expect.any(Function),
