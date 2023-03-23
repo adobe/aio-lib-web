@@ -215,4 +215,110 @@ describe('RemoteStorage', () => {
     const response = rs._getCacheControlConfig('application/pdf', global.fakeConfig.cna)
     expect(response).toBe('s-maxage=0')
   })
+
+  // response header tests
+  test('get response header from config with multiple rules', async () => {
+    const rs = new RemoteStorage(global.fakeTVMResponse)
+    const newConfig = global.configWithModifiedWeb(global.fakeConfig, {
+      'response-headers': {
+        '/*': {
+          testHeader: 'generic-header'
+        },
+        '/testfolder/*': {
+          testHeader: 'folder-header'
+        },
+        '/testfolder/*.js': {
+          testHeader: 'all-js-file-in-folder-header'
+        },
+        '/test.js': {
+          testHeader: 'specific-file-header'
+        }
+      }
+    })
+
+    const fakeDistRoot = '/fake/web-prod/'
+
+    // check application of generic rule /*
+    let response = rs.getResponseHeadersForFile(fakeDistRoot + 'index.html', fakeDistRoot, newConfig)
+    let expected = {
+      'adp-testHeader': 'generic-header'
+    }
+    expect(response).toStrictEqual(expected)
+
+    // check application of folder content rule /testfolder/*
+    response = rs.getResponseHeadersForFile(fakeDistRoot + 'testfolder/index.html', fakeDistRoot, newConfig)
+    expected = {
+      'adp-testHeader': 'folder-header'
+    }
+    expect(response).toStrictEqual(expected)
+
+    // check application of specific extension within folder /testfolder/*.js
+    response = rs.getResponseHeadersForFile(fakeDistRoot + 'testfolder/test.js', fakeDistRoot, newConfig)
+    expected = {
+      'adp-testHeader': 'all-js-file-in-folder-header'
+    }
+    expect(response).toStrictEqual(expected)
+
+    // check application of specific file
+    response = rs.getResponseHeadersForFile(fakeDistRoot + 'test.js', fakeDistRoot, newConfig)
+    expected = {
+      'adp-testHeader': 'specific-file-header'
+    }
+    expect(response).toStrictEqual(expected)
+  })
+
+  test('get response header with invalid header name', async () => {
+    const rs = new RemoteStorage(global.fakeTVMResponse)
+    const newConfig = global.configWithModifiedWeb(global.fakeConfig, {
+      'response-headers': {
+        '/*': {
+          無効な名前: 'generic-header'
+        }
+      }
+    })
+
+    const fakeDistRoot = '/fake/web-prod/'
+    expect(() => rs.getResponseHeadersForFile(fakeDistRoot + 'index.html', fakeDistRoot, newConfig)).toThrowWithMessageContaining(
+      '[WebLib:ERROR_INVALID_HEADER_NAME] `無効な名前` is not a valid response header name')
+  })
+
+  test('get response header with invalid header value', async () => {
+    const rs = new RemoteStorage(global.fakeTVMResponse)
+    const newConfig = global.configWithModifiedWeb(global.fakeConfig, {
+      'response-headers': {
+        '/*': {
+          testHeader: '無効な値'
+        }
+      }
+    })
+
+    const fakeDistRoot = '/fake/web-prod/'
+    expect(() => rs.getResponseHeadersForFile(fakeDistRoot + 'index.html', fakeDistRoot, newConfig)).toThrowWithMessageContaining(
+      '[WebLib:ERROR_INVALID_HEADER_VALUE] `無効な値` is not a valid response header value for `testHeader`')
+  })
+
+  test('Metadata check for response headers', async () => {
+    global.addFakeFiles(vol, 'fakeDir', { 'index.js': 'fake content' })
+    const rs = new RemoteStorage(global.fakeTVMResponse)
+    const newConfig = global.configWithModifiedWeb(global.fakeConfig, {
+      'response-headers': {
+        '/*': {
+          testHeader: 'generic-header'
+        }
+      }
+    })
+    // const fakeConfig = {}
+    await rs.uploadFile('fakeDir/index.js', 'fakeprefix', newConfig)
+    const body = Buffer.from('fake content', 'utf8')
+    const expected = {
+      Bucket: 'fake-bucket',
+      Key: 'fakeprefix/index.js',
+      Body: body,
+      ContentType: 'application/javascript',
+      Metadata: {
+        'adp-testHeader': 'generic-header'
+      }
+    }
+    expect(mockS3.putObject).toHaveBeenCalledWith(expect.objectContaining(expected))
+  })
 })

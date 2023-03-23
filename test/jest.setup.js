@@ -112,6 +112,12 @@ global.configWithMissing = (config, members) => {
   return config
 }
 
+global.configWithModifiedWeb = (config, newWebConfig) => {
+  config = cloneDeep(config)
+  config.web = newWebConfig
+  return config
+}
+
 global.fakeS3Bucket = 'fake-bucket'
 global.fakeConfig = {
   tvm: {
@@ -144,6 +150,13 @@ global.fakeConfig = {
     jsCacheDuration: 604800,
     cssCacheDuration: 604800,
     imageCacheDuration: 604800
+  },
+  web: {
+    'response-headers': {
+      '/*': {
+        testHeader: 'foo'
+      }
+    }
   }
 }
 
