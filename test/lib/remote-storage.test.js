@@ -145,7 +145,7 @@ describe('RemoteStorage', () => {
   test('uploadFile should call S3#upload with the correct parameters', async () => {
     global.addFakeFiles(vol, 'fakeDir', { 'index.js': 'fake content' })
     const rs = new RemoteStorage(global.fakeTVMResponse)
-    const fakeConfig = {}
+    const fakeConfig = global.fakeConfig
     await rs.uploadFile('fakeDir/index.js', 'fakeprefix', fakeConfig)
     const body = Buffer.from('fake content', 'utf8')
     expect(mockS3.putObject).toHaveBeenCalledWith(expect.objectContaining({ Bucket: 'fake-bucket', Key: 'fakeprefix/index.js', Body: body, ContentType: 'application/javascript' }))
@@ -154,7 +154,7 @@ describe('RemoteStorage', () => {
   test('uploadFile should call S3#upload with the correct parameters and slash-prefix', async () => {
     global.addFakeFiles(vol, 'fakeDir', { 'index.js': 'fake content' })
     const rs = new RemoteStorage(global.fakeTVMResponse)
-    const fakeConfig = {}
+    const fakeConfig = global.fakeConfig
     await rs.uploadFile('fakeDir/index.js', '/slash-prefix', fakeConfig)
     const body = Buffer.from('fake content', 'utf8')
     expect(mockS3.putObject).toHaveBeenCalledWith(expect.objectContaining({ Bucket: 'fake-bucket', Key: '/slash-prefix/index.js', Body: body, ContentType: 'application/javascript' }))
@@ -173,7 +173,7 @@ describe('RemoteStorage', () => {
   test('uploadDir should call S3#upload one time per file', async () => {
     await global.addFakeFiles(vol, 'fakeDir', ['index.js', 'index.css', 'index.html'])
     const rs = new RemoteStorage(global.fakeTVMResponse)
-    await rs.uploadDir('fakeDir', 'fakeprefix', global.fakeConfig.creds.cna)
+    await rs.uploadDir('fakeDir', 'fakeprefix', global.fakeConfig)
     expect(mockS3.putObject).toHaveBeenCalledTimes(3)
   })
 
@@ -182,37 +182,37 @@ describe('RemoteStorage', () => {
     const cbMock = jest.fn()
     const rs = new RemoteStorage(global.fakeTVMResponse)
 
-    await rs.uploadDir('fakeDir', 'fakeprefix', global.fakeConfig.cna, cbMock)
+    await rs.uploadDir('fakeDir', 'fakeprefix', global.fakeConfig, cbMock)
     expect(cbMock).toHaveBeenCalledTimes(4)
   })
 
   test('cachecontrol string for html', async () => {
     const rs = new RemoteStorage(global.fakeTVMResponse)
-    const response = rs._getCacheControlConfig('text/html', global.fakeConfig.cna)
+    const response = rs._getCacheControlConfig('text/html', global.fakeConfig.app)
     expect(response).toBe('s-maxage=0, max-age=60')
   })
 
   test('cachecontrol string for JS', async () => {
     const rs = new RemoteStorage(global.fakeTVMResponse)
-    const response = rs._getCacheControlConfig('application/javascript', global.fakeConfig.cna)
+    const response = rs._getCacheControlConfig('application/javascript', global.fakeConfig.app)
     expect(response).toBe('s-maxage=0, max-age=604800')
   })
 
   test('cachecontrol string for CSS', async () => {
     const rs = new RemoteStorage(global.fakeTVMResponse)
-    const response = rs._getCacheControlConfig('text/css', global.fakeConfig.cna)
+    const response = rs._getCacheControlConfig('text/css', global.fakeConfig.app)
     expect(response).toBe('s-maxage=0, max-age=604800')
   })
 
   test('cachecontrol string for Image', async () => {
     const rs = new RemoteStorage(global.fakeTVMResponse)
-    const response = rs._getCacheControlConfig('image/jpeg', global.fakeConfig.cna)
+    const response = rs._getCacheControlConfig('image/jpeg', global.fakeConfig.app)
     expect(response).toBe('s-maxage=0, max-age=604800')
   })
 
   test('cachecontrol string for default', async () => {
     const rs = new RemoteStorage(global.fakeTVMResponse)
-    const response = rs._getCacheControlConfig('application/pdf', global.fakeConfig.cna)
+    const response = rs._getCacheControlConfig('application/pdf', global.fakeConfig.app)
     expect(response).toBe('s-maxage=0')
   })
 

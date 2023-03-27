@@ -145,7 +145,7 @@ global.fakeConfig = {
       awssecretaccesskey: 'fakeAwsSecretKey'
     }
   },
-  cna: {
+  app: {
     htmlCacheDuration: 60,
     jsCacheDuration: 604800,
     cssCacheDuration: 604800,
