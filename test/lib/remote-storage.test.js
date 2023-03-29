@@ -147,7 +147,7 @@ describe('RemoteStorage', () => {
     global.addFakeFiles(vol, 'fakeDir', { 'index.js': 'fake content' })
     const rs = new RemoteStorage(global.fakeTVMResponse)
     const fakeConfig = global.fakeConfig
-    await rs.uploadFile('fakeDir/index.js', 'fakeprefix', fakeConfig)
+    await rs.uploadFile('fakeDir/index.js', 'fakeprefix', fakeConfig, 'fakeDir')
     const body = Buffer.from('fake content', 'utf8')
     expect(mockS3.putObject).toHaveBeenCalledWith(expect.objectContaining({ Bucket: 'fake-bucket', Key: 'fakeprefix/index.js', Body: body, ContentType: 'application/javascript' }))
   })
@@ -156,7 +156,7 @@ describe('RemoteStorage', () => {
     global.addFakeFiles(vol, 'fakeDir', { 'index.js': 'fake content' })
     const rs = new RemoteStorage(global.fakeTVMResponse)
     const fakeConfig = global.fakeConfig
-    await rs.uploadFile('fakeDir/index.js', '/slash-prefix', fakeConfig)
+    await rs.uploadFile('fakeDir/index.js', '/slash-prefix', fakeConfig, 'fakeDir')
     const body = Buffer.from('fake content', 'utf8')
     expect(mockS3.putObject).toHaveBeenCalledWith(expect.objectContaining({ Bucket: 'fake-bucket', Key: '/slash-prefix/index.js', Body: body, ContentType: 'application/javascript' }))
   })
@@ -165,7 +165,7 @@ describe('RemoteStorage', () => {
     global.addFakeFiles(vol, 'fakeDir', { 'index.mst': 'fake content' })
     const rs = new RemoteStorage(global.fakeTVMResponse)
     const fakeConfig = {}
-    await rs.uploadFile('fakeDir/index.mst', 'fakeprefix', fakeConfig)
+    await rs.uploadFile('fakeDir/index.mst', 'fakeprefix', fakeConfig, 'fakeDir')
     const body = Buffer.from('fake content', 'utf8')
     expect(mockS3.putObject).toHaveBeenCalledWith(expect.objectContaining({ Bucket: 'fake-bucket', Key: 'fakeprefix/index.mst', Body: body }))
     expect(mockS3.putObject.mock.calls[0][0]).not.toHaveProperty('ContentType')
@@ -241,7 +241,7 @@ describe('RemoteStorage', () => {
     const folderPath2 = 'testFolder' + path.sep + 'test.js'
     await global.addFakeFiles(vol, 'fakeDir', ['index.html', 'test.js', folderPath1, folderPath2])
     const files = await rs.walkDir('fakeDir')
-    const fakeDistRoot = files[0].substring(0, files[0].indexOf('index.html'))
+    const fakeDistRoot = path.parse(files[0]).dir
 
     const expectedValMap = {
       'index.html': { 'adp-testHeader': 'generic-header' },
@@ -251,7 +251,156 @@ describe('RemoteStorage', () => {
     expectedValMap[folderPath2] = { 'adp-testHeader': 'all-js-file-in-folder-header' }
 
     files.forEach(f => {
-      const fileName = f.replace(fakeDistRoot, '')
+      const fileName = f.replace(path.join(fakeDistRoot, path.sep), '')
+      const response = rs.getResponseHeadersForFile(f, fakeDistRoot, newConfig)
+      const expected = expectedValMap[fileName]
+      expect(response).toStrictEqual(expected)
+    })
+  })
+
+  test('get response header for folder based path rules', async () => {
+    // setup files and paths
+    const rs = new RemoteStorage(global.fakeTVMResponse)
+    const folderPath1 = 'css' + path.sep + 'ui.css'
+    const folderPath2 = 'scripts' + path.sep + 'test.js'
+    const folderPath3 = 'images' + path.sep + 'image.png'
+    const folderPath4 = 'images' + path.sep + 'thumbnails' + path.sep + 'test.jpeg'
+    await global.addFakeFiles(vol, 'fakeDir', ['index.html', 'test.js', folderPath1, folderPath2, folderPath3, folderPath4])
+    const files = await rs.walkDir('fakeDir')
+    const fakeDistRoot = path.parse(files[0]).dir
+
+    // create a config of rules for files in specific folder
+    const newConfig = global.configWithModifiedWeb(global.fakeConfig, {
+      'response-headers': {
+        '/*': {
+          testHeader: 'generic-header'
+        },
+        '/css/*': {
+          testHeader: 'all-files-in-css-folder-header'
+        },
+        '/scripts/*': {
+          testHeader: 'all-files-in-js-folder-header'
+        },
+        '/images/*': {
+          testHeader: 'all-files-in-images-folder-header'
+        }
+      }
+    })
+
+    // set the expectation
+    const expectedValMap = {
+      'index.html': { 'adp-testHeader': 'generic-header' },
+      'test.js': { 'adp-testHeader': 'generic-header' }
+    }
+    expectedValMap[folderPath1] = { 'adp-testHeader': 'all-files-in-css-folder-header' }
+    expectedValMap[folderPath2] = { 'adp-testHeader': 'all-files-in-js-folder-header' }
+    expectedValMap[folderPath3] = { 'adp-testHeader': 'all-files-in-images-folder-header' }
+    expectedValMap[folderPath4] = { 'adp-testHeader': 'all-files-in-images-folder-header' }
+
+    // check header application per file
+    files.forEach(f => {
+      const fileName = f.replace(path.join(fakeDistRoot, path.sep), '')
+      const response = rs.getResponseHeadersForFile(f, fakeDistRoot, newConfig)
+      const expected = expectedValMap[fileName]
+      expect(response).toStrictEqual(expected)
+    })
+  })
+
+  test('get response header for specific file based path rules', async () => {
+    // setup files and paths
+    const rs = new RemoteStorage(global.fakeTVMResponse)
+    const folderPath1 = 'css' + path.sep + 'ui.css'
+    const folderPath2 = 'scripts' + path.sep + 'test.js'
+    const folderPath3 = 'images' + path.sep + 'image.png'
+    await global.addFakeFiles(vol, 'fakeDir', ['index.html', 'test.js', folderPath1, folderPath2, folderPath3])
+    const files = await rs.walkDir('fakeDir')
+    const fakeDistRoot = path.parse(files[0]).dir
+
+    // create a config of rules for spcefic files which overrider folder rules
+    const newConfig = global.configWithModifiedWeb(global.fakeConfig, {
+      'response-headers': {
+        '/*': {
+          testHeader: 'generic-header'
+        },
+        '/css/*': {
+          testHeader: 'all-files-in-css-folder-header'
+        },
+        '/css/ui.css': {
+          testHeader: 'specific-css-file-header' // overrides previous css folder rule
+        },
+        '/scripts/*': {
+          testHeader: 'all-files-in-js-folder-header'
+        },
+        '/scripts/test.js': {
+          testHeader: 'specific-js-file-header' // overrides previous js folder rule
+        },
+        '/images/*': {
+          testHeader: 'all-files-in-images-folder-header'
+        },
+        '/images/image.png': {
+          testHeader: 'specific-image-file-header' // overrides previous image folder rule
+        }
+      }
+    })
+
+    // set the expectation
+    const expectedValMap = {
+      'index.html': { 'adp-testHeader': 'generic-header' },
+      'test.js': { 'adp-testHeader': 'generic-header' }
+    }
+    expectedValMap[folderPath1] = { 'adp-testHeader': 'specific-css-file-header' }
+    expectedValMap[folderPath2] = { 'adp-testHeader': 'specific-js-file-header' }
+    expectedValMap[folderPath3] = { 'adp-testHeader': 'specific-image-file-header' }
+
+    // check header application per file
+    files.forEach(f => {
+      const fileName = f.replace(path.join(fakeDistRoot, path.sep), '')
+      const response = rs.getResponseHeadersForFile(f, fakeDistRoot, newConfig)
+      const expected = expectedValMap[fileName]
+      expect(response).toStrictEqual(expected)
+    })
+  })
+
+  test('get response header for file extension based path rules', async () => {
+    // setup files and paths
+    const rs = new RemoteStorage(global.fakeTVMResponse)
+    const folderPath1 = 'css' + path.sep + 'ui.css'
+    const folderPath2 = 'scripts' + path.sep + 'test.js'
+    const folderPath3 = 'images' + path.sep + 'image.png'
+    await global.addFakeFiles(vol, 'fakeDir', ['index.html', 'test.js', folderPath1, folderPath2, folderPath3])
+    const files = await rs.walkDir('fakeDir')
+    const fakeDistRoot = path.parse(files[0]).dir
+
+    // create a config of rules for spcefic files which overrider folder rules
+    const newConfig = global.configWithModifiedWeb(global.fakeConfig, {
+      'response-headers': {
+        '/*': {
+          testHeader: 'generic-header'
+        },
+        '/*.css': {
+          testHeader: 'all-css-files-header'
+        },
+        '/*.js': {
+          testHeader: 'all-js-files-header'
+        },
+        '/*.png': {
+          testHeader: 'all-png-files-header'
+        }
+      }
+    })
+
+    // set the expectation
+    const expectedValMap = {
+      'index.html': { 'adp-testHeader': 'generic-header' },
+      'test.js': { 'adp-testHeader': 'all-js-files-header' }
+    }
+    expectedValMap[folderPath1] = { 'adp-testHeader': 'all-css-files-header' }
+    expectedValMap[folderPath2] = { 'adp-testHeader': 'all-js-files-header' }
+    expectedValMap[folderPath3] = { 'adp-testHeader': 'all-png-files-header' }
+
+    // check header application per file
+    files.forEach(f => {
+      const fileName = f.replace(path.join(fakeDistRoot, path.sep), '')
       const response = rs.getResponseHeadersForFile(f, fakeDistRoot, newConfig)
       const expected = expectedValMap[fileName]
       expect(response).toStrictEqual(expected)
@@ -291,6 +440,8 @@ describe('RemoteStorage', () => {
   test('Metadata check for response headers', async () => {
     global.addFakeFiles(vol, 'fakeDir', { 'index.js': 'fake content' })
     const rs = new RemoteStorage(global.fakeTVMResponse)
+    const files = await rs.walkDir('fakeDir')
+    const fakeDistRoot = files[0].substring(0, files[0].indexOf('index.js'))
     const newConfig = global.configWithModifiedWeb(global.fakeConfig, {
       'response-headers': {
         '/*': {
@@ -299,7 +450,7 @@ describe('RemoteStorage', () => {
       }
     })
     // const fakeConfig = {}
-    await rs.uploadFile('fakeDir/index.js', 'fakeprefix', newConfig)
+    await rs.uploadFile('fakeDir/index.js', 'fakeprefix', newConfig, fakeDistRoot)
     const body = Buffer.from('fake content', 'utf8')
     const expected = {
       Bucket: 'fake-bucket',
