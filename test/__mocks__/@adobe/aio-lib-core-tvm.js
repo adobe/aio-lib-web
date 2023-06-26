@@ -1,4 +1,3 @@
-
 const mockTvm = {
   init: jest.fn(async () => {
     return {
