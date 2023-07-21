@@ -64,8 +64,8 @@ describe('undeploy-web', () => {
     await undeployWeb(config)
     expect(getS3Credentials).toHaveBeenCalledWith(config)
     expect(RemoteStorage).toHaveBeenCalledWith('fakecreds')
-    expect(mockRemoteStorageInstance.folderExists).toHaveBeenCalledWith('somefolder')
-    expect(mockRemoteStorageInstance.emptyFolder).toHaveBeenCalledWith('somefolder')
+    expect(mockRemoteStorageInstance.folderExists).toHaveBeenCalledWith('somefolder/')
+    expect(mockRemoteStorageInstance.emptyFolder).toHaveBeenCalledWith('somefolder/')
   })
 
   test('throws if remoteStorage folder does not exist', async () => {
@@ -89,7 +89,7 @@ describe('undeploy-web', () => {
     await expect(undeployWeb(config)).rejects.toThrow('cannot undeploy static files')
     expect(getS3Credentials).toHaveBeenCalledWith(config)
     expect(RemoteStorage).toHaveBeenCalledWith('fakecreds')
-    expect(mockRemoteStorageInstance.folderExists).toHaveBeenCalledWith('somefolder')
+    expect(mockRemoteStorageInstance.folderExists).toHaveBeenCalledWith('somefolder/')
     expect(mockRemoteStorageInstance.emptyFolder).not.toHaveBeenCalled()
   })
 })

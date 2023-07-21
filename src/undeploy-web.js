@@ -22,11 +22,11 @@ const undeployWeb = async (config) => {
 
   const remoteStorage = new RemoteStorage(creds)
 
-  if (!(await remoteStorage.folderExists(config.s3.folder))) {
+  if (!(await remoteStorage.folderExists(config.s3.folder + '/'))) {
     throw new Error(`cannot undeploy static files, there is no deployment for ${config.s3.folder}`)
   }
 
-  await remoteStorage.emptyFolder(config.s3.folder)
+  await remoteStorage.emptyFolder(config.s3.folder + '/')
 }
 
 module.exports = undeployWeb
