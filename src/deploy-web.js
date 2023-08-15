@@ -42,7 +42,7 @@ const deployWeb = async (config, log) => {
     await remoteStorage.emptyFolder(config.s3.folder + '/')
   }
   const _log = log ? (f) => log(`deploying ${path.relative(dist, f)}`) : null
-  await remoteStorage.uploadDir(dist, config.s3.folder, config.app, _log)
+  await remoteStorage.uploadDir(dist, config.s3.folder, config, _log)
 
   const url = `https://${config.ow.namespace}.${config.app.hostname}/index.html`
   return url
