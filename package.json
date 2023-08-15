@@ -29,7 +29,7 @@
     "e2e": "jest --config='./e2e/jest.config.js' --testRegex './e2e/e2e.js'"
   },
   "dependencies": {
-    "@adobe/aio-lib-core-config": "^3.0.0",
+    "@adobe/aio-lib-core-config": "^4.0.0",
     "@adobe/aio-lib-core-logging": "^2.0.0",
     "@adobe/aio-lib-core-tvm": "^3.0.0",
     "@aws-sdk/client-s3": "^3.276.0",
