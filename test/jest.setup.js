@@ -112,6 +112,12 @@ global.configWithMissing = (config, members) => {
   return config
 }
 
+global.configWithModifiedWeb = (config, newWebConfig) => {
+  config = cloneDeep(config)
+  config.web = newWebConfig
+  return config
+}
+
 global.fakeS3Bucket = 'fake-bucket'
 global.fakeConfig = {
   tvm: {
@@ -139,17 +145,30 @@ global.fakeConfig = {
       awssecretaccesskey: 'fakeAwsSecretKey'
     }
   },
-  cna: {
+  app: {
     htmlCacheDuration: 60,
     jsCacheDuration: 604800,
     cssCacheDuration: 604800,
     imageCacheDuration: 604800
+  },
+  web: {
+    'response-headers': {
+      '/*': {
+        testHeader: 'foo'
+      }
+    }
   }
 }
 
 global.fakeTVMResponse = {
   sessionToken: 'fake',
   expiration: '1970-01-01T00:00:00.000Z',
+  accessKeyId: 'fake',
+  secretAccessKey: 'fake',
+  params: { Bucket: global.fakeS3Bucket }
+}
+
+global.fakeBYOCredentials = {
   accessKeyId: 'fake',
   secretAccessKey: 'fake',
   params: { Bucket: global.fakeS3Bucket }
