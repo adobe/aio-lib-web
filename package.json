@@ -49,7 +49,7 @@
     "eslint-config-standard": "^17",
     "eslint-plugin-import": "^2.18.2",
     "eslint-plugin-jest": "^27.0.2",
-    "eslint-plugin-n": "^15.2.5",
+    "eslint-plugin-n": "^16.2.0",
     "eslint-plugin-node": "^11",
     "eslint-plugin-promise": "^6",
     "eslint-plugin-standard": "^5",
