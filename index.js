@@ -14,6 +14,7 @@ const buildWeb = require('./src/build-web')
 const deployWeb = require('./src/deploy-web')
 const undeployWeb = require('./src/undeploy-web')
 const bundle = require('./src/bundle')
+const bundlewp = require('./src/bundle-wp')
 
 /**
  * Adobe I/O app lib web, build / deploy webapps to cdn
@@ -31,6 +32,7 @@ const bundle = require('./src/bundle')
 
 module.exports = {
   bundle,
+  bundlewp,
   buildWeb,
   deployWeb,
   undeployWeb
