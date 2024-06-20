@@ -1,0 +1,169 @@
+/*
+Copyright 2020 Adobe. All rights reserved.
+This file is licensed to you under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License. You may obtain a copy
+of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under
+the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTATIONS
+OF ANY KIND, either express or implied. See the License for the specific language
+governing permissions and limitations under the License.
+*/
+
+// const Bundler = require('@parcel/core').default
+const aioLogger = require('@adobe/aio-lib-core-logging')('@adobe/aio-lib-web:bundle', { provider: 'debug' })
+const path = require('path')
+const webpack = require('webpack')
+const HtmlWebpackPlugin = require('html-webpack-plugin')
+const glob = require("glob")
+const fs = require('fs-extra')
+
+/**
+ * @typedef {object} BundleWebObject
+ * @property {object} the Parcel bundler object
+ * @property {Function} cleanup callback function to cleanup available resources
+ */
+
+/**
+ * @typedef {object} BundleOptions
+ * @property {boolean} cache
+ * @property {boolean} contentHash
+ * @property {boolean} watch
+ * @property {boolean} minify
+ * @property {number} logLevel
+ */
+
+/**
+ * Bundles the web source via Webpack.
+ *
+ * @param {Array of string} [entries] one or more file paths or globs
+ * @param {string} [dest] directory to build to
+ * @param {BundleOptions} [options] the Parcel bundler options
+ * @param {Function} [log] the app logger
+ * @returns {BundleWebObject} the BundleWebObject
+ */
+module.exports = async (entries, dest, options = { shouldOptimize: false }, log = () => { }) => {
+  aioLogger.debug(`bundle options: ${JSON.stringify(options, null, 2)}`)
+
+  console.log('- bundler of dreams, here to make your dreams come true')
+
+
+  if (!entries) {
+    throw new Error('cannot build web, entries not specified')
+  }
+  if (!dest) {
+    throw new Error('cannot build web, missing destination')
+  }
+
+  let htmlFile = glob.sync(entries)[0]
+  console.log('htmlFile', htmlFile)
+  const fileSrc = fs.readFileSync(htmlFile, 'utf8')
+  const newFileSrc = fileSrc.replace(/<script src="(.*)"><\/script>/g, (match, p1) => {  
+    console.log('p1', p1)
+    return ''
+  })
+
+  console.log('newFileSrc = ', newFileSrc)
+
+  
+  console.log('entries = ', entries)
+  console.log('dest = ', dest)
+  console.log('options = ', options)
+
+  // load options from .env
+  // some defaults defined here
+  // /Users/jessem/repos/adobe/aio-all/test/test-new-project/webkit-front 
+
+
+  const webpackConfig = {
+    entry: path.resolve('./src/dx-excshell-1/web-src/src/index.js'),
+    mode: 'development',
+    target: 'web',
+    output: {
+      path: dest,
+      clean: true
+    },
+    plugins: [
+      new HtmlWebpackPlugin({
+        
+        filename: 'index.html'
+      })
+    ],
+    module: {
+      rules: [
+        {
+          test: /\.css$/i,
+          use: ["style-loader", "css-loader"],
+        },
+        {
+          test: /\.(jsx|js)$/,
+          include: path.resolve('./src/dx-excshell-1/web-src/src'),
+          exclude: /node_modules/,
+          use: [{
+            loader: 'babel-loader',
+            options: {
+              presets: [
+                ['@babel/preset-env', {
+                  "targets": "defaults" 
+                }],
+                '@babel/preset-react'
+              ]
+            }
+          }]
+        }
+      ]
+    }
+  }
+
+
+  // set defaults, but allow override by passed in values
+  //   const parcelBundleOptions = {
+  //     entries,
+  //     defaultConfig: require.resolve('@parcel/config-default'),
+  //     shouldDisableCache: false,
+  //     targets: {
+  //       webassets: {
+  //         includeNodeModules: true,
+  //         distDir: dest
+  //       }
+  //     },
+  //     defaultTargetOptions: {
+  //       distDir: dest,
+  //       shouldOptimize: options.shouldOptimize
+  //     },
+  //     shouldPatchConsole: false,
+  //     shouldContentHash: true,
+  //     logLevel: 'error',
+  //     ...options
+  //   }
+
+  //   aioLogger.debug(`bundle bundleOptions: ${JSON.stringify(parcelBundleOptions, null, 2)}`)
+  //   log(`bundling ${entries}`)
+  //   const bundler = new Bundler(parcelBundleOptions)
+
+  //   return bundler
+
+  const localConfig = require(path.resolve('./src/dx-excshell-1/web-src/webpack-config.js'))
+  console.log('localConfig = ', localConfig)
+
+  const compiler = webpack(localConfig) // webpackConfig)
+  await new Promise((resolve, reject) => {
+    compiler.run((err, stats) => {
+      if (err) {
+        reject(err)
+      }
+      // stats must be defined at this point
+      const info = stats.toJson()
+      if (stats.hasWarnings()) {
+        aioLogger.warn(`webpack compilation warnings:\n${info.warnings}`)
+      }
+      if (stats.hasErrors()) {
+        reject(new Error(`action build failed, webpack compilation errors:\n${JSON.stringify(info.errors, null, '\t')}`))
+      }
+      return resolve(stats)
+    })
+  })
+
+  
+  return compiler
+}
