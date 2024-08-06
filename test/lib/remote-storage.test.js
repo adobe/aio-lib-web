@@ -47,7 +47,7 @@ describe('RemoteStorage', () => {
         accessKeyId: global.fakeTVMResponse.accessKeyId,
         secretAccessKey: global.fakeTVMResponse.secretAccessKey,
         sessionToken: global.fakeTVMResponse.sessionToken,
-        expiration: global.fakeTVMResponse.expiration
+        expiration: new Date(global.fakeTVMResponse.expiration)
       },
       region: 'us-east-1'
     })
