@@ -32,7 +32,7 @@
     "@adobe/aio-lib-core-config": "^5",
     "@adobe/aio-lib-core-logging": "^3",
     "@adobe/aio-lib-core-tvm": "^4",
-    "@aws-sdk/client-s3": "^3.276.0",
+    "@aws-sdk/client-s3": "3.623.0",
     "core-js": "^3.25.1",
     "fs-extra": "^11",
     "joi": "^17.2.1",
