@@ -33,6 +33,7 @@
     "@adobe/aio-lib-core-logging": "^3",
     "@adobe/aio-lib-core-tvm": "^4",
     "@aws-sdk/client-s3": "^3.624.0",
+    "@smithy/node-http-handler": "^3.0.0",
     "core-js": "^3.25.1",
     "fs-extra": "^11",
     "joi": "^17.2.1",
@@ -40,6 +41,7 @@
     "lodash.clonedeep": "^4.5.0",
     "mime-types": "^2.1.24",
     "parcel": "^2.7.0",
+    "proxy-agent": "^6.3.0",
     "regenerator-runtime": "^0.13.7"
   },
   "devDependencies": {
