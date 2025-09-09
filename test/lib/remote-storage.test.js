@@ -49,7 +49,8 @@ describe('RemoteStorage', () => {
         sessionToken: global.fakeTVMResponse.sessionToken,
         expiration: new Date(global.fakeTVMResponse.expiration)
       },
-      region: 'us-east-1'
+      region: 'us-east-1',
+      requestHandler: expect.any(Object)
     })
     rs.bucket = global.fakeTVMResponse.Bucket
   })
@@ -59,11 +60,120 @@ describe('RemoteStorage', () => {
     expect(S3).toHaveBeenCalledWith({
       credentials: {
         accessKeyId: global.fakeTVMResponse.accessKeyId,
-        secretAccessKey: global.fakeTVMResponse.secretAccessKey
+        secretAccessKey: global.fakeTVMResponse.secretAccessKey,
+        sessionToken: undefined,
+        expiration: undefined
       },
-      region: 'us-east-1'
+      region: 'us-east-1',
+      requestHandler: expect.any(Object)
     })
     rs.bucket = global.fakeTVMResponse.Bucket
+  })
+
+  describe('Proxy configuration', () => {
+    const originalEnv = process.env
+
+    beforeEach(() => {
+      // Clear environment variables before each test
+      delete process.env.https_proxy
+      delete process.env.HTTPS_PROXY
+      delete process.env.http_proxy
+      delete process.env.HTTP_PROXY
+    })
+
+    afterAll(() => {
+      // Restore original environment
+      process.env = originalEnv
+    })
+
+    test('Constructor uses HTTPS_PROXY when set (uppercase)', async () => {
+      process.env.HTTPS_PROXY = 'http://proxy.example.com:8080'
+      // eslint-disable-next-line no-new
+      new RemoteStorage(global.fakeTVMResponse)
+
+      expect(S3).toHaveBeenCalledWith(expect.objectContaining({
+        requestHandler: expect.any(Object),
+        credentials: expect.any(Object),
+        region: 'us-east-1'
+      }))
+    })
+
+    test('Constructor uses https_proxy when set (lowercase)', async () => {
+      process.env.https_proxy = 'http://proxy.example.com:3128'
+      // eslint-disable-next-line no-new
+      new RemoteStorage(global.fakeTVMResponse)
+
+      expect(S3).toHaveBeenCalledWith(expect.objectContaining({
+        requestHandler: expect.any(Object),
+        credentials: expect.any(Object),
+        region: 'us-east-1'
+      }))
+    })
+
+    test('Constructor uses HTTP_PROXY when HTTPS_PROXY not set', async () => {
+      process.env.HTTP_PROXY = 'http://proxy.example.com:8080'
+      // eslint-disable-next-line no-new
+      new RemoteStorage(global.fakeTVMResponse)
+
+      expect(S3).toHaveBeenCalledWith(expect.objectContaining({
+        requestHandler: expect.any(Object),
+        credentials: expect.any(Object),
+        region: 'us-east-1'
+      }))
+    })
+
+    test('Constructor uses http_proxy when other proxy vars not set', async () => {
+      process.env.http_proxy = 'http://proxy.example.com:3128'
+      // eslint-disable-next-line no-new
+      new RemoteStorage(global.fakeTVMResponse)
+
+      expect(S3).toHaveBeenCalledWith(expect.objectContaining({
+        requestHandler: expect.any(Object),
+        credentials: expect.any(Object),
+        region: 'us-east-1'
+      }))
+    })
+
+    test('Constructor prioritizes HTTPS_PROXY over HTTP_PROXY', async () => {
+      process.env.HTTPS_PROXY = 'http://https-proxy.example.com:8080'
+      process.env.HTTP_PROXY = 'http://http-proxy.example.com:8080'
+      // eslint-disable-next-line no-new
+      new RemoteStorage(global.fakeTVMResponse)
+
+      expect(S3).toHaveBeenCalledWith(expect.objectContaining({
+        requestHandler: expect.any(Object),
+        credentials: expect.any(Object),
+        region: 'us-east-1'
+      }))
+    })
+
+    test('Constructor prioritizes https_proxy over HTTP_PROXY', async () => {
+      process.env.https_proxy = 'http://https-proxy.example.com:3128'
+      process.env.HTTP_PROXY = 'http://http-proxy.example.com:8080'
+      // eslint-disable-next-line no-new
+      new RemoteStorage(global.fakeTVMResponse)
+
+      expect(S3).toHaveBeenCalledWith(expect.objectContaining({
+        requestHandler: expect.any(Object),
+        credentials: expect.any(Object),
+        region: 'us-east-1'
+      }))
+    })
+
+    test('Constructor always includes requestHandler with ProxyAgent', async () => {
+      // eslint-disable-next-line no-new
+      new RemoteStorage(global.fakeTVMResponse)
+
+      expect(S3).toHaveBeenCalledWith({
+        credentials: expect.any(Object),
+        region: 'us-east-1',
+        requestHandler: expect.any(Object)
+      })
+
+      // ProxyAgent handles proxy detection automatically via proxy-from-env
+      const s3CallArgs = S3.mock.calls[S3.mock.calls.length - 1][0]
+      expect(s3CallArgs).toHaveProperty('requestHandler')
+    })
   })
 
   test('folderExists missing prefix', async () => {
