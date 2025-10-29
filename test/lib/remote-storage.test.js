@@ -297,36 +297,6 @@ describe('RemoteStorage', () => {
     expect(cbMock).toHaveBeenCalledTimes(4)
   })
 
-  test('cachecontrol string for html', async () => {
-    const rs = new RemoteStorage(global.fakeTVMResponse)
-    const response = rs._getCacheControlConfig('text/html', global.fakeConfig.app)
-    expect(response).toBe('s-maxage=0, max-age=60')
-  })
-
-  test('cachecontrol string for JS', async () => {
-    const rs = new RemoteStorage(global.fakeTVMResponse)
-    const response = rs._getCacheControlConfig('application/javascript', global.fakeConfig.app)
-    expect(response).toBe('s-maxage=0, max-age=604800')
-  })
-
-  test('cachecontrol string for CSS', async () => {
-    const rs = new RemoteStorage(global.fakeTVMResponse)
-    const response = rs._getCacheControlConfig('text/css', global.fakeConfig.app)
-    expect(response).toBe('s-maxage=0, max-age=604800')
-  })
-
-  test('cachecontrol string for Image', async () => {
-    const rs = new RemoteStorage(global.fakeTVMResponse)
-    const response = rs._getCacheControlConfig('image/jpeg', global.fakeConfig.app)
-    expect(response).toBe('s-maxage=0, max-age=604800')
-  })
-
-  test('cachecontrol string for default', async () => {
-    const rs = new RemoteStorage(global.fakeTVMResponse)
-    const response = rs._getCacheControlConfig('application/pdf', global.fakeConfig.app)
-    expect(response).toBe('s-maxage=0')
-  })
-
   // response header tests
   test('get response header from config with multiple rules', async () => {
     const rs = new RemoteStorage(global.fakeTVMResponse)
@@ -354,11 +324,11 @@ describe('RemoteStorage', () => {
     const fakeDistRoot = path.parse(files[0]).dir
 
     const expectedValMap = {
-      'index.html': { 'adp-testHeader': 'generic-header' },
-      'test.js': { 'adp-testHeader': 'specific-file-header' }
+      'index.html': { responseHeaders: { 'adp-testHeader': 'generic-header' }, cacheControl: undefined },
+      'test.js': { responseHeaders: { 'adp-testHeader': 'specific-file-header' }, cacheControl: undefined }
     }
-    expectedValMap[folderPath1] = { 'adp-testHeader': 'folder-header' }
-    expectedValMap[folderPath2] = { 'adp-testHeader': 'all-js-file-in-folder-header' }
+    expectedValMap[folderPath1] = { responseHeaders: { 'adp-testHeader': 'folder-header' }, cacheControl: undefined }
+    expectedValMap[folderPath2] = { responseHeaders: { 'adp-testHeader': 'all-js-file-in-folder-header' }, cacheControl: undefined }
 
     files.forEach(f => {
       const fileName = f.replace(path.join(fakeDistRoot, path.sep), '')
@@ -399,13 +369,13 @@ describe('RemoteStorage', () => {
 
     // set the expectation
     const expectedValMap = {
-      'index.html': { 'adp-testHeader': 'generic-header' },
-      'test.js': { 'adp-testHeader': 'generic-header' }
+      'index.html': { responseHeaders: { 'adp-testHeader': 'generic-header' }, cacheControl: undefined },
+      'test.js': { responseHeaders: { 'adp-testHeader': 'generic-header' }, cacheControl: undefined }
     }
-    expectedValMap[folderPath1] = { 'adp-testHeader': 'all-files-in-css-folder-header' }
-    expectedValMap[folderPath2] = { 'adp-testHeader': 'all-files-in-js-folder-header' }
-    expectedValMap[folderPath3] = { 'adp-testHeader': 'all-files-in-images-folder-header' }
-    expectedValMap[folderPath4] = { 'adp-testHeader': 'all-files-in-images-folder-header' }
+    expectedValMap[folderPath1] = { responseHeaders: { 'adp-testHeader': 'all-files-in-css-folder-header' }, cacheControl: undefined }
+    expectedValMap[folderPath2] = { responseHeaders: { 'adp-testHeader': 'all-files-in-js-folder-header' }, cacheControl: undefined }
+    expectedValMap[folderPath3] = { responseHeaders: { 'adp-testHeader': 'all-files-in-images-folder-header' }, cacheControl: undefined }
+    expectedValMap[folderPath4] = { responseHeaders: { 'adp-testHeader': 'all-files-in-images-folder-header' }, cacheControl: undefined }
 
     // check header application per file
     files.forEach(f => {
@@ -455,12 +425,12 @@ describe('RemoteStorage', () => {
 
     // set the expectation
     const expectedValMap = {
-      'index.html': { 'adp-testHeader': 'generic-header' },
-      'test.js': { 'adp-testHeader': 'generic-header' }
+      'index.html': { responseHeaders: { 'adp-testHeader': 'generic-header' }, cacheControl: undefined },
+      'test.js': { responseHeaders: { 'adp-testHeader': 'generic-header' }, cacheControl: undefined }
     }
-    expectedValMap[folderPath1] = { 'adp-testHeader': 'specific-css-file-header' }
-    expectedValMap[folderPath2] = { 'adp-testHeader': 'specific-js-file-header' }
-    expectedValMap[folderPath3] = { 'adp-testHeader': 'specific-image-file-header' }
+    expectedValMap[folderPath1] = { responseHeaders: { 'adp-testHeader': 'specific-css-file-header' }, cacheControl: undefined }
+    expectedValMap[folderPath2] = { responseHeaders: { 'adp-testHeader': 'specific-js-file-header' }, cacheControl: undefined }
+    expectedValMap[folderPath3] = { responseHeaders: { 'adp-testHeader': 'specific-image-file-header' }, cacheControl: undefined }
 
     // check header application per file
     files.forEach(f => {
@@ -501,12 +471,12 @@ describe('RemoteStorage', () => {
 
     // set the expectation
     const expectedValMap = {
-      'index.html': { 'adp-testHeader': 'generic-header' },
-      'test.js': { 'adp-testHeader': 'all-js-files-header' }
+      'index.html': { responseHeaders: { 'adp-testHeader': 'generic-header' }, cacheControl: undefined },
+      'test.js': { responseHeaders: { 'adp-testHeader': 'all-js-files-header' }, cacheControl: undefined }
     }
-    expectedValMap[folderPath1] = { 'adp-testHeader': 'all-css-files-header' }
-    expectedValMap[folderPath2] = { 'adp-testHeader': 'all-js-files-header' }
-    expectedValMap[folderPath3] = { 'adp-testHeader': 'all-png-files-header' }
+    expectedValMap[folderPath1] = { responseHeaders: { 'adp-testHeader': 'all-css-files-header' }, cacheControl: undefined }
+    expectedValMap[folderPath2] = { responseHeaders: { 'adp-testHeader': 'all-js-files-header' }, cacheControl: undefined }
+    expectedValMap[folderPath3] = { responseHeaders: { 'adp-testHeader': 'all-png-files-header' }, cacheControl: undefined }
 
     // check header application per file
     files.forEach(f => {
@@ -555,7 +525,8 @@ describe('RemoteStorage', () => {
     const newConfig = global.configWithModifiedWeb(global.fakeConfig, {
       'response-headers': {
         '/*': {
-          testHeader: 'generic-header'
+          testHeader: 'generic-header',
+          'cache-control': 's-maxage=3600, max-age=60'
         }
       }
     })
@@ -569,8 +540,50 @@ describe('RemoteStorage', () => {
       ContentType: 'application/javascript',
       Metadata: {
         'adp-testHeader': 'generic-header'
-      }
+      },
+      cacheControl: 's-maxage=3600, max-age=60'
     }
     expect(mockS3.putObject).toHaveBeenCalledWith(expect.objectContaining(expected))
+  })
+
+  test('set cache control response headers for config with multiple rules', async () => {
+    // custom cache control are now set via response headers
+    const rs = new RemoteStorage(global.fakeTVMResponse)
+    const newConfig = global.configWithModifiedWeb(global.fakeConfig, {
+      'response-headers': {
+        '/*': {
+          'cache-control': 's-maxage=0, max-age=60'
+        },
+        '/testFolder/*': {
+          'Cache-Control': 's-maxage=500, max-age=0'
+        },
+        '/testFolder/*.js': {
+          'Cache-CoNtrol': 's-maxage=0, max-age=604800'
+        },
+        '/test.js': {
+          'Cache-COntrol': 's-maxage=604800, max-age=604800'
+        }
+      }
+    })
+
+    const folderPath1 = 'testFolder' + path.sep + 'index.html'
+    const folderPath2 = 'testFolder' + path.sep + 'test.js'
+    await global.addFakeFiles(vol, 'fakeDir', ['index.html', 'test.js', folderPath1, folderPath2])
+    const files = await rs.walkDir('fakeDir')
+    const fakeDistRoot = path.parse(files[0]).dir
+
+    const expectedValMap = {
+      'index.html': { responseHeaders: {}, cacheControl: 's-maxage=0, max-age=60' },
+      'test.js': { responseHeaders: {}, cacheControl: 's-maxage=604800, max-age=604800' }
+    }
+    expectedValMap[folderPath1] = { responseHeaders: {}, cacheControl: 's-maxage=500, max-age=0' }
+    expectedValMap[folderPath2] = { responseHeaders: {}, cacheControl: 's-maxage=0, max-age=604800' }
+
+    files.forEach(f => {
+      const fileName = f.replace(path.join(fakeDistRoot, path.sep), '')
+      const response = rs.getResponseHeadersForFile(f, fakeDistRoot, newConfig)
+      const expected = expectedValMap[fileName]
+      expect(response).toStrictEqual(expected)
+    })
   })
 })
