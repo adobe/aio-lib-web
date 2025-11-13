@@ -597,13 +597,69 @@ describe('RemoteStorage', () => {
       ContentType: 'text/html',
       CacheControl: 'max-age=3600, s-maxage=7200',
       Metadata: {
-        'adp-testHeader': 'generic-header',
-        'adp-AuditUserId': undefined
+        'adp-testHeader': 'generic-header'
       }
     }
     expect(mockS3.putObject).toHaveBeenCalledWith(expect.objectContaining(expected))
     // Verify that adp-cache-control was removed from metadata
     const putObjectCall = mockS3.putObject.mock.calls[0][0]
     expect(putObjectCall.Metadata).not.toHaveProperty('adp-cache-control')
+  })
+
+  test('uploadFile includes auditUserId in metadata when set', async () => {
+    global.addFakeFiles(vol, 'fakeDir', { 'index.js': 'fake content' })
+    const rs = new RemoteStorage(global.fakeTVMResponse)
+    const fakeConfig = { ...global.fakeConfig, auditUserId: 'test-user-123' }
+    await rs.uploadFile('fakeDir/index.js', 'fakeprefix', fakeConfig, 'fakeDir')
+    const body = Buffer.from('fake content', 'utf8')
+    const expected = {
+      Bucket: 'fake-bucket',
+      Key: 'fakeprefix/index.js',
+      Body: body,
+      ContentType: 'application/javascript',
+      Metadata: expect.objectContaining({
+        'adp-AuditUserId': 'test-user-123'
+      })
+    }
+    expect(mockS3.putObject).toHaveBeenCalledWith(expect.objectContaining(expected))
+  })
+
+  test('uploadFile does not set Metadata when responseHeaders is empty and auditUserId is not set', async () => {
+    global.addFakeFiles(vol, 'fakeDir', { 'index.js': 'fake content' })
+    const rs = new RemoteStorage(global.fakeTVMResponse)
+    const fakeConfig = {
+      app: global.fakeConfig.app
+      // No web.response-headers and no auditUserId
+    }
+    await rs.uploadFile('fakeDir/index.js', 'fakeprefix', fakeConfig, 'fakeDir')
+    const body = Buffer.from('fake content', 'utf8')
+    const putObjectCall = mockS3.putObject.mock.calls[0][0]
+    expect(putObjectCall).not.toHaveProperty('Metadata')
+    expect(putObjectCall).toMatchObject({
+      Bucket: 'fake-bucket',
+      Key: 'fakeprefix/index.js',
+      Body: body,
+      ContentType: 'application/javascript'
+    })
+  })
+
+  test('uploadFile sets CacheControl even when responseHeaders is empty and auditUserId is not set', async () => {
+    global.addFakeFiles(vol, 'fakeDir', { 'index.html': 'fake content' })
+    const rs = new RemoteStorage(global.fakeTVMResponse)
+    const fakeConfig = {
+      app: global.fakeConfig.app
+      // No web.response-headers and no auditUserId
+    }
+    await rs.uploadFile('fakeDir/index.html', 'fakeprefix', fakeConfig, 'fakeDir')
+    const body = Buffer.from('fake content', 'utf8')
+    const putObjectCall = mockS3.putObject.mock.calls[0][0]
+    expect(putObjectCall).not.toHaveProperty('Metadata')
+    expect(putObjectCall).toMatchObject({
+      Bucket: 'fake-bucket',
+      Key: 'fakeprefix/index.html',
+      Body: body,
+      ContentType: 'text/html',
+      CacheControl: 's-maxage=60, max-age=60'
+    })
   })
 })
