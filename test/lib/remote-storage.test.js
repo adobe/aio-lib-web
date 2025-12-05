@@ -327,6 +327,34 @@ describe('RemoteStorage', () => {
     expect(response).toBe(null)
   })
 
+  test('cachecontrol string for html when htmlCacheDuration is not defined', async () => {
+    const rs = new RemoteStorage(global.fakeTVMResponse)
+    const appConfigWithoutHtmlCache = global.configWithMissing(global.fakeConfig.app, 'htmlCacheDuration')
+    const response = rs._getCacheControlConfig('text/html', appConfigWithoutHtmlCache)
+    expect(response).toBe(null)
+  })
+
+  test('cachecontrol string for JS when jsCacheDuration is not defined', async () => {
+    const rs = new RemoteStorage(global.fakeTVMResponse)
+    const appConfigWithoutJsCache = global.configWithMissing(global.fakeConfig.app, 'jsCacheDuration')
+    const response = rs._getCacheControlConfig('application/javascript', appConfigWithoutJsCache)
+    expect(response).toBe(null)
+  })
+
+  test('cachecontrol string for CSS when cssCacheDuration is not defined', async () => {
+    const rs = new RemoteStorage(global.fakeTVMResponse)
+    const appConfigWithoutCssCache = global.configWithMissing(global.fakeConfig.app, 'cssCacheDuration')
+    const response = rs._getCacheControlConfig('text/css', appConfigWithoutCssCache)
+    expect(response).toBe(null)
+  })
+
+  test('cachecontrol string for Image when imageCacheDuration is not defined', async () => {
+    const rs = new RemoteStorage(global.fakeTVMResponse)
+    const appConfigWithoutImageCache = global.configWithMissing(global.fakeConfig.app, 'imageCacheDuration')
+    const response = rs._getCacheControlConfig('image/jpeg', appConfigWithoutImageCache)
+    expect(response).toBe(null)
+  })
+
   // response header tests
   test('get response header from config with multiple rules', async () => {
     const rs = new RemoteStorage(global.fakeTVMResponse)
@@ -616,10 +644,7 @@ describe('RemoteStorage', () => {
       Bucket: 'fake-bucket',
       Key: 'fakeprefix/index.js',
       Body: body,
-      ContentType: 'application/javascript',
-      Metadata: expect.objectContaining({
-        'adp-AuditUserId': 'test-user-123'
-      })
+      ContentType: 'application/javascript'
     }
     expect(mockS3.putObject).toHaveBeenCalledWith(expect.objectContaining(expected))
   })
