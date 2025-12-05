@@ -348,7 +348,7 @@ describe('RemoteStorage', () => {
     expect(response).toBe(null)
   })
 
-  test('cachecontrol string for Image when imageCacheDuration is not defined', async () => {
+  test('cachecontrol string for image when imageCacheDuration is not defined', async () => {
     const rs = new RemoteStorage(global.fakeTVMResponse)
     const appConfigWithoutImageCache = global.configWithMissing(global.fakeConfig.app, 'imageCacheDuration')
     const response = rs._getCacheControlConfig('image/jpeg', appConfigWithoutImageCache)
@@ -649,12 +649,12 @@ describe('RemoteStorage', () => {
     expect(mockS3.putObject).toHaveBeenCalledWith(expect.objectContaining(expected))
   })
 
-  test('uploadFile does not set Metadata when responseHeaders is empty and auditUserId is not set', async () => {
+  test('uploadFile does not set Metadata when responseHeaders is empty', async () => {
     global.addFakeFiles(vol, 'fakeDir', { 'index.js': 'fake content' })
     const rs = new RemoteStorage(global.fakeTVMResponse)
     const fakeConfig = {
       app: global.fakeConfig.app
-      // No web.response-headers and no auditUserId
+      // No web.response-headers
     }
     await rs.uploadFile('fakeDir/index.js', 'fakeprefix', fakeConfig, 'fakeDir')
     const body = Buffer.from('fake content', 'utf8')
@@ -668,12 +668,12 @@ describe('RemoteStorage', () => {
     })
   })
 
-  test('uploadFile sets CacheControl even when responseHeaders is empty and auditUserId is not set', async () => {
+  test('uploadFile sets CacheControl even when responseHeaders is empty', async () => {
     global.addFakeFiles(vol, 'fakeDir', { 'index.html': 'fake content' })
     const rs = new RemoteStorage(global.fakeTVMResponse)
     const fakeConfig = {
       app: global.fakeConfig.app
-      // No web.response-headers and no auditUserId
+      // No web.response-headers
     }
     await rs.uploadFile('fakeDir/index.html', 'fakeprefix', fakeConfig, 'fakeDir')
     const body = Buffer.from('fake content', 'utf8')
