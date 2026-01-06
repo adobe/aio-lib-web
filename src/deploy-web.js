@@ -30,22 +30,39 @@ const deployWeb = async (config, log) => {
     throw new Error(`missing files in ${dist}, maybe you forgot to build your UI ?`)
   }
 
-  const creds = await getS3Credentials(config)
+  // Use the same default cache file as TvmClient
+  const credsCacheFile = (config.s3 && config.s3.credsCacheFile) || '.aws.tmp.creds.json'
 
-  const remoteStorage = new RemoteStorage(creds)
-  const exists = await remoteStorage.folderExists(config.s3.folder + '/')
+  try {
+    const creds = await getS3Credentials(config)
 
-  if (exists) {
-    if (log) {
-      log('warning: an existing deployment will be overwritten')
+    const remoteStorage = new RemoteStorage(creds)
+    const exists = await remoteStorage.folderExists(config.s3.folder + '/')
+
+    if (exists) {
+      if (log) {
+        log('warning: an existing deployment will be overwritten')
+      }
+      await remoteStorage.emptyFolder(config.s3.folder + '/')
     }
-    await remoteStorage.emptyFolder(config.s3.folder + '/')
-  }
-  const _log = log ? (f) => log(`deploying ${path.relative(dist, f)}`) : null
-  await remoteStorage.uploadDir(dist, config.s3.folder, config, _log)
+    const _log = log ? (f) => log(`deploying ${path.relative(dist, f)}`) : null
+    await remoteStorage.uploadDir(dist, config.s3.folder, config, _log)
 
-  const url = `https://${config.ow.namespace}.${config.app.hostname}/index.html`
-  return url
+    const url = `https://${config.ow.namespace}.${config.app.hostname}/index.html`
+    return url
+  } finally {
+    // Cleanup TVM credentials cache file
+    if (credsCacheFile && fs.existsSync(credsCacheFile)) {
+      try {
+        fs.removeSync(credsCacheFile)
+      } catch (err) {
+        // Ignore cleanup errors - don't fail deployment if cleanup fails
+        if (log) {
+          log(`warning: failed to cleanup credentials cache: ${err.message}`)
+        }
+      }
+    }
+  }
 }
 
 module.exports = deployWeb

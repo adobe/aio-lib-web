@@ -265,4 +265,29 @@ describe('deploy-web', () => {
     expect(folderExists).toHaveBeenLastCalledWith('nsfolder/')
     expect(emptyFolder).toHaveBeenLastCalledWith('nsfolder/')
   })
+
+  test('cleans up credentials cache file', async () => {
+    fs.removeSync.mockImplementation(() => {})
+    await deployWeb({ ow: { namespace: 'ns', auth: 'password' }, s3: { credsCacheFile: 'test.json', folder: 'f' }, app: { hasFrontend: true, hostname: 'h' }, web: { distProd: 'dist' } })
+    expect(fs.removeSync).toHaveBeenCalledWith('test.json')
+  })
+
+  test('logs cleanup errors', async () => {
+    const log = jest.fn()
+    fs.removeSync.mockImplementation(() => { throw new Error('fail') })
+    await deployWeb({ ow: { namespace: 'ns', auth: 'password' }, s3: { credsCacheFile: 'test.json', folder: 'f' }, app: { hasFrontend: true, hostname: 'h' }, web: { distProd: 'dist' } }, log)
+    expect(log).toHaveBeenCalledWith('warning: failed to cleanup credentials cache: fail')
+  })
+
+  test('ignores cleanup errors without logger', async () => {
+    fs.removeSync.mockImplementation(() => { throw new Error('fail') })
+    await expect(deployWeb({ ow: { namespace: 'ns', auth: 'password' }, s3: { credsCacheFile: 'test.json', folder: 'f' }, app: { hasFrontend: true, hostname: 'h' }, web: { distProd: 'dist' } })).resolves.toBeDefined()
+  })
+
+  test('skips cleanup when file missing', async () => {
+    fs.existsSync.mockImplementation(p => p !== 'test.json')
+    fs.removeSync.mockClear()
+    await deployWeb({ ow: { namespace: 'ns', auth: 'password' }, s3: { credsCacheFile: 'test.json', folder: 'f' }, app: { hasFrontend: true, hostname: 'h' }, web: { distProd: 'dist' } })
+    expect(fs.removeSync).not.toHaveBeenCalled()
+  })
 })

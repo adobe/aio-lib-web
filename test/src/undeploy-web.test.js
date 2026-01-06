@@ -92,4 +92,12 @@ describe('undeploy-web', () => {
     expect(mockRemoteStorageInstance.folderExists).toHaveBeenCalledWith('somefolder/')
     expect(mockRemoteStorageInstance.emptyFolder).not.toHaveBeenCalled()
   })
+
+  test('cleans up credentials cache file', async () => {
+    const fs = require('fs-extra')
+    fs.existsSync = jest.fn().mockReturnValue(true)
+    fs.removeSync = jest.fn().mockImplementation(() => { throw new Error('fail') })
+    mockRemoteStorageInstance.folderExists.mockResolvedValue(true)
+    await expect(undeployWeb({ ow: { namespace: 'ns', auth: 'password' }, s3: { credsCacheFile: 'test.json', folder: 'f' }, app: { hasFrontend: true } })).resolves.toBeUndefined()
+  })
 })

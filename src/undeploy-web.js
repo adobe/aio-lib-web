@@ -12,21 +12,36 @@ governing permissions and limitations under the License.
 
 const RemoteStorage = require('../lib/remote-storage')
 const getS3Credentials = require('../lib/getS3Creds')
+const fs = require('fs-extra')
 
 const undeployWeb = async (config) => {
   if (!config || !config.app || !config.app.hasFrontend) {
     throw new Error('cannot undeploy web, app has no frontend or config is invalid')
   }
 
-  const creds = await getS3Credentials(config)
+  // Use the same default cache file as TvmClient
+  const credsCacheFile = (config.s3 && config.s3.credsCacheFile) || '.aws.tmp.creds.json'
 
-  const remoteStorage = new RemoteStorage(creds)
+  try {
+    const creds = await getS3Credentials(config)
 
-  if (!(await remoteStorage.folderExists(config.s3.folder + '/'))) {
-    throw new Error(`cannot undeploy static files, there is no deployment for ${config.s3.folder}`)
+    const remoteStorage = new RemoteStorage(creds)
+
+    if (!(await remoteStorage.folderExists(config.s3.folder + '/'))) {
+      throw new Error(`cannot undeploy static files, there is no deployment for ${config.s3.folder}`)
+    }
+
+    await remoteStorage.emptyFolder(config.s3.folder + '/')
+  } finally {
+    // Cleanup TVM credentials cache file
+    if (credsCacheFile && fs.existsSync(credsCacheFile)) {
+      try {
+        fs.removeSync(credsCacheFile)
+      } catch (err) {
+        // Ignore cleanup errors - don't fail undeployment if cleanup fails
+      }
+    }
   }
-
-  await remoteStorage.emptyFolder(config.s3.folder + '/')
 }
 
 module.exports = undeployWeb
