@@ -11,7 +11,6 @@ governing permissions and limitations under the License.
 */
 
 const RemoteStorage = require('../lib/remote-storage')
-const getS3Credentials = require('../lib/getS3Creds')
 
 const fs = require('fs-extra')
 const path = require('path')
@@ -19,6 +18,11 @@ const path = require('path')
 const deployWeb = async (config, log) => {
   if (!config || !config.app || !config.app.hasFrontend) {
     throw new Error('cannot deploy web, app has no frontend or config is invalid')
+  }
+
+  const bearerToken = await config?.ow?.auth_handler?.getAuthHeader()
+  if (!bearerToken) {
+    throw new Error('cannot deploy web, Authorization is required')
   }
 
   /// build files
@@ -30,17 +34,8 @@ const deployWeb = async (config, log) => {
     throw new Error(`missing files in ${dist}, maybe you forgot to build your UI ?`)
   }
 
-  const creds = await getS3Credentials(config)
+  const remoteStorage = new RemoteStorage()
 
-  const remoteStorage = new RemoteStorage(creds)
-  const exists = await remoteStorage.folderExists(config.s3.folder + '/')
-
-  if (exists) {
-    if (log) {
-      log('warning: an existing deployment will be overwritten')
-    }
-    await remoteStorage.emptyFolder(config.s3.folder + '/')
-  }
   const _log = log ? (f) => log(`deploying ${path.relative(dist, f)}`) : null
   await remoteStorage.uploadDir(dist, config.s3.folder, config, _log)
 
