@@ -264,7 +264,7 @@ describe('RemoteStorage', () => {
       expect(body.file.content).toBeDefined() // base64 encoded content
     })
 
-    test('should call PUT /files with slash-prefix', async () => {
+    test('should call PUT /files without slash-prefix', async () => {
       global.addFakeFiles(vol, 'fakeDir', { 'index.js': 'fake content' })
       global.fetch.mockResolvedValue(mockResponse({ success: true }))
       const rs = new RemoteStorage(global.fakeAuthToken)
@@ -274,7 +274,7 @@ describe('RemoteStorage', () => {
 
       const callArgs = global.fetch.mock.calls[0]
       const body = JSON.parse(callArgs[1].body)
-      expect(body.file.name).toBe('/slash-prefix/index.js')
+      expect(body.file.name).toBe('slash-prefix/index.js')
     })
 
     test('should handle unknown Content-Type', async () => {
@@ -745,5 +745,59 @@ describe('RemoteStorage', () => {
       expect(body.file.cacheControl).toBe('s-maxage=60, max-age=60')
       expect(body.file.customHeaders).toEqual({})
     })
+  })
+})
+
+describe('RemoteStorage environment URL selection', () => {
+  // The deploymentServiceUrl is computed at module load time, so we need to
+  // reset modules and set up mocks BEFORE requiring remote-storage
+
+  beforeEach(() => {
+    jest.resetModules()
+    global.fetch.mockReset()
+  })
+
+  test('uses stage url when in stage environment', async () => {
+    // Set up mock BEFORE requiring the module
+    jest.doMock('@adobe/aio-lib-env', () => ({
+      getCliEnv: jest.fn(() => 'stage'),
+      PROD_ENV: 'prod',
+      STAGE_ENV: 'stage'
+    }))
+
+    // Now require the module fresh with the mock in place
+    const RemoteStorageFresh = require('../../lib/remote-storage')
+
+    global.fetch.mockResolvedValue(mockResponse([]))
+    const rs = new RemoteStorageFresh(global.fakeAuthToken)
+
+    await rs.folderExists('fakeprefix', createAppConfig())
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('https://deploy-service.stg.app-builder.corp.adp.adobe.io'),
+      expect.any(Object)
+    )
+  })
+
+  test('uses prod url when in prod environment', async () => {
+    // Set up mock for prod environment
+    jest.doMock('@adobe/aio-lib-env', () => ({
+      getCliEnv: jest.fn(() => 'prod'),
+      PROD_ENV: 'prod',
+      STAGE_ENV: 'stage'
+    }))
+
+    // Now require the module fresh with the mock in place
+    const RemoteStorageFresh = require('../../lib/remote-storage')
+
+    global.fetch.mockResolvedValue(mockResponse([]))
+    const rs = new RemoteStorageFresh(global.fakeAuthToken)
+
+    await rs.folderExists('fakeprefix', createAppConfig())
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('https://deploy-service.app-builder.adp.adobe.io'),
+      expect.any(Object)
+    )
   })
 })
