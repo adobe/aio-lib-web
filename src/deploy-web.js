@@ -34,7 +34,7 @@ const deployWeb = async (config, log) => {
     throw new Error(`missing files in ${dist}, maybe you forgot to build your UI ?`)
   }
 
-  const remoteStorage = new RemoteStorage()
+  const remoteStorage = new RemoteStorage(bearerToken)
 
   const _log = log ? (f) => log(`deploying ${path.relative(dist, f)}`) : null
   await remoteStorage.uploadDir(dist, config.s3.folder, config, _log)
