@@ -35,8 +35,6 @@ const deployWeb = async (config, log) => {
   }
 
   const remoteStorage = new RemoteStorage(bearerToken)
-
-  console.log('config.s3.folder is', config.s3.folder)
   const _log = log ? (f) => log(`deploying ${path.relative(dist, f)}`) : null
   await remoteStorage.uploadDir(dist, config.s3.folder, config, _log)
 
