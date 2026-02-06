@@ -15,9 +15,6 @@ const path = require('path')
 
 const RemoteStorage = require('../../lib/remote-storage')
 
-// Mock fetch globally
-global.fetch = jest.fn()
-
 // Helper to create a mock response
 const mockResponse = (body, options = {}) => ({
   ok: options.ok !== false,
@@ -45,6 +42,14 @@ const createAppConfig = (overrides = {}) => ({
     }
   },
   ...overrides
+})
+
+beforeAll(() => {
+  global.fetch = jest.fn()
+})
+
+afterAll(() => {
+  global.fetch.mockRestore()
 })
 
 describe('RemoteStorage', () => {
