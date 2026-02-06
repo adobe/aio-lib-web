@@ -150,15 +150,297 @@ describe('RemoteStorage', () => {
       global.fetch.mockResolvedValue(mockResponse(null, { ok: false, status: 500 }))
       const rs = new RemoteStorage(global.fakeAuthToken)
       const appConfig = createAppConfig()
-
       const result = await rs.folderExists('fakeprefix', appConfig)
-
       expect(result).toBe(false)
     })
+      
+      
+  describe('_urlJoin', () => {
+    let rs
 
-    test('should throw if no auth token', async () => {
-      const rs = new RemoteStorage(null)
-      const appConfig = createAppConfig()
+    beforeEach(() => {
+      rs = new RemoteStorage(global.fakeTVMResponse)
+    })
+
+    describe('basic path joining', () => {
+      test('joins simple path parts', () => {
+        expect(rs._urlJoin('prefix', 'file.js')).toBe('prefix/file.js')
+      })
+
+      test('joins multiple path parts', () => {
+        expect(rs._urlJoin('prefix', 'deep', 'nested', 'file.js')).toBe('prefix/deep/nested/file.js')
+      })
+
+      test('handles single part', () => {
+        expect(rs._urlJoin('file.js')).toBe('file.js')
+      })
+
+      test('handles empty string parts', () => {
+        expect(rs._urlJoin('prefix', '', 'file.js')).toBe('prefix/file.js')
+      })
+
+      test('handles null parts', () => {
+        expect(rs._urlJoin('prefix', null, 'file.js')).toBe('prefix/file.js')
+      })
+
+      test('handles undefined parts', () => {
+        expect(rs._urlJoin('prefix', undefined, 'file.js')).toBe('prefix/file.js')
+      })
+
+      test('handles all empty/null parts', () => {
+        expect(rs._urlJoin('', null, undefined)).toBe('')
+      })
+    })
+
+    describe('leading slash preservation', () => {
+      test('preserves leading slash from first argument', () => {
+        expect(rs._urlJoin('/prefix', 'file.js')).toBe('/prefix/file.js')
+      })
+
+      test('preserves leading slash with multiple parts', () => {
+        expect(rs._urlJoin('/prefix', 'deep', 'file.js')).toBe('/prefix/deep/file.js')
+      })
+
+      test('does not add leading slash when first part does not have one', () => {
+        expect(rs._urlJoin('prefix', 'file.js')).toBe('prefix/file.js')
+      })
+
+      test('handles leading slash with single part', () => {
+        expect(rs._urlJoin('/file.js')).toBe('/file.js')
+      })
+    })
+
+    describe('trailing slash removal', () => {
+      test('removes trailing slash from parts', () => {
+        expect(rs._urlJoin('prefix/', 'file.js')).toBe('prefix/file.js')
+      })
+
+      test('removes trailing slash from multiple parts', () => {
+        expect(rs._urlJoin('prefix/', 'deep/', 'file.js')).toBe('prefix/deep/file.js')
+      })
+
+      test('removes trailing slash from last part', () => {
+        expect(rs._urlJoin('prefix', 'file.js/')).toBe('prefix/file.js')
+      })
+
+      test('removes trailing slash while preserving leading slash', () => {
+        expect(rs._urlJoin('/prefix/', 'file.js')).toBe('/prefix/file.js')
+      })
+    })
+
+    describe('leading slash removal', () => {
+      test('removes leading slash from non-first parts', () => {
+        expect(rs._urlJoin('prefix', '/deep', 'file.js')).toBe('prefix/deep/file.js')
+      })
+
+      test('removes leading slash from middle parts', () => {
+        expect(rs._urlJoin('prefix', '/deep', '/nested', 'file.js')).toBe('prefix/deep/nested/file.js')
+      })
+
+      test('preserves leading slash only on first part', () => {
+        expect(rs._urlJoin('/prefix', '/deep', '/file.js')).toBe('/prefix/deep/file.js')
+      })
+    })
+
+    describe('Windows backslash conversion', () => {
+      test('converts Windows backslashes to forward slashes', () => {
+        expect(rs._urlJoin('prefix\\deep', 'file.js')).toBe('prefix/deep/file.js')
+      })
+
+      test('converts backslashes in single part', () => {
+        expect(rs._urlJoin('prefix\\deep\\file.js')).toBe('prefix/deep/file.js')
+      })
+
+      test('converts backslashes in multiple parts', () => {
+        expect(rs._urlJoin('prefix\\deep', 'nested\\file.js')).toBe('prefix/deep/nested/file.js')
+      })
+
+      test('converts backslashes while preserving leading slash', () => {
+        expect(rs._urlJoin('/prefix\\deep', 'file.js')).toBe('/prefix/deep/file.js')
+      })
+
+      test('converts mixed backslashes and forward slashes', () => {
+        expect(rs._urlJoin('prefix\\deep', 'nested/file.js')).toBe('prefix/deep/nested/file.js')
+      })
+
+      test('handles Windows-style path with backslashes', () => {
+        expect(rs._urlJoin('fakeprefix\\deep\\dir', 'index.js')).toBe('fakeprefix/deep/dir/index.js')
+      })
+    })
+
+    describe('double slash removal', () => {
+      test('removes double slashes from joined path', () => {
+        expect(rs._urlJoin('prefix', '', 'file.js')).toBe('prefix/file.js')
+      })
+
+      test('removes multiple consecutive slashes', () => {
+        expect(rs._urlJoin('prefix//deep', 'file.js')).toBe('prefix/deep/file.js')
+      })
+
+      test('removes triple slashes', () => {
+        expect(rs._urlJoin('prefix///deep', 'file.js')).toBe('prefix/deep/file.js')
+      })
+
+      test('removes double slashes in middle of path', () => {
+        expect(rs._urlJoin('prefix', '//deep', 'file.js')).toBe('prefix/deep/file.js')
+      })
+
+      test('handles double slashes with leading slash', () => {
+        expect(rs._urlJoin('/prefix', '//deep', 'file.js')).toBe('/prefix/deep/file.js')
+      })
+
+      test('removes double slashes created by empty parts', () => {
+        expect(rs._urlJoin('prefix', '', '', 'file.js')).toBe('prefix/file.js')
+      })
+    })
+
+    describe('edge cases with slashes', () => {
+      test('handles part that is just a slash', () => {
+        expect(rs._urlJoin('prefix', '/', 'file.js')).toBe('prefix/file.js')
+      })
+
+      test('handles part that is just backslash', () => {
+        expect(rs._urlJoin('prefix', '\\', 'file.js')).toBe('prefix/file.js')
+      })
+
+      test('handles multiple slashes-only parts', () => {
+        expect(rs._urlJoin('prefix', '/', '/', 'file.js')).toBe('prefix/file.js')
+      })
+
+      test('handles leading slash with empty parts', () => {
+        expect(rs._urlJoin('/prefix', '', 'file.js')).toBe('/prefix/file.js')
+      })
+    })
+
+    describe('real-world S3 key scenarios', () => {
+      test('creates S3 key from prefix and filename', () => {
+        expect(rs._urlJoin('fakeprefix', 'index.js')).toBe('fakeprefix/index.js')
+      })
+
+      test('creates S3 key with nested directories', () => {
+        expect(rs._urlJoin('fakeprefix', 'deep', 'dir', 'index.js')).toBe('fakeprefix/deep/dir/index.js')
+      })
+
+      test('handles Windows-style prefix with trailing backslash', () => {
+        expect(rs._urlJoin('fakeprefix\\deep\\dir\\', 'index.js')).toBe('fakeprefix/deep/dir/index.js')
+      })
+
+      test('handles prefix with leading slash', () => {
+        expect(rs._urlJoin('/fakeprefix', 'index.js')).toBe('/fakeprefix/index.js')
+      })
+
+      test('handles relative directory path', () => {
+        expect(rs._urlJoin('deep', 'index.js')).toBe('deep/index.js')
+      })
+
+      test('handles empty prefix', () => {
+        expect(rs._urlJoin('', 'index.js')).toBe('index.js')
+      })
+
+      test('handles prefix with mixed separators', () => {
+        expect(rs._urlJoin('prefix\\deep', 'nested/file.js')).toBe('prefix/deep/nested/file.js')
+      })
+    })
+
+    describe('special characters and edge cases', () => {
+      test('handles file with no extension', () => {
+        expect(rs._urlJoin('prefix', 'file')).toBe('prefix/file')
+      })
+
+      test('handles file with multiple dots', () => {
+        expect(rs._urlJoin('prefix', 'file.min.js')).toBe('prefix/file.min.js')
+      })
+
+      test('handles path with spaces', () => {
+        expect(rs._urlJoin('prefix', 'file name.js')).toBe('prefix/file name.js')
+      })
+
+      test('handles path with special characters', () => {
+        expect(rs._urlJoin('prefix', 'file-name_123.js')).toBe('prefix/file-name_123.js')
+      })
+
+      test('handles very long path', () => {
+        const longPath = Array(10).fill('deep').join('/')
+        expect(rs._urlJoin('prefix', longPath, 'file.js')).toBe(`prefix/${longPath}/file.js`)
+      })
+
+      test('handles path starting with dot', () => {
+        expect(rs._urlJoin('prefix', '.hidden', 'file.js')).toBe('prefix/.hidden/file.js')
+      })
+
+      test('handles path with dot-dot', () => {
+        expect(rs._urlJoin('prefix', '..', 'file.js')).toBe('prefix/../file.js')
+      })
+    })
+
+    describe('empty and null handling', () => {
+      test('returns empty string for no arguments', () => {
+        expect(rs._urlJoin()).toBe('')
+      })
+
+      test('returns empty string for single empty string', () => {
+        expect(rs._urlJoin('')).toBe('')
+      })
+
+      test('filters out all empty parts', () => {
+        expect(rs._urlJoin('', '', '')).toBe('')
+      })
+
+      test('handles mix of valid and empty parts', () => {
+        expect(rs._urlJoin('', 'prefix', '', 'file.js', '')).toBe('prefix/file.js')
+      })
+
+      test('handles null in middle', () => {
+        expect(rs._urlJoin('prefix', null, 'file.js')).toBe('prefix/file.js')
+      })
+
+      test('handles undefined in middle', () => {
+        expect(rs._urlJoin('prefix', undefined, 'file.js')).toBe('prefix/file.js')
+      })
+    })
+
+    describe('complex combinations', () => {
+      test('combines all normalization features', () => {
+        expect(rs._urlJoin('/prefix\\deep/', '//nested/', '\\file.js')).toBe('/prefix/deep/nested/file.js')
+      })
+
+      test('handles Windows path with leading slash', () => {
+        expect(rs._urlJoin('/prefix\\deep\\dir', 'index.js')).toBe('/prefix/deep/dir/index.js')
+      })
+
+      test('handles multiple trailing slashes', () => {
+        expect(rs._urlJoin('prefix///', 'deep///', 'file.js')).toBe('prefix/deep/file.js')
+      })
+
+      test('handles mixed separators and slashes', () => {
+        expect(rs._urlJoin('prefix\\deep', '/nested', '\\file.js')).toBe('prefix/deep/nested/file.js')
+      })
+    })
+  })
+
+  test('folderExists missing prefix', async () => {
+    const rs = new RemoteStorage(global.fakeTVMResponse)
+    await expect(rs.folderExists()).rejects.toEqual(expect.objectContaining({ message: 'prefix must be a valid string' }))
+  })
+
+  test('uploadFile with windows path', async () => {
+    const rs = new RemoteStorage(global.fakeTVMResponse)
+    // Create file using platform-agnostic paths
+    await global.addFakeFiles(vol, 'fakeDir', { 'deep/index.js': 'fake content' })
+    // Use platform-specific path for file reading (must match actual file system)
+    const filePath = path.join('fakeDir', 'deep', 'index.js')
+    // Test that Windows-style backslashes in prefix are normalized correctly
+    const prefixPath = 'fakeprefix\\deep\\dir\\'
+    await expect(rs.uploadFile(filePath, prefixPath, global.fakeConfig, 'fakeDir')).resolves.toBeUndefined()
+    expect(mockS3.putObject).toHaveBeenCalledWith(
+      expect.objectContaining({ Bucket: 'fake-bucket', Key: 'fakeprefix/deep/dir/index.js' })
+    )
+  })
+
+  test('uploadDir missing prefix', async () => {
+    const rs = new RemoteStorage(global.fakeTVMResponse)
+    await expect(rs.uploadDir()).rejects.toEqual(expect.objectContaining({ message: 'prefix must be a valid string' }))
+  })
 
       await expect(rs.folderExists('fakeprefix', appConfig)).rejects.toThrow(
         'cannot check if folder exists, Authorization is required'
@@ -744,6 +1026,25 @@ describe('RemoteStorage', () => {
       const body = JSON.parse(callArgs[1].body)
       expect(body.file.cacheControl).toBe('s-maxage=60, max-age=60')
       expect(body.file.customHeaders).toEqual({})
+    })
+    
+    test('uploadFile does not set Metadata when responseHeaders is empty', async () => {
+      global.addFakeFiles(vol, 'fakeDir', { 'index.js': 'fake content' })
+      const rs = new RemoteStorage(global.fakeTVMResponse)
+      const fakeConfig = {
+        app: global.fakeConfig.app
+        // No web.response-headers
+      }
+      await rs.uploadFile('fakeDir/index.js', 'fakeprefix', fakeConfig, 'fakeDir')
+      const body = Buffer.from('fake content', 'utf8')
+      const putObjectCall = mockS3.putObject.mock.calls[0][0]
+      expect(putObjectCall).not.toHaveProperty('Metadata')
+      expect(putObjectCall).toMatchObject({
+        Bucket: 'fake-bucket',
+        Key: 'fakeprefix/index.js',
+        Body: body,
+        ContentType: 'application/javascript'
+      })
     })
   })
 })
