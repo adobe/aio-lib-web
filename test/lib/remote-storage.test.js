@@ -677,7 +677,7 @@ describe('RemoteStorage', () => {
         }
       })
 
-      await rs.uploadFile('fakeDir/index.js', 'fakeprefix', newConfig, fakeDistRoot, global.fakeAuthToken)
+      await rs.uploadFile('fakeDir/index.js', 'fakeprefix', newConfig, fakeDistRoot)
 
       const callArgs = global.fetch.mock.calls[0]
       const body = JSON.parse(callArgs[1].body)
@@ -702,7 +702,7 @@ describe('RemoteStorage', () => {
         }
       })
 
-      await rs.uploadFile(filePath, 'fakeprefix', newConfig, fakeDistRoot, global.fakeAuthToken)
+      await rs.uploadFile(filePath, 'fakeprefix', newConfig, fakeDistRoot)
 
       const callArgs = global.fetch.mock.calls[0]
       const body = JSON.parse(callArgs[1].body)
@@ -722,7 +722,7 @@ describe('RemoteStorage', () => {
       const appConfig = createAppConfig()
       delete appConfig.web // No web.response-headers
 
-      await rs.uploadFile('fakeDir/index.js', 'fakeprefix', appConfig, 'fakeDir', global.fakeAuthToken)
+      await rs.uploadFile('fakeDir/index.js', 'fakeprefix', appConfig, 'fakeDir')
 
       const callArgs = global.fetch.mock.calls[0]
       const body = JSON.parse(callArgs[1].body)
@@ -738,7 +738,7 @@ describe('RemoteStorage', () => {
       const appConfig = createAppConfig()
       delete appConfig.web // No web.response-headers
 
-      await rs.uploadFile('fakeDir/index.html', 'fakeprefix', appConfig, 'fakeDir', global.fakeAuthToken)
+      await rs.uploadFile('fakeDir/index.html', 'fakeprefix', appConfig, 'fakeDir')
 
       const callArgs = global.fetch.mock.calls[0]
       const body = JSON.parse(callArgs[1].body)
