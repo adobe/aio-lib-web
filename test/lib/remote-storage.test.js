@@ -153,8 +153,16 @@ describe('RemoteStorage', () => {
       const result = await rs.folderExists('fakeprefix', appConfig)
       expect(result).toBe(false)
     })
-      
-      
+
+    test('should throw if no auth token', async () => {
+      const rs = new RemoteStorage(null)
+      const appConfig = createAppConfig()
+      await expect(rs.folderExists('fakeprefix', appConfig)).rejects.toThrow(
+        'cannot check if folder exists, Authorization is required'
+      )
+    })
+  })
+
   describe('_urlJoin', () => {
     let rs
 
@@ -424,28 +432,26 @@ describe('RemoteStorage', () => {
   })
 
   test('uploadFile with windows path', async () => {
-    const rs = new RemoteStorage(global.fakeTVMResponse)
+    global.fetch.mockResolvedValue(mockResponse({ success: true }))
+    const rs = new RemoteStorage(global.fakeAuthToken)
+    const appConfig = createAppConfig()
     // Create file using platform-agnostic paths
     await global.addFakeFiles(vol, 'fakeDir', { 'deep/index.js': 'fake content' })
     // Use platform-specific path for file reading (must match actual file system)
     const filePath = path.join('fakeDir', 'deep', 'index.js')
     // Test that Windows-style backslashes in prefix are normalized correctly
     const prefixPath = 'fakeprefix\\deep\\dir\\'
-    await expect(rs.uploadFile(filePath, prefixPath, global.fakeConfig, 'fakeDir')).resolves.toBeUndefined()
-    expect(mockS3.putObject).toHaveBeenCalledWith(
-      expect.objectContaining({ Bucket: 'fake-bucket', Key: 'fakeprefix/deep/dir/index.js' })
-    )
+    await rs.uploadFile(filePath, prefixPath, appConfig, 'fakeDir')
+
+    const callArgs = global.fetch.mock.calls[0]
+    const body = JSON.parse(callArgs[1].body)
+    // Backslashes should be normalized to forward slashes in the file name
+    expect(body.file.name).toBe('fakeprefix/deep/dir/index.js')
   })
 
-  test('uploadDir missing prefix', async () => {
-    const rs = new RemoteStorage(global.fakeTVMResponse)
-    await expect(rs.uploadDir()).rejects.toEqual(expect.objectContaining({ message: 'prefix must be a valid string' }))
-  })
-
-      await expect(rs.folderExists('fakeprefix', appConfig)).rejects.toThrow(
-        'cannot check if folder exists, Authorization is required'
-      )
-    })
+  test('uploadDir missing basePath', async () => {
+    const rs = new RemoteStorage(global.fakeAuthToken)
+    await expect(rs.uploadDir()).rejects.toEqual(expect.objectContaining({ message: 'basePath must be a valid string' }))
   })
 
   describe('emptyFolder', () => {
@@ -559,6 +565,21 @@ describe('RemoteStorage', () => {
       expect(body.file.name).toBe('slash-prefix/index.js')
     })
 
+    test('should strip namespace from filePath if present', async () => {
+      global.addFakeFiles(vol, 'fakeDir', { 'index.js': 'fake content' })
+      global.fetch.mockResolvedValue(mockResponse({ success: true }))
+      const rs = new RemoteStorage(global.fakeAuthToken)
+      const appConfig = createAppConfig()
+
+      // filePath contains namespace which gets stripped, leaving a leading slash
+      await rs.uploadFile('fakeDir/index.js', `${global.fakeNamespace}/subpath`, appConfig, 'fakeDir')
+
+      const callArgs = global.fetch.mock.calls[0]
+      const body = JSON.parse(callArgs[1].body)
+      // namespace is stripped and leading slash is removed
+      expect(body.file.name).toBe('subpath/index.js')
+    })
+
     test('should handle unknown Content-Type', async () => {
       global.addFakeFiles(vol, 'fakeDir', { 'index.mst': 'fake content' })
       global.fetch.mockResolvedValue(mockResponse({ success: true }))
@@ -593,10 +614,14 @@ describe('RemoteStorage', () => {
       global.fetch.mockResolvedValue(mockResponse(null, { ok: false, status: 500, statusText: 'Internal Server Error' }))
       const rs = new RemoteStorage(global.fakeAuthToken)
       const appConfig = createAppConfig()
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
 
       await expect(
         rs.uploadFile('fakeDir/index.js', 'fakeprefix', appConfig, 'fakeDir')
       ).rejects.toThrow('Failed to upload file: Internal Server Error')
+
+      expect(consoleSpy).toHaveBeenCalledWith('Failed to upload file:', 'fakeDir/index.js')
+      consoleSpy.mockRestore()
     })
 
     test('should throw if fetch itself throws (network error)', async () => {
@@ -604,10 +629,14 @@ describe('RemoteStorage', () => {
       global.fetch.mockRejectedValue(new Error('Network error'))
       const rs = new RemoteStorage(global.fakeAuthToken)
       const appConfig = createAppConfig()
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
 
       await expect(
         rs.uploadFile('fakeDir/index.js', 'fakeprefix', appConfig, 'fakeDir')
       ).rejects.toThrow('Network error')
+
+      expect(consoleSpy).toHaveBeenCalledWith('Error uploading file:', 'fakeDir/index.js')
+      consoleSpy.mockRestore()
     })
   })
 
@@ -653,25 +682,36 @@ describe('RemoteStorage', () => {
         'cannot upload files, Authorization is required'
       )
     })
-  })
 
-  describe('_urlJoin', () => {
-    test('joins paths without leading slash', () => {
+    test('should return upload results in batches', async () => {
+      global.addFakeFiles(vol, 'fakeDir', ['file1.js', 'file2.js', 'file3.js'])
+      global.fetch.mockResolvedValue(mockResponse({ success: true }, { status: 200 }))
       const rs = new RemoteStorage(global.fakeAuthToken)
-      const result = rs._urlJoin('path', 'to', 'file')
-      expect(result).toBe('path/to/file')
+      const appConfig = createAppConfig()
+
+      const results = await rs.uploadDir('fakeDir', 'fakeprefix', appConfig)
+
+      // Results should be an array of batches, each batch containing upload status codes
+      expect(Array.isArray(results)).toBe(true)
+      expect(results.length).toBeGreaterThan(0)
+      // Each batch result should contain status codes (200)
+      expect(results[0]).toEqual([200, 200, 200])
     })
 
-    test('preserves leading slash when first arg starts with /', () => {
+    test('should call callback with file path for each uploaded file', async () => {
+      global.addFakeFiles(vol, 'fakeDir', ['file1.js', 'file2.js'])
+      global.fetch.mockResolvedValue(mockResponse({ success: true }))
+      const cbMock = jest.fn()
       const rs = new RemoteStorage(global.fakeAuthToken)
-      const result = rs._urlJoin('/leading', 'path', 'file')
-      expect(result).toBe('/leading/path/file')
-    })
+      const appConfig = createAppConfig()
 
-    test('handles empty strings and nulls', () => {
-      const rs = new RemoteStorage(global.fakeAuthToken)
-      const result = rs._urlJoin('path', '', null, 'file')
-      expect(result).toBe('path/file')
+      await rs.uploadDir('fakeDir', 'fakeprefix', appConfig, cbMock)
+
+      // Callback should receive the file path
+      expect(cbMock).toHaveBeenCalledTimes(2)
+      cbMock.mock.calls.forEach(call => {
+        expect(call[0]).toMatch(/fakeDir/)
+      })
     })
   })
 
@@ -1027,24 +1067,21 @@ describe('RemoteStorage', () => {
       expect(body.file.cacheControl).toBe('s-maxage=60, max-age=60')
       expect(body.file.customHeaders).toEqual({})
     })
-    
-    test('uploadFile does not set Metadata when responseHeaders is empty', async () => {
+
+    test('uploadFile does not set customHeaders when responseHeaders is empty', async () => {
       global.addFakeFiles(vol, 'fakeDir', { 'index.js': 'fake content' })
-      const rs = new RemoteStorage(global.fakeTVMResponse)
-      const fakeConfig = {
-        app: global.fakeConfig.app
-        // No web.response-headers
-      }
-      await rs.uploadFile('fakeDir/index.js', 'fakeprefix', fakeConfig, 'fakeDir')
-      const body = Buffer.from('fake content', 'utf8')
-      const putObjectCall = mockS3.putObject.mock.calls[0][0]
-      expect(putObjectCall).not.toHaveProperty('Metadata')
-      expect(putObjectCall).toMatchObject({
-        Bucket: 'fake-bucket',
-        Key: 'fakeprefix/index.js',
-        Body: body,
-        ContentType: 'application/javascript'
-      })
+      global.fetch.mockResolvedValue(mockResponse({ success: true }))
+      const rs = new RemoteStorage(global.fakeAuthToken)
+      const appConfig = createAppConfig()
+      delete appConfig.web // No web.response-headers
+
+      await rs.uploadFile('fakeDir/index.js', 'fakeprefix', appConfig, 'fakeDir')
+
+      const callArgs = global.fetch.mock.calls[0]
+      const body = JSON.parse(callArgs[1].body)
+      expect(body.file.customHeaders).toEqual({})
+      expect(body.file.name).toBe('fakeprefix/index.js')
+      expect(body.file.contentType).toBe('application/javascript')
     })
   })
 })
