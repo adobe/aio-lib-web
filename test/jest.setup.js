@@ -119,6 +119,30 @@ global.configWithModifiedWeb = (config, newWebConfig) => {
 }
 
 global.fakeS3Bucket = 'fake-bucket'
+global.fakeNamespace = 'fake-namespace'
+global.fakeAuthToken = 'Bearer fake-auth-token'
+
+// Config structure for deploy-service API (auth token is now passed to RemoteStorage constructor)
+global.fakeAppConfig = {
+  ow: {
+    namespace: global.fakeNamespace
+  },
+  app: {
+    htmlCacheDuration: 60,
+    jsCacheDuration: 604800,
+    cssCacheDuration: 604800,
+    imageCacheDuration: 604800
+  },
+  web: {
+    'response-headers': {
+      '/*': {
+        testHeader: 'foo'
+      }
+    }
+  }
+}
+
+// Legacy config structure (kept for backwards compatibility with other tests)
 global.fakeConfig = {
   tvm: {
     runtime: {
@@ -157,6 +181,10 @@ global.fakeConfig = {
         testHeader: 'foo'
       }
     }
+  },
+  // Add ow property to legacy config for tests that use both
+  ow: {
+    namespace: global.fakeNamespace
   }
 }
 
