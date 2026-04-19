@@ -12,6 +12,8 @@ governing permissions and limitations under the License.
 
 const { vol } = global.mockFs()
 const deployWeb = require('../../src/deploy-web')
+jest.mock('../../lib/invalidate-cache')
+const invalidateCache = require('../../lib/invalidate-cache')
 const fs = require('fs-extra')
 jest.mock('fs-extra')
 
@@ -38,6 +40,7 @@ describe('deploy-web', () => {
     mockRemoteStorageInstance.folderExists.mockReset()
     mockRemoteStorageInstance.uploadDir.mockReset()
     getS3Credentials.mockClear()
+    invalidateCache.mockReset()
 
     global.cleanFs(vol)
   })
@@ -46,6 +49,13 @@ describe('deploy-web', () => {
     await expect(deployWeb()).rejects.toThrow('cannot deploy web')
     await expect(deployWeb({ app: 'nothing-here' })).rejects.toThrow('cannot deploy web')
     await expect(deployWeb({ app: { hasFrontEnd: false } })).rejects.toThrow('cannot deploy web')
+  })
+
+  test('throws if web config missing required fields', async () => {
+    const base = { app: { hasFrontend: true } }
+    await expect(deployWeb({ ...base, web: {} })).rejects.toThrow('config is missing "web.namespace", "web.apihost", or "web.auth_handler"')
+    await expect(deployWeb({ ...base, web: { namespace: 'ns' } })).rejects.toThrow('config is missing "web.namespace", "web.apihost", or "web.auth_handler"')
+    await expect(deployWeb({ ...base, web: { namespace: 'ns', apihost: 'deploy.example.com' } })).rejects.toThrow('config is missing "web.namespace", "web.apihost", or "web.auth_handler"')
   })
 
   test('throws if src dir does not exist', async () => {
@@ -57,7 +67,10 @@ describe('deploy-web', () => {
         hasFrontend: true
       },
       web: {
-        distProd: 'dist'
+        distProd: 'dist',
+        auth_handler: jest.fn(async () => 'Bearer token'),
+        namespace: 'ns',
+        apihost: 'deploy.example.com'
       }
     }
     await expect(deployWeb(config)).rejects.toThrow('missing files in dist')
@@ -72,7 +85,10 @@ describe('deploy-web', () => {
         hasFrontend: true
       },
       web: {
-        distProd: 'dist'
+        distProd: 'dist',
+        auth_handler: jest.fn(async () => 'Bearer token'),
+        namespace: 'ns',
+        apihost: 'deploy.example.com'
       }
     }
     fs.existsSync.mockReturnValue(true)
@@ -89,7 +105,10 @@ describe('deploy-web', () => {
         hasFrontend: true
       },
       web: {
-        distProd: 'dist'
+        distProd: 'dist',
+        auth_handler: jest.fn(async () => 'Bearer token'),
+        namespace: 'ns',
+        apihost: 'deploy.example.com'
       }
     }
     fs.existsSync.mockReturnValue(true)
@@ -114,13 +133,17 @@ describe('deploy-web', () => {
         hostname: 'host'
       },
       web: {
-        distProd: 'dist'
+        distProd: 'dist',
+        auth_handler: jest.fn(async () => 'Bearer token'),
+        namespace: 'ns',
+        apihost: 'deploy.example.com'
       }
     }
     fs.existsSync.mockReturnValue(true)
     fs.lstatSync.mockReturnValue({ isDirectory: () => true })
     fs.readdirSync.mockReturnValue({ length: 1 })
     await expect(deployWeb(config)).resolves.toEqual('https://ns.host/index.html')
+    expect(invalidateCache).toHaveBeenCalledWith('deploy.example.com', 'ns', 'Bearer token')
     expect(getS3Credentials).toHaveBeenCalledWith(config)
     expect(RemoteStorage).toHaveBeenCalledWith('fakecreds')
     expect(mockRemoteStorageInstance.uploadDir).toHaveBeenCalledWith('dist', 'somefolder', config, null)
@@ -144,7 +167,10 @@ describe('deploy-web', () => {
         hostname: 'host'
       },
       web: {
-        distProd: 'dist'
+        distProd: 'dist',
+        auth_handler: jest.fn(async () => 'Bearer token'),
+        namespace: 'ns',
+        apihost: 'deploy.example.com'
       }
     }
     fs.existsSync.mockReturnValue(true)
@@ -154,6 +180,7 @@ describe('deploy-web', () => {
     // for func coverage
     mockRemoteStorageInstance.uploadDir.mockImplementation((a, b, c, func) => func('somefile'))
     await expect(deployWeb(config, mockLogger)).resolves.toEqual('https://ns.host/index.html')
+    expect(invalidateCache).toHaveBeenCalledWith('deploy.example.com', 'ns', 'Bearer token')
     expect(getS3Credentials).toHaveBeenCalledWith(config)
     expect(RemoteStorage).toHaveBeenCalledWith('fakecreds')
     expect(mockRemoteStorageInstance.uploadDir).toHaveBeenCalledWith('dist', 'somefolder', config, expect.any(Function))
@@ -176,7 +203,10 @@ describe('deploy-web', () => {
         hostname: 'host'
       },
       web: {
-        distProd: 'dist'
+        distProd: 'dist',
+        auth_handler: jest.fn(async () => 'Bearer token'),
+        namespace: 'ns',
+        apihost: 'deploy.example.com'
       }
     }
     fs.existsSync.mockReturnValue(true)
@@ -187,6 +217,7 @@ describe('deploy-web', () => {
     mockRemoteStorageInstance.folderExists.mockResolvedValue(true)
 
     await expect(deployWeb(config, mockLogger)).resolves.toEqual('https://ns.host/index.html')
+    expect(invalidateCache).toHaveBeenCalledWith('deploy.example.com', 'ns', 'Bearer token')
     expect(getS3Credentials).toHaveBeenCalledWith(config)
     expect(mockLogger).toHaveBeenCalledWith('warning: an existing deployment will be overwritten')
     expect(RemoteStorage).toHaveBeenCalledWith('fakecreds')
@@ -210,7 +241,10 @@ describe('deploy-web', () => {
         hostname: 'host'
       },
       web: {
-        distProd: 'dist'
+        distProd: 'dist',
+        auth_handler: jest.fn(async () => 'Bearer token'),
+        namespace: 'ns',
+        apihost: 'deploy.example.com'
       }
     }
     fs.existsSync.mockReturnValue(true)
@@ -220,11 +254,34 @@ describe('deploy-web', () => {
     mockRemoteStorageInstance.folderExists.mockResolvedValue(true)
 
     await expect(deployWeb(config)).resolves.toEqual('https://ns.host/index.html')
+    expect(invalidateCache).toHaveBeenCalledWith('deploy.example.com', 'ns', 'Bearer token')
     expect(getS3Credentials).toHaveBeenCalledWith(config)
     expect(mockRemoteStorageInstance.folderExists).toHaveBeenCalledWith('somefolder/')
     expect(mockRemoteStorageInstance.uploadDir).toHaveBeenCalledWith('dist', 'somefolder', config, null)
     // empty dir!
     expect(mockRemoteStorageInstance.emptyFolder).toHaveBeenCalledWith('somefolder/')
+  })
+
+  test('invalidates cache', async () => {
+    const config = {
+      ow: { namespace: 'ns', auth: 'password' },
+      s3: { folder: 'somefolder' },
+      app: { hasFrontend: true, hostname: 'host' },
+      web: {
+        distProd: 'dist',
+        auth_handler: jest.fn(async () => 'Bearer token'),
+        namespace: 'ns',
+        apihost: 'deploy.example.com'
+      }
+    }
+    fs.existsSync.mockReturnValue(true)
+    fs.lstatSync.mockReturnValue({ isDirectory: () => true })
+    fs.readdirSync.mockReturnValue({ length: 1 })
+    mockRemoteStorageInstance.folderExists.mockResolvedValue(false)
+    invalidateCache.mockResolvedValue({ status: 'ok' })
+
+    await expect(deployWeb(config)).resolves.toEqual('https://ns.host/index.html')
+    expect(invalidateCache).toHaveBeenCalledWith('deploy.example.com', 'ns', 'Bearer token')
   })
 
   test('calls to s3 should use ending slash', async () => {
@@ -243,7 +300,10 @@ describe('deploy-web', () => {
         hostname: 'host'
       },
       web: {
-        distProd: 'dist'
+        distProd: 'dist',
+        auth_handler: jest.fn(async () => 'Bearer token'),
+        namespace: 'ns',
+        apihost: 'deploy.example.com'
       }
     }
     const emptyFolder = jest.fn()

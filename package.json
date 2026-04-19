@@ -31,7 +31,9 @@
   "dependencies": {
     "@adobe/aio-lib-core-config": "^5",
     "@adobe/aio-lib-core-logging": "^3",
+    "@adobe/aio-lib-core-networking": "^5.0.4",
     "@adobe/aio-lib-core-tvm": "^4",
+    "@adobe/aio-lib-env": "^3.0.1",
     "@aws-sdk/client-s3": "^3.624.0",
     "@smithy/node-http-handler": "^4.0.2",
     "core-js": "^3.25.1",
