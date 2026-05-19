@@ -16,6 +16,8 @@ const fs = require('fs-extra')
 jest.mock('fs-extra')
 
 const mockRemoteStorageInstance = {
+  emptyFolder: jest.fn(),
+  folderExists: jest.fn(),
   uploadDir: jest.fn()
 }
 const RemoteStorage = require('../../lib/remote-storage')
@@ -28,6 +30,8 @@ jest.mock('../../lib/remote-storage', () => {
 describe('deploy-web', () => {
   beforeEach(() => {
     RemoteStorage.mockClear()
+    mockRemoteStorageInstance.emptyFolder.mockReset()
+    mockRemoteStorageInstance.folderExists.mockReset()
     mockRemoteStorageInstance.uploadDir.mockReset()
 
     global.cleanFs(vol)
@@ -99,6 +103,74 @@ describe('deploy-web', () => {
     fs.existsSync.mockReturnValue(true)
     fs.lstatSync.mockReturnValue({ isDirectory: () => false })
     await expect(deployWeb(config)).rejects.toThrow('missing files in dist')
+  })
+
+  test('throws if hostname or namespace is missing', async () => {
+    const baseConfig = {
+      s3: {
+        folder: 'somefolder'
+      },
+      ow: {
+        namespace: 'ns',
+        auth_handler: {
+          getAuthHeader: jest.fn().mockResolvedValue('Bearer token')
+        }
+      },
+      app: {
+        hasFrontend: true,
+        hostname: 'host'
+      },
+      web: {
+        distProd: 'dist'
+      }
+    }
+    fs.existsSync.mockReturnValue(true)
+    fs.lstatSync.mockReturnValue({ isDirectory: () => true })
+    fs.readdirSync.mockReturnValue({ length: 1 })
+
+    await expect(deployWeb({
+      ...baseConfig,
+      app: { hasFrontend: true }
+    })).rejects.toThrow('config.app.hostname and config.ow.namespace are required')
+
+    await expect(deployWeb({
+      ...baseConfig,
+      ow: { auth_handler: baseConfig.ow.auth_handler }
+    })).rejects.toThrow('config.app.hostname and config.ow.namespace are required')
+  })
+
+  test('throws if hostname or namespace has invalid characters', async () => {
+    const baseConfig = {
+      s3: {
+        folder: 'somefolder'
+      },
+      ow: {
+        namespace: 'ns',
+        auth_handler: {
+          getAuthHeader: jest.fn().mockResolvedValue('Bearer token')
+        }
+      },
+      app: {
+        hasFrontend: true,
+        hostname: 'host'
+      },
+      web: {
+        distProd: 'dist'
+      }
+    }
+    fs.existsSync.mockReturnValue(true)
+    fs.lstatSync.mockReturnValue({ isDirectory: () => true })
+    fs.readdirSync.mockReturnValue({ length: 1 })
+
+    await expect(deployWeb({
+      ...baseConfig,
+      app: { ...baseConfig.app, hostname: 'bad host!' }
+    })).rejects.toThrow('config.app.hostname and config.ow.namespace are invalid')
+
+    await expect(deployWeb({
+      ...baseConfig,
+      ow: { ...baseConfig.ow, namespace: 'bad/ns' }
+    })).rejects.toThrow('config.app.hostname and config.ow.namespace are invalid')
   })
 
   test('throws if src dir is empty', async () => {
@@ -181,5 +253,39 @@ describe('deploy-web', () => {
     expect(RemoteStorage).toHaveBeenCalledWith('Bearer token')
     expect(mockRemoteStorageInstance.uploadDir).toHaveBeenCalledWith('dist', 'somefolder', config, expect.any(Function))
     expect(mockLogger).toHaveBeenCalledWith('deploying somefile')
+  })
+
+  test('clears existing deployment before uploading to avoid stale files', async () => {
+    const config = {
+      ow: {
+        namespace: 'ns',
+        auth_handler: {
+          getAuthHeader: jest.fn().mockResolvedValue('Bearer token')
+        }
+      },
+      s3: {
+        folder: 'somefolder'
+      },
+      app: {
+        hasFrontend: true,
+        hostname: 'host'
+      },
+      web: {
+        distProd: 'dist'
+      }
+    }
+    fs.existsSync.mockReturnValue(true)
+    fs.lstatSync.mockReturnValue({ isDirectory: () => true })
+    fs.readdirSync.mockReturnValue({ length: 1 })
+    mockRemoteStorageInstance.folderExists.mockResolvedValue(true)
+
+    await deployWeb(config)
+
+    expect(mockRemoteStorageInstance.folderExists).toHaveBeenCalledWith('/', config)
+    expect(mockRemoteStorageInstance.emptyFolder).toHaveBeenCalledWith('/', config)
+    expect(mockRemoteStorageInstance.uploadDir).toHaveBeenCalledWith('dist', 'somefolder', config, null)
+    expect(mockRemoteStorageInstance.emptyFolder.mock.invocationCallOrder[0]).toBeLessThan(
+      mockRemoteStorageInstance.uploadDir.mock.invocationCallOrder[0]
+    )
   })
 })

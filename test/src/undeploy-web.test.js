@@ -71,6 +71,7 @@ describe('undeploy-web', () => {
       }
     }
     mockRemoteStorageInstance.folderExists.mockResolvedValue(true)
+    mockRemoteStorageInstance.emptyFolder.mockResolvedValue(true)
     await undeployWeb(config)
     expect(RemoteStorage).toHaveBeenCalledWith('Bearer token')
     expect(mockRemoteStorageInstance.folderExists).toHaveBeenCalledWith('/', config)
@@ -100,5 +101,29 @@ describe('undeploy-web', () => {
     expect(RemoteStorage).toHaveBeenCalledWith('Bearer token')
     expect(mockRemoteStorageInstance.folderExists).toHaveBeenCalledWith('/', config)
     expect(mockRemoteStorageInstance.emptyFolder).not.toHaveBeenCalled()
+  })
+
+  test('throws if remoteStorage emptyFolder fails', async () => {
+    const config = {
+      ow: {
+        namespace: 'ns',
+        auth_handler: {
+          getAuthHeader: jest.fn().mockResolvedValue('Bearer token')
+        }
+      },
+      s3: {
+        folder: 'somefolder'
+      },
+      app: {
+        hasFrontend: true
+      },
+      web: {
+        distProd: 'dist'
+      }
+    }
+    mockRemoteStorageInstance.folderExists.mockResolvedValue(true)
+    mockRemoteStorageInstance.emptyFolder.mockResolvedValue(false)
+
+    await expect(undeployWeb(config)).rejects.toThrow('cannot undeploy static files, failed to delete deployment files')
   })
 })

@@ -35,6 +35,16 @@ const deployWeb = async (config, log) => {
   }
 
   const remoteStorage = new RemoteStorage(bearerToken)
+  // validate config.app.hostname and config.ow.namespace are not empty and are valid and do not contain invalid characters
+  if (!config.app.hostname || !config.ow.namespace) {
+    throw new Error('config.app.hostname and config.ow.namespace are required')
+  }
+  if (!config.app.hostname.match(/^[a-zA-Z0-9.-]+$/) || !config.ow.namespace.match(/^[a-zA-Z0-9.-]+$/)) {
+    throw new Error('config.app.hostname and config.ow.namespace are invalid')
+  }
+  if (await remoteStorage.folderExists('/', config)) {
+    await remoteStorage.emptyFolder('/', config)
+  }
   const _log = log ? (f) => log(`deploying ${path.relative(dist, f)}`) : null
   await remoteStorage.uploadDir(dist, config.s3.folder, config, _log)
 

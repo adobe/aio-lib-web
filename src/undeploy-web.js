@@ -28,7 +28,10 @@ const undeployWeb = async (config) => {
     throw new Error(`cannot undeploy static files, there is no deployment for ${config.s3.folder}`)
   }
 
-  await remoteStorage.emptyFolder('/', config)
+  const deleted = await remoteStorage.emptyFolder('/', config)
+  if (!deleted) {
+    throw new Error('cannot undeploy static files, failed to delete deployment files')
+  }
 }
 
 module.exports = undeployWeb
