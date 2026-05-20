@@ -13,6 +13,12 @@ governing permissions and limitations under the License.
 const { vol } = global.mockFs()
 const path = require('path')
 
+const mockProxyDispatcher = { __mock: 'proxy-dispatcher' }
+jest.mock('undici', () => ({
+  EnvHttpProxyAgent: jest.fn(() => mockProxyDispatcher)
+}))
+
+const { EnvHttpProxyAgent } = require('undici')
 const RemoteStorage = require('../../lib/remote-storage')
 
 // Helper to create a mock response
@@ -61,57 +67,39 @@ describe('RemoteStorage', () => {
   })
 
   describe('Proxy configuration', () => {
-    const originalEnv = process.env
-
-    beforeEach(() => {
-      // Clear environment variables before each test
-      delete process.env.https_proxy
-      delete process.env.HTTPS_PROXY
-      delete process.env.http_proxy
-      delete process.env.HTTP_PROXY
-    })
-
-    afterAll(() => {
-      // Restore original environment
-      process.env = originalEnv
-    })
-
-    test('Constructor uses HTTPS_PROXY when set (uppercase)', async () => {
-      process.env.HTTPS_PROXY = 'http://proxy.example.com:8080'
+    test('uses a shared EnvHttpProxyAgent dispatcher on deploy-service fetch', async () => {
+      global.fetch.mockResolvedValue(mockResponse([]))
       const rs = new RemoteStorage(global.fakeAuthToken)
-      expect(rs).toBeDefined()
+      const appConfig = createAppConfig()
+
+      await rs.folderExists('fakeprefix', appConfig)
+
+      expect(EnvHttpProxyAgent).toHaveBeenCalledTimes(1)
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ dispatcher: mockProxyDispatcher })
+      )
     })
 
-    test('Constructor uses https_proxy when set (lowercase)', async () => {
-      process.env.https_proxy = 'http://proxy.example.com:3128'
+    test('reuses the same dispatcher across multiple requests', async () => {
+      global.fetch.mockResolvedValue(mockResponse([]))
       const rs = new RemoteStorage(global.fakeAuthToken)
-      expect(rs).toBeDefined()
-    })
+      const appConfig = createAppConfig()
 
-    test('Constructor uses HTTP_PROXY when HTTPS_PROXY not set', async () => {
-      process.env.HTTP_PROXY = 'http://proxy.example.com:8080'
-      const rs = new RemoteStorage(global.fakeAuthToken)
-      expect(rs).toBeDefined()
-    })
+      await rs.folderExists('fakeprefix', appConfig)
+      await rs.emptyFolder('/', appConfig)
 
-    test('Constructor uses http_proxy when other proxy vars not set', async () => {
-      process.env.http_proxy = 'http://proxy.example.com:3128'
-      const rs = new RemoteStorage(global.fakeAuthToken)
-      expect(rs).toBeDefined()
-    })
-
-    test('Constructor prioritizes HTTPS_PROXY over HTTP_PROXY', async () => {
-      process.env.HTTPS_PROXY = 'http://https-proxy.example.com:8080'
-      process.env.HTTP_PROXY = 'http://http-proxy.example.com:8080'
-      const rs = new RemoteStorage(global.fakeAuthToken)
-      expect(rs).toBeDefined()
-    })
-
-    test('Constructor prioritizes https_proxy over HTTP_PROXY', async () => {
-      process.env.https_proxy = 'http://https-proxy.example.com:3128'
-      process.env.HTTP_PROXY = 'http://http-proxy.example.com:8080'
-      const rs = new RemoteStorage(global.fakeAuthToken)
-      expect(rs).toBeDefined()
+      expect(EnvHttpProxyAgent).toHaveBeenCalledTimes(1)
+      expect(global.fetch).toHaveBeenNthCalledWith(
+        1,
+        expect.any(String),
+        expect.objectContaining({ dispatcher: mockProxyDispatcher })
+      )
+      expect(global.fetch).toHaveBeenNthCalledWith(
+        2,
+        expect.any(String),
+        expect.objectContaining({ dispatcher: mockProxyDispatcher })
+      )
     })
   })
 
@@ -1120,6 +1108,24 @@ describe('RemoteStorage environment URL selection', () => {
   beforeEach(() => {
     jest.resetModules()
     global.fetch.mockReset()
+  })
+
+  test('uses AIO_DEPLOYMENT_SERVICE_URL when set', async () => {
+    process.env.AIO_DEPLOYMENT_SERVICE_URL = 'http://localhost:3000'
+
+    const RemoteStorageFresh = require('../../lib/remote-storage')
+
+    global.fetch.mockResolvedValue(mockResponse([]))
+    const rs = new RemoteStorageFresh(global.fakeAuthToken)
+
+    await rs.folderExists('fakeprefix', createAppConfig())
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('http://localhost:3000'),
+      expect.any(Object)
+    )
+
+    delete process.env.AIO_DEPLOYMENT_SERVICE_URL
   })
 
   test('uses stage url when in stage environment', async () => {
