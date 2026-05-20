@@ -39,10 +39,16 @@ const deployWeb = async (config, log) => {
   if (!config.app.hostname || !config.ow.namespace) {
     throw new Error('config.app.hostname and config.ow.namespace are required')
   }
-  if (!config.app.hostname.match(/^[a-zA-Z0-9.-]+$/) || !config.ow.namespace.match(/^[a-zA-Z0-9.-]+$/)) {
-    throw new Error('config.app.hostname and config.ow.namespace are invalid')
+  if (!config.app.hostname.match(/^[a-zA-Z0-9.-]+$/)) {
+    throw new Error('config.app.hostname is invalid')
+  }
+  if (!config.ow.namespace.match(/^[a-zA-Z0-9_-]+$/)) {
+    throw new Error('config.ow.namespace is invalid')
   }
   if (await remoteStorage.folderExists('/', config)) {
+    if (log) {
+      log('warning: an existing deployment will be overwritten')
+    }
     await remoteStorage.emptyFolder('/', config)
   }
   const _log = log ? (f) => log(`deploying ${path.relative(dist, f)}`) : null

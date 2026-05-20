@@ -139,13 +139,39 @@ describe('deploy-web', () => {
     })).rejects.toThrow('config.app.hostname and config.ow.namespace are required')
   })
 
-  test('throws if hostname or namespace has invalid characters', async () => {
-    const baseConfig = {
+  test('throws if hostname is invalid', async () => {
+    const config = {
       s3: {
         folder: 'somefolder'
       },
       ow: {
         namespace: 'ns',
+        auth_handler: {
+          getAuthHeader: jest.fn().mockResolvedValue('Bearer token')
+        }
+      },
+      app: {
+        hasFrontend: true,
+        hostname: 'bad host!'
+      },
+      web: {
+        distProd: 'dist'
+      }
+    }
+    fs.existsSync.mockReturnValue(true)
+    fs.lstatSync.mockReturnValue({ isDirectory: () => true })
+    fs.readdirSync.mockReturnValue({ length: 1 })
+
+    await expect(deployWeb(config)).rejects.toThrow('config.app.hostname is invalid')
+  })
+
+  test('throws if namespace is invalid', async () => {
+    const config = {
+      s3: {
+        folder: 'somefolder'
+      },
+      ow: {
+        namespace: 'bad/ns',
         auth_handler: {
           getAuthHeader: jest.fn().mockResolvedValue('Bearer token')
         }
@@ -162,15 +188,7 @@ describe('deploy-web', () => {
     fs.lstatSync.mockReturnValue({ isDirectory: () => true })
     fs.readdirSync.mockReturnValue({ length: 1 })
 
-    await expect(deployWeb({
-      ...baseConfig,
-      app: { ...baseConfig.app, hostname: 'bad host!' }
-    })).rejects.toThrow('config.app.hostname and config.ow.namespace are invalid')
-
-    await expect(deployWeb({
-      ...baseConfig,
-      ow: { ...baseConfig.ow, namespace: 'bad/ns' }
-    })).rejects.toThrow('config.app.hostname and config.ow.namespace are invalid')
+    await expect(deployWeb(config)).rejects.toThrow('config.ow.namespace is invalid')
   })
 
   test('throws if src dir is empty', async () => {
@@ -287,5 +305,35 @@ describe('deploy-web', () => {
     expect(mockRemoteStorageInstance.emptyFolder.mock.invocationCallOrder[0]).toBeLessThan(
       mockRemoteStorageInstance.uploadDir.mock.invocationCallOrder[0]
     )
+  })
+
+  test('logs overwrite warning when an existing deployment will be replaced', async () => {
+    const config = {
+      ow: {
+        namespace: 'ns',
+        auth_handler: {
+          getAuthHeader: jest.fn().mockResolvedValue('Bearer token')
+        }
+      },
+      s3: {
+        folder: 'somefolder'
+      },
+      app: {
+        hasFrontend: true,
+        hostname: 'host'
+      },
+      web: {
+        distProd: 'dist'
+      }
+    }
+    fs.existsSync.mockReturnValue(true)
+    fs.lstatSync.mockReturnValue({ isDirectory: () => true })
+    fs.readdirSync.mockReturnValue({ length: 1 })
+    mockRemoteStorageInstance.folderExists.mockResolvedValue(true)
+    const mockLogger = jest.fn()
+
+    await deployWeb(config, mockLogger)
+
+    expect(mockLogger).toHaveBeenCalledWith('warning: an existing deployment will be overwritten')
   })
 })
