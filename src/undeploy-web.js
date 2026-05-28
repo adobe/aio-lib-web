@@ -25,7 +25,7 @@ const undeployWeb = async (config) => {
   const remoteStorage = new RemoteStorage(bearerToken)
 
   if (!(await remoteStorage.folderExists('/', config))) {
-    throw new Error(`cannot undeploy static files, there is no deployment for ${config.s3.folder}`)
+    throw new Error(`cannot undeploy static files, there is no deployment for ${config.ow.namespace}`)
   }
 
   const deleted = await remoteStorage.emptyFolder('/', config)
