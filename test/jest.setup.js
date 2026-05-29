@@ -122,7 +122,7 @@ global.fakeS3Bucket = 'fake-bucket'
 global.fakeNamespace = 'fake-namespace'
 global.fakeAuthToken = 'Bearer fake-auth-token'
 
-// Config structure for deploy-service API (auth token is now passed to RemoteStorage constructor)
+// Config structure for deploy-service API (auth token is passed to RemoteStorage methods)
 global.fakeAppConfig = {
   ow: {
     namespace: global.fakeNamespace

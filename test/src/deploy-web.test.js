@@ -238,8 +238,8 @@ describe('deploy-web', () => {
     fs.lstatSync.mockReturnValue({ isDirectory: () => true })
     fs.readdirSync.mockReturnValue({ length: 1 })
     await expect(deployWeb(config)).resolves.toEqual('https://ns.host/index.html')
-    expect(RemoteStorage).toHaveBeenCalledWith('Bearer token')
-    expect(mockRemoteStorageInstance.uploadDir).toHaveBeenCalledWith('dist', 'somefolder', config, null)
+    expect(RemoteStorage).toHaveBeenCalledWith()
+    expect(mockRemoteStorageInstance.uploadDir).toHaveBeenCalledWith('Bearer token', 'dist', 'somefolder', config, null)
   })
 
   test('uploads files with log func', async () => {
@@ -266,10 +266,10 @@ describe('deploy-web', () => {
     fs.readdirSync.mockReturnValue({ length: 1 })
     const mockLogger = jest.fn()
     // for func coverage
-    mockRemoteStorageInstance.uploadDir.mockImplementation((a, b, c, func) => func('dist/somefile'))
+    mockRemoteStorageInstance.uploadDir.mockImplementation((a, b, c, d, func) => func('dist/somefile'))
     await expect(deployWeb(config, mockLogger)).resolves.toEqual('https://ns.host/index.html')
-    expect(RemoteStorage).toHaveBeenCalledWith('Bearer token')
-    expect(mockRemoteStorageInstance.uploadDir).toHaveBeenCalledWith('dist', 'somefolder', config, expect.any(Function))
+    expect(RemoteStorage).toHaveBeenCalledWith()
+    expect(mockRemoteStorageInstance.uploadDir).toHaveBeenCalledWith('Bearer token', 'dist', 'somefolder', config, expect.any(Function))
     expect(mockLogger).toHaveBeenCalledWith('deploying somefile')
   })
 
@@ -299,9 +299,9 @@ describe('deploy-web', () => {
 
     await deployWeb(config)
 
-    expect(mockRemoteStorageInstance.folderExists).toHaveBeenCalledWith('/', config)
-    expect(mockRemoteStorageInstance.emptyFolder).toHaveBeenCalledWith('/', config)
-    expect(mockRemoteStorageInstance.uploadDir).toHaveBeenCalledWith('dist', 'somefolder', config, null)
+    expect(mockRemoteStorageInstance.folderExists).toHaveBeenCalledWith('Bearer token', '/', config)
+    expect(mockRemoteStorageInstance.emptyFolder).toHaveBeenCalledWith('Bearer token', '/', config)
+    expect(mockRemoteStorageInstance.uploadDir).toHaveBeenCalledWith('Bearer token', 'dist', 'somefolder', config, null)
     expect(mockRemoteStorageInstance.emptyFolder.mock.invocationCallOrder[0]).toBeLessThan(
       mockRemoteStorageInstance.uploadDir.mock.invocationCallOrder[0]
     )

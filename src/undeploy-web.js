@@ -22,13 +22,13 @@ const undeployWeb = async (config) => {
     throw new Error('cannot undeploy web, Authorization is required')
   }
 
-  const remoteStorage = new RemoteStorage(bearerToken)
+  const remoteStorage = new RemoteStorage()
 
-  if (!(await remoteStorage.folderExists('/', config))) {
+  if (!(await remoteStorage.folderExists(bearerToken, '/', config))) {
     throw new Error(`cannot undeploy static files, there is no deployment for ${config.ow.namespace}`)
   }
 
-  const deleted = await remoteStorage.emptyFolder('/', config)
+  const deleted = await remoteStorage.emptyFolder(bearerToken, '/', config)
   if (!deleted) {
     throw new Error('cannot undeploy static files, failed to delete deployment files')
   }

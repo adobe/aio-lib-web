@@ -34,7 +34,7 @@ const deployWeb = async (config, log) => {
     throw new Error(`missing files in ${dist}, maybe you forgot to build your UI ?`)
   }
 
-  const remoteStorage = new RemoteStorage(bearerToken)
+  const remoteStorage = new RemoteStorage()
   // validate config.app.hostname and config.ow.namespace are not empty and are valid and do not contain invalid characters
   if (!config.app.hostname || !config.ow.namespace) {
     throw new Error('config.app.hostname and config.ow.namespace are required')
@@ -45,14 +45,14 @@ const deployWeb = async (config, log) => {
   if (!config.ow.namespace.match(/^[a-zA-Z0-9_-]+$/)) {
     throw new Error('config.ow.namespace is invalid')
   }
-  if (await remoteStorage.folderExists('/', config)) {
+  if (await remoteStorage.folderExists(bearerToken, '/', config)) {
     if (log) {
       log('warning: an existing deployment will be overwritten')
     }
-    await remoteStorage.emptyFolder('/', config)
+    await remoteStorage.emptyFolder(bearerToken, '/', config)
   }
   const _log = log ? (f) => log(`deploying ${path.relative(dist, f)}`) : null
-  await remoteStorage.uploadDir(dist, config.s3.folder, config, _log)
+  await remoteStorage.uploadDir(bearerToken, dist, config.s3.folder, config, _log)
 
   const url = `https://${config.ow.namespace}.${config.app.hostname}/index.html`
   return url

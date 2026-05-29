@@ -69,10 +69,10 @@ describe('RemoteStorage', () => {
   describe('Proxy configuration', () => {
     test('uses a shared EnvHttpProxyAgent dispatcher on deploy-service fetch', async () => {
       global.fetch.mockResolvedValue(mockResponse([]))
-      const rs = new RemoteStorage(global.fakeAuthToken)
+      const rs = new RemoteStorage()
       const appConfig = createAppConfig()
 
-      await rs.folderExists('fakeprefix', appConfig)
+      await rs.folderExists(global.fakeAuthToken, 'fakeprefix', appConfig)
 
       expect(EnvHttpProxyAgent).toHaveBeenCalledTimes(1)
       expect(global.fetch).toHaveBeenCalledWith(
@@ -83,11 +83,11 @@ describe('RemoteStorage', () => {
 
     test('reuses the same dispatcher across multiple requests', async () => {
       global.fetch.mockResolvedValue(mockResponse([]))
-      const rs = new RemoteStorage(global.fakeAuthToken)
+      const rs = new RemoteStorage()
       const appConfig = createAppConfig()
 
-      await rs.folderExists('fakeprefix', appConfig)
-      await rs.emptyFolder('/', appConfig)
+      await rs.folderExists(global.fakeAuthToken, 'fakeprefix', appConfig)
+      await rs.emptyFolder(global.fakeAuthToken, '/', appConfig)
 
       expect(EnvHttpProxyAgent).toHaveBeenCalledTimes(1)
       expect(global.fetch).toHaveBeenNthCalledWith(
@@ -105,19 +105,19 @@ describe('RemoteStorage', () => {
 
   describe('folderExists', () => {
     test('missing prefix should throw', async () => {
-      const rs = new RemoteStorage(global.fakeAuthToken)
+      const rs = new RemoteStorage()
       const appConfig = createAppConfig()
-      await expect(rs.folderExists(undefined, appConfig)).rejects.toEqual(
+      await expect(rs.folderExists(global.fakeAuthToken, undefined, appConfig)).rejects.toEqual(
         expect.objectContaining({ message: 'prefix must be a valid string' })
       )
     })
 
     test('should return false if there are no files', async () => {
       global.fetch.mockResolvedValue(mockResponse([]))
-      const rs = new RemoteStorage(global.fakeAuthToken)
+      const rs = new RemoteStorage()
       const appConfig = createAppConfig()
 
-      const result = await rs.folderExists('fakeprefix', appConfig)
+      const result = await rs.folderExists(global.fakeAuthToken, 'fakeprefix', appConfig)
 
       expect(result).toBe(false)
       expect(global.fetch).toHaveBeenCalledWith(
@@ -131,38 +131,30 @@ describe('RemoteStorage', () => {
 
     test('should return true if there are files', async () => {
       global.fetch.mockResolvedValue(mockResponse([{ key: 'file1.txt' }]))
-      const rs = new RemoteStorage(global.fakeAuthToken)
+      const rs = new RemoteStorage()
       const appConfig = createAppConfig()
 
-      const result = await rs.folderExists('fakeprefix', appConfig)
+      const result = await rs.folderExists(global.fakeAuthToken, 'fakeprefix', appConfig)
 
       expect(result).toBe(true)
     })
 
     test('should throw if request fails', async () => {
       global.fetch.mockResolvedValue(mockResponse(null, { ok: false, status: 500, statusText: 'Internal Server Error' }))
-      const rs = new RemoteStorage(global.fakeAuthToken)
+      const rs = new RemoteStorage()
       const appConfig = createAppConfig()
 
-      await expect(rs.folderExists('fakeprefix', appConfig)).rejects.toThrow(
+      await expect(rs.folderExists(global.fakeAuthToken, 'fakeprefix', appConfig)).rejects.toThrow(
         'cannot check if folder exists, request failed: 500 Internal Server Error'
-      )
-    })
-
-    test('should throw if no auth token', async () => {
-      const rs = new RemoteStorage(null)
-      const appConfig = createAppConfig()
-      await expect(rs.folderExists('fakeprefix', appConfig)).rejects.toThrow(
-        'cannot check if folder exists, Authorization is required'
       )
     })
 
     test('should throw if request fails with non-404 status', async () => {
       global.fetch.mockResolvedValue(mockResponse(null, { ok: false, status: 401, statusText: 'Unauthorized' }))
-      const rs = new RemoteStorage(global.fakeAuthToken)
+      const rs = new RemoteStorage()
       const appConfig = createAppConfig()
 
-      await expect(rs.folderExists('fakeprefix', appConfig)).rejects.toThrow(
+      await expect(rs.folderExists(global.fakeAuthToken, 'fakeprefix', appConfig)).rejects.toThrow(
         'cannot check if folder exists, request failed: 401 Unauthorized'
       )
     })
@@ -172,7 +164,7 @@ describe('RemoteStorage', () => {
     let rs
 
     beforeEach(() => {
-      rs = new RemoteStorage(global.fakeTVMResponse)
+      rs = new RemoteStorage()
     })
 
     describe('basic path joining', () => {
@@ -432,13 +424,13 @@ describe('RemoteStorage', () => {
   })
 
   test('folderExists missing prefix', async () => {
-    const rs = new RemoteStorage(global.fakeTVMResponse)
+    const rs = new RemoteStorage()
     await expect(rs.folderExists()).rejects.toEqual(expect.objectContaining({ message: 'prefix must be a valid string' }))
   })
 
   test('uploadFile with windows path', async () => {
     global.fetch.mockResolvedValue(mockResponse({ success: true }))
-    const rs = new RemoteStorage(global.fakeAuthToken)
+    const rs = new RemoteStorage()
     const appConfig = createAppConfig()
     // Create file using platform-agnostic paths
     await global.addFakeFiles(vol, 'fakeDir', { 'deep/index.js': 'fake content' })
@@ -446,7 +438,7 @@ describe('RemoteStorage', () => {
     const filePath = path.join('fakeDir', 'deep', 'index.js')
     // Test that Windows-style backslashes in prefix are normalized correctly
     const prefixPath = 'fakeprefix\\deep\\dir\\'
-    await rs.uploadFile(filePath, prefixPath, appConfig, 'fakeDir')
+    await rs.uploadFile(global.fakeAuthToken, filePath, prefixPath, appConfig, 'fakeDir')
 
     const callArgs = global.fetch.mock.calls[0]
     const body = JSON.parse(callArgs[1].body)
@@ -455,25 +447,25 @@ describe('RemoteStorage', () => {
   })
 
   test('uploadDir missing basePath', async () => {
-    const rs = new RemoteStorage(global.fakeAuthToken)
-    await expect(rs.uploadDir()).rejects.toEqual(expect.objectContaining({ message: 'basePath must be a valid string' }))
+    const rs = new RemoteStorage()
+    await expect(rs.uploadDir(global.fakeAuthToken)).rejects.toEqual(expect.objectContaining({ message: 'basePath must be a valid string' }))
   })
 
   describe('emptyFolder', () => {
     test('missing prefix should throw', async () => {
-      const rs = new RemoteStorage(global.fakeAuthToken)
+      const rs = new RemoteStorage()
       const appConfig = createAppConfig()
-      await expect(rs.emptyFolder(undefined, appConfig)).rejects.toEqual(
+      await expect(rs.emptyFolder(global.fakeAuthToken, undefined, appConfig)).rejects.toEqual(
         expect.objectContaining({ message: 'prefix must be a valid string' })
       )
     })
 
     test('should call DELETE /files/ when prefix is "/"', async () => {
       global.fetch.mockResolvedValue(mockResponse({ success: true }))
-      const rs = new RemoteStorage(global.fakeAuthToken)
+      const rs = new RemoteStorage()
       const appConfig = createAppConfig()
 
-      const result = await rs.emptyFolder('/', appConfig)
+      const result = await rs.emptyFolder(global.fakeAuthToken, '/', appConfig)
 
       expect(result).toBe(true)
       expect(global.fetch).toHaveBeenCalledWith(
@@ -487,10 +479,10 @@ describe('RemoteStorage', () => {
 
     test('should call DELETE /files/:key for specific file', async () => {
       global.fetch.mockResolvedValue(mockResponse({ success: true }))
-      const rs = new RemoteStorage(global.fakeAuthToken)
+      const rs = new RemoteStorage()
       const appConfig = createAppConfig()
 
-      const result = await rs.emptyFolder('path/to/file.txt', appConfig)
+      const result = await rs.emptyFolder(global.fakeAuthToken, 'path/to/file.txt', appConfig)
 
       expect(result).toBe(true)
       expect(global.fetch).toHaveBeenCalledWith(
@@ -501,51 +493,31 @@ describe('RemoteStorage', () => {
 
     test('should return false if delete fails', async () => {
       global.fetch.mockResolvedValue(mockResponse(null, { ok: false, status: 500 }))
-      const rs = new RemoteStorage(global.fakeAuthToken)
+      const rs = new RemoteStorage()
       const appConfig = createAppConfig()
 
-      const result = await rs.emptyFolder('/', appConfig)
+      const result = await rs.emptyFolder(global.fakeAuthToken, '/', appConfig)
 
       expect(result).toBe(false)
-    })
-
-    test('should throw if no auth token', async () => {
-      const rs = new RemoteStorage(null)
-      const appConfig = createAppConfig()
-
-      await expect(rs.emptyFolder('/', appConfig)).rejects.toThrow(
-        'cannot empty folder, Authorization is required'
-      )
     })
   })
 
   describe('uploadFile', () => {
     test('missing filePath should throw', async () => {
-      const rs = new RemoteStorage(global.fakeAuthToken)
+      const rs = new RemoteStorage()
       const appConfig = createAppConfig()
-      await expect(rs.uploadFile('file.txt', undefined, appConfig, 'dist')).rejects.toEqual(
+      await expect(rs.uploadFile(global.fakeAuthToken, 'file.txt', undefined, appConfig, 'dist')).rejects.toEqual(
         expect.objectContaining({ message: 'filePath must be a valid string' })
       )
-    })
-
-    test('should throw if no auth token', async () => {
-      global.addFakeFiles(vol, 'fakeDir', { 'index.js': 'fake content' })
-      global.fetch.mockResolvedValue(mockResponse({ success: true }))
-      const rs = new RemoteStorage(null)
-      const appConfig = createAppConfig()
-
-      await expect(
-        rs.uploadFile('fakeDir/index.js', 'fakeprefix', appConfig, 'fakeDir')
-      ).rejects.toThrow('cannot upload file, Authorization is required')
     })
 
     test('should call PUT /files with correct parameters', async () => {
       global.addFakeFiles(vol, 'fakeDir', { 'index.js': 'fake content' })
       global.fetch.mockResolvedValue(mockResponse({ success: true }))
-      const rs = new RemoteStorage(global.fakeAuthToken)
+      const rs = new RemoteStorage()
       const appConfig = createAppConfig()
 
-      await rs.uploadFile('fakeDir/index.js', 'fakeprefix', appConfig, 'fakeDir')
+      await rs.uploadFile(global.fakeAuthToken, 'fakeDir/index.js', 'fakeprefix', appConfig, 'fakeDir')
 
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringContaining(`/cdn-api/namespaces/${global.fakeNamespace}/files`),
@@ -571,10 +543,10 @@ describe('RemoteStorage', () => {
     test('should call PUT /files without slash-prefix', async () => {
       global.addFakeFiles(vol, 'fakeDir', { 'index.js': 'fake content' })
       global.fetch.mockResolvedValue(mockResponse({ success: true }))
-      const rs = new RemoteStorage(global.fakeAuthToken)
+      const rs = new RemoteStorage()
       const appConfig = createAppConfig()
 
-      await rs.uploadFile('fakeDir/index.js', '/slash-prefix', appConfig, 'fakeDir')
+      await rs.uploadFile(global.fakeAuthToken, 'fakeDir/index.js', '/slash-prefix', appConfig, 'fakeDir')
 
       const callArgs = global.fetch.mock.calls[0]
       const body = JSON.parse(callArgs[1].body)
@@ -584,11 +556,11 @@ describe('RemoteStorage', () => {
     test('should preserve filePath when it contains namespace text', async () => {
       global.addFakeFiles(vol, 'fakeDir', { 'index.js': 'fake content' })
       global.fetch.mockResolvedValue(mockResponse({ success: true }))
-      const rs = new RemoteStorage(global.fakeAuthToken)
+      const rs = new RemoteStorage()
       const appConfig = createAppConfig()
 
       // filePath should be preserved as-is and only normalized for slashes
-      await rs.uploadFile('fakeDir/index.js', `${global.fakeNamespace}/subpath`, appConfig, 'fakeDir')
+      await rs.uploadFile(global.fakeAuthToken, 'fakeDir/index.js', `${global.fakeNamespace}/subpath`, appConfig, 'fakeDir')
 
       const callArgs = global.fetch.mock.calls[0]
       const body = JSON.parse(callArgs[1].body)
@@ -598,10 +570,10 @@ describe('RemoteStorage', () => {
     test('should handle unknown Content-Type', async () => {
       global.addFakeFiles(vol, 'fakeDir', { 'index.mst': 'fake content' })
       global.fetch.mockResolvedValue(mockResponse({ success: true }))
-      const rs = new RemoteStorage(global.fakeAuthToken)
+      const rs = new RemoteStorage()
       const appConfig = createAppConfig()
 
-      await rs.uploadFile('fakeDir/index.mst', 'fakeprefix', appConfig, 'fakeDir')
+      await rs.uploadFile(global.fakeAuthToken, 'fakeDir/index.mst', 'fakeprefix', appConfig, 'fakeDir')
 
       const callArgs = global.fetch.mock.calls[0]
       const body = JSON.parse(callArgs[1].body)
@@ -613,10 +585,10 @@ describe('RemoteStorage', () => {
     test('should handle empty filePath (file at root)', async () => {
       global.addFakeFiles(vol, 'fakeDir', { 'index.js': 'fake content' })
       global.fetch.mockResolvedValue(mockResponse({ success: true }))
-      const rs = new RemoteStorage(global.fakeAuthToken)
+      const rs = new RemoteStorage()
       const appConfig = createAppConfig()
 
-      await rs.uploadFile('fakeDir/index.js', '', appConfig, 'fakeDir')
+      await rs.uploadFile(global.fakeAuthToken, 'fakeDir/index.js', '', appConfig, 'fakeDir')
 
       const callArgs = global.fetch.mock.calls[0]
       const body = JSON.parse(callArgs[1].body)
@@ -627,12 +599,12 @@ describe('RemoteStorage', () => {
     test('should throw if upload fails', async () => {
       global.addFakeFiles(vol, 'fakeDir', { 'index.js': 'fake content' })
       global.fetch.mockResolvedValue(mockResponse(null, { ok: false, status: 500, statusText: 'Internal Server Error' }))
-      const rs = new RemoteStorage(global.fakeAuthToken)
+      const rs = new RemoteStorage()
       const appConfig = createAppConfig()
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
 
       await expect(
-        rs.uploadFile('fakeDir/index.js', 'fakeprefix', appConfig, 'fakeDir')
+        rs.uploadFile(global.fakeAuthToken, 'fakeDir/index.js', 'fakeprefix', appConfig, 'fakeDir')
       ).rejects.toThrow('Failed to upload file: Internal Server Error')
 
       expect(consoleSpy).toHaveBeenCalledWith('Failed to upload file:', 'fakeDir/index.js')
@@ -642,12 +614,12 @@ describe('RemoteStorage', () => {
     test('should throw if fetch itself throws (network error)', async () => {
       global.addFakeFiles(vol, 'fakeDir', { 'index.js': 'fake content' })
       global.fetch.mockRejectedValue(new Error('Network error'))
-      const rs = new RemoteStorage(global.fakeAuthToken)
+      const rs = new RemoteStorage()
       const appConfig = createAppConfig()
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
 
       await expect(
-        rs.uploadFile('fakeDir/index.js', 'fakeprefix', appConfig, 'fakeDir')
+        rs.uploadFile(global.fakeAuthToken, 'fakeDir/index.js', 'fakeprefix', appConfig, 'fakeDir')
       ).rejects.toThrow('Network error')
 
       expect(consoleSpy).toHaveBeenCalledWith('Error uploading file:', 'fakeDir/index.js')
@@ -657,9 +629,9 @@ describe('RemoteStorage', () => {
 
   describe('uploadDir', () => {
     test('missing basePath should throw', async () => {
-      const rs = new RemoteStorage(global.fakeAuthToken)
+      const rs = new RemoteStorage()
       const appConfig = createAppConfig()
-      await expect(rs.uploadDir('fakeDir', undefined, appConfig)).rejects.toEqual(
+      await expect(rs.uploadDir(global.fakeAuthToken, 'fakeDir', undefined, appConfig)).rejects.toEqual(
         expect.objectContaining({ message: 'basePath must be a valid string' })
       )
     })
@@ -667,10 +639,10 @@ describe('RemoteStorage', () => {
     test('should upload all files in directory', async () => {
       global.addFakeFiles(vol, 'fakeDir', ['index.js', 'index.css', 'index.html'])
       global.fetch.mockResolvedValue(mockResponse({ success: true }))
-      const rs = new RemoteStorage(global.fakeAuthToken)
+      const rs = new RemoteStorage()
       const appConfig = createAppConfig()
 
-      await rs.uploadDir('fakeDir', 'fakeprefix', appConfig)
+      await rs.uploadDir(global.fakeAuthToken, 'fakeDir', 'fakeprefix', appConfig)
 
       // Should have called fetch for each file
       expect(global.fetch).toHaveBeenCalledTimes(3)
@@ -680,31 +652,21 @@ describe('RemoteStorage', () => {
       global.addFakeFiles(vol, 'fakeDir', ['index.js', 'index.css', 'index.html', 'test/i.js'])
       global.fetch.mockResolvedValue(mockResponse({ success: true }))
       const cbMock = jest.fn()
-      const rs = new RemoteStorage(global.fakeAuthToken)
+      const rs = new RemoteStorage()
       const appConfig = createAppConfig()
 
-      await rs.uploadDir('fakeDir', 'fakeprefix', appConfig, cbMock)
+      await rs.uploadDir(global.fakeAuthToken, 'fakeDir', 'fakeprefix', appConfig, cbMock)
 
       expect(cbMock).toHaveBeenCalledTimes(4)
-    })
-
-    test('should throw if no auth token', async () => {
-      global.addFakeFiles(vol, 'fakeDir', ['index.js'])
-      const rs = new RemoteStorage(null)
-      const appConfig = createAppConfig()
-
-      await expect(rs.uploadDir('fakeDir', 'fakeprefix', appConfig)).rejects.toThrow(
-        'cannot upload files, Authorization is required'
-      )
     })
 
     test('should return upload results in batches', async () => {
       global.addFakeFiles(vol, 'fakeDir', ['file1.js', 'file2.js', 'file3.js'])
       global.fetch.mockResolvedValue(mockResponse({ success: true }, { status: 200 }))
-      const rs = new RemoteStorage(global.fakeAuthToken)
+      const rs = new RemoteStorage()
       const appConfig = createAppConfig()
 
-      const results = await rs.uploadDir('fakeDir', 'fakeprefix', appConfig)
+      const results = await rs.uploadDir(global.fakeAuthToken, 'fakeDir', 'fakeprefix', appConfig)
 
       // Results should be an array of batches, each batch containing upload status codes
       expect(Array.isArray(results)).toBe(true)
@@ -717,10 +679,10 @@ describe('RemoteStorage', () => {
       global.addFakeFiles(vol, 'fakeDir', ['file1.js', 'file2.js'])
       global.fetch.mockResolvedValue(mockResponse({ success: true }))
       const cbMock = jest.fn()
-      const rs = new RemoteStorage(global.fakeAuthToken)
+      const rs = new RemoteStorage()
       const appConfig = createAppConfig()
 
-      await rs.uploadDir('fakeDir', 'fakeprefix', appConfig, cbMock)
+      await rs.uploadDir(global.fakeAuthToken, 'fakeDir', 'fakeprefix', appConfig, cbMock)
 
       // Callback should receive the file path
       expect(cbMock).toHaveBeenCalledTimes(2)
@@ -732,58 +694,58 @@ describe('RemoteStorage', () => {
 
   describe('cache control', () => {
     test('cachecontrol string for html', async () => {
-      const rs = new RemoteStorage(global.fakeAuthToken)
+      const rs = new RemoteStorage()
       const response = rs._getCacheControlConfig('text/html', global.fakeConfig.app)
       expect(response).toBe('s-maxage=60, max-age=60')
     })
 
     test('cachecontrol string for JS', async () => {
-      const rs = new RemoteStorage(global.fakeAuthToken)
+      const rs = new RemoteStorage()
       const response = rs._getCacheControlConfig('application/javascript', global.fakeConfig.app)
       expect(response).toBe('s-maxage=60, max-age=604800')
     })
 
     test('cachecontrol string for CSS', async () => {
-      const rs = new RemoteStorage(global.fakeAuthToken)
+      const rs = new RemoteStorage()
       const response = rs._getCacheControlConfig('text/css', global.fakeConfig.app)
       expect(response).toBe('s-maxage=60, max-age=604800')
     })
 
     test('cachecontrol string for Image', async () => {
-      const rs = new RemoteStorage(global.fakeAuthToken)
+      const rs = new RemoteStorage()
       const response = rs._getCacheControlConfig('image/jpeg', global.fakeConfig.app)
       expect(response).toBe('s-maxage=60, max-age=604800')
     })
 
     test('cachecontrol string for default', async () => {
-      const rs = new RemoteStorage(global.fakeAuthToken)
+      const rs = new RemoteStorage()
       const response = rs._getCacheControlConfig('application/pdf', global.fakeConfig.app)
       expect(response).toBe(null)
     })
 
     test('cachecontrol string for html when htmlCacheDuration is not defined', async () => {
-      const rs = new RemoteStorage(global.fakeAuthToken)
+      const rs = new RemoteStorage()
       const appConfigWithoutHtmlCache = global.configWithMissing(global.fakeConfig.app, 'htmlCacheDuration')
       const response = rs._getCacheControlConfig('text/html', appConfigWithoutHtmlCache)
       expect(response).toBe(null)
     })
 
     test('cachecontrol string for JS when jsCacheDuration is not defined', async () => {
-      const rs = new RemoteStorage(global.fakeAuthToken)
+      const rs = new RemoteStorage()
       const appConfigWithoutJsCache = global.configWithMissing(global.fakeConfig.app, 'jsCacheDuration')
       const response = rs._getCacheControlConfig('application/javascript', appConfigWithoutJsCache)
       expect(response).toBe(null)
     })
 
     test('cachecontrol string for CSS when cssCacheDuration is not defined', async () => {
-      const rs = new RemoteStorage(global.fakeAuthToken)
+      const rs = new RemoteStorage()
       const appConfigWithoutCssCache = global.configWithMissing(global.fakeConfig.app, 'cssCacheDuration')
       const response = rs._getCacheControlConfig('text/css', appConfigWithoutCssCache)
       expect(response).toBe(null)
     })
 
     test('cachecontrol string for image when imageCacheDuration is not defined', async () => {
-      const rs = new RemoteStorage(global.fakeAuthToken)
+      const rs = new RemoteStorage()
       const appConfigWithoutImageCache = global.configWithMissing(global.fakeConfig.app, 'imageCacheDuration')
       const response = rs._getCacheControlConfig('image/jpeg', appConfigWithoutImageCache)
       expect(response).toBe(null)
@@ -792,7 +754,7 @@ describe('RemoteStorage', () => {
 
   describe('response headers', () => {
     test('get response header from config with multiple rules', async () => {
-      const rs = new RemoteStorage(global.fakeAuthToken)
+      const rs = new RemoteStorage()
       const newConfig = global.configWithModifiedWeb(global.fakeConfig, {
         'response-headers': {
           '/*': {
@@ -832,7 +794,7 @@ describe('RemoteStorage', () => {
     })
 
     test('get response header for folder based path rules', async () => {
-      const rs = new RemoteStorage(global.fakeAuthToken)
+      const rs = new RemoteStorage()
       const folderPath1 = 'css' + path.sep + 'ui.css'
       const folderPath2 = 'scripts' + path.sep + 'test.js'
       const folderPath3 = 'images' + path.sep + 'image.png'
@@ -876,7 +838,7 @@ describe('RemoteStorage', () => {
     })
 
     test('get response header for specific file based path rules', async () => {
-      const rs = new RemoteStorage(global.fakeAuthToken)
+      const rs = new RemoteStorage()
       const folderPath1 = 'css' + path.sep + 'ui.css'
       const folderPath2 = 'scripts' + path.sep + 'test.js'
       const folderPath3 = 'images' + path.sep + 'image.png'
@@ -927,7 +889,7 @@ describe('RemoteStorage', () => {
     })
 
     test('get response header for file extension based path rules', async () => {
-      const rs = new RemoteStorage(global.fakeAuthToken)
+      const rs = new RemoteStorage()
       const folderPath1 = 'css' + path.sep + 'ui.css'
       const folderPath2 = 'scripts' + path.sep + 'test.js'
       const folderPath3 = 'images' + path.sep + 'image.png'
@@ -969,7 +931,7 @@ describe('RemoteStorage', () => {
     })
 
     test('get response header with invalid header name', async () => {
-      const rs = new RemoteStorage(global.fakeAuthToken)
+      const rs = new RemoteStorage()
       const newConfig = global.configWithModifiedWeb(global.fakeConfig, {
         'response-headers': {
           '/*': {
@@ -984,7 +946,7 @@ describe('RemoteStorage', () => {
     })
 
     test('get response header with invalid header value', async () => {
-      const rs = new RemoteStorage(global.fakeAuthToken)
+      const rs = new RemoteStorage()
       const newConfig = global.configWithModifiedWeb(global.fakeConfig, {
         'response-headers': {
           '/*': {
@@ -1003,7 +965,7 @@ describe('RemoteStorage', () => {
     test('includes response headers in upload request', async () => {
       global.addFakeFiles(vol, 'fakeDir', { 'index.js': 'fake content' })
       global.fetch.mockResolvedValue(mockResponse({ success: true }))
-      const rs = new RemoteStorage(global.fakeAuthToken)
+      const rs = new RemoteStorage()
       const files = await rs.walkDir('fakeDir')
       const fakeDistRoot = files[0].substring(0, files[0].indexOf('index.js'))
       const newConfig = global.configWithModifiedWeb(createAppConfig(), {
@@ -1014,7 +976,7 @@ describe('RemoteStorage', () => {
         }
       })
 
-      await rs.uploadFile('fakeDir/index.js', 'fakeprefix', newConfig, fakeDistRoot)
+      await rs.uploadFile(global.fakeAuthToken, 'fakeDir/index.js', 'fakeprefix', newConfig, fakeDistRoot)
 
       const callArgs = global.fetch.mock.calls[0]
       const body = JSON.parse(callArgs[1].body)
@@ -1026,7 +988,7 @@ describe('RemoteStorage', () => {
     test('cache control override from response headers', async () => {
       global.addFakeFiles(vol, 'fakeDir', { 'index.html': 'fake content' })
       global.fetch.mockResolvedValue(mockResponse({ success: true }))
-      const rs = new RemoteStorage(global.fakeAuthToken)
+      const rs = new RemoteStorage()
       const files = await rs.walkDir('fakeDir')
       const fakeDistRoot = path.parse(files[0]).dir
       const filePath = files[0]
@@ -1039,7 +1001,7 @@ describe('RemoteStorage', () => {
         }
       })
 
-      await rs.uploadFile(filePath, 'fakeprefix', newConfig, fakeDistRoot)
+      await rs.uploadFile(global.fakeAuthToken, filePath, 'fakeprefix', newConfig, fakeDistRoot)
 
       const callArgs = global.fetch.mock.calls[0]
       const body = JSON.parse(callArgs[1].body)
@@ -1055,11 +1017,11 @@ describe('RemoteStorage', () => {
     test('does not set customHeaders when responseHeaders is empty', async () => {
       global.addFakeFiles(vol, 'fakeDir', { 'index.js': 'fake content' })
       global.fetch.mockResolvedValue(mockResponse({ success: true }))
-      const rs = new RemoteStorage(global.fakeAuthToken)
+      const rs = new RemoteStorage()
       const appConfig = createAppConfig()
       delete appConfig.web // No web.response-headers
 
-      await rs.uploadFile('fakeDir/index.js', 'fakeprefix', appConfig, 'fakeDir')
+      await rs.uploadFile(global.fakeAuthToken, 'fakeDir/index.js', 'fakeprefix', appConfig, 'fakeDir')
 
       const callArgs = global.fetch.mock.calls[0]
       const body = JSON.parse(callArgs[1].body)
@@ -1071,11 +1033,11 @@ describe('RemoteStorage', () => {
     test('sets cacheControl even when responseHeaders is empty', async () => {
       global.addFakeFiles(vol, 'fakeDir', { 'index.html': 'fake content' })
       global.fetch.mockResolvedValue(mockResponse({ success: true }))
-      const rs = new RemoteStorage(global.fakeAuthToken)
+      const rs = new RemoteStorage()
       const appConfig = createAppConfig()
       delete appConfig.web // No web.response-headers
 
-      await rs.uploadFile('fakeDir/index.html', 'fakeprefix', appConfig, 'fakeDir')
+      await rs.uploadFile(global.fakeAuthToken, 'fakeDir/index.html', 'fakeprefix', appConfig, 'fakeDir')
 
       const callArgs = global.fetch.mock.calls[0]
       const body = JSON.parse(callArgs[1].body)
@@ -1086,11 +1048,11 @@ describe('RemoteStorage', () => {
     test('uploadFile does not set customHeaders when responseHeaders is empty', async () => {
       global.addFakeFiles(vol, 'fakeDir', { 'index.js': 'fake content' })
       global.fetch.mockResolvedValue(mockResponse({ success: true }))
-      const rs = new RemoteStorage(global.fakeAuthToken)
+      const rs = new RemoteStorage()
       const appConfig = createAppConfig()
       delete appConfig.web // No web.response-headers
 
-      await rs.uploadFile('fakeDir/index.js', 'fakeprefix', appConfig, 'fakeDir')
+      await rs.uploadFile(global.fakeAuthToken, 'fakeDir/index.js', 'fakeprefix', appConfig, 'fakeDir')
 
       const callArgs = global.fetch.mock.calls[0]
       const body = JSON.parse(callArgs[1].body)
@@ -1122,9 +1084,9 @@ describe('RemoteStorage environment URL selection', () => {
   test('uses AIO_DEPLOYMENT_SERVICE_URL when set', async () => {
     process.env.AIO_DEPLOYMENT_SERVICE_URL = 'http://localhost:3000'
     global.fetch.mockResolvedValue(mockResponse([]))
-    const rs = new RemoteStorage(global.fakeAuthToken)
+    const rs = new RemoteStorage()
 
-    await rs.folderExists('fakeprefix', createAppConfig())
+    await rs.folderExists(global.fakeAuthToken, 'fakeprefix', createAppConfig())
 
     expect(global.fetch).toHaveBeenCalledWith(
       expect.stringContaining('http://localhost:3000'),
@@ -1135,9 +1097,9 @@ describe('RemoteStorage environment URL selection', () => {
   test('uses stage url when in stage environment', async () => {
     jest.spyOn(aioLibEnv, 'getCliEnv').mockReturnValue('stage')
     global.fetch.mockResolvedValue(mockResponse([]))
-    const rs = new RemoteStorage(global.fakeAuthToken)
+    const rs = new RemoteStorage()
 
-    await rs.folderExists('fakeprefix', createAppConfig())
+    await rs.folderExists(global.fakeAuthToken, 'fakeprefix', createAppConfig())
 
     expect(global.fetch).toHaveBeenCalledWith(
       expect.stringContaining('https://deploy-service.stg.app-builder.corp.adp.adobe.io'),
@@ -1148,9 +1110,9 @@ describe('RemoteStorage environment URL selection', () => {
   test('uses prod url when in prod environment', async () => {
     jest.spyOn(aioLibEnv, 'getCliEnv').mockReturnValue(aioLibEnv.PROD_ENV)
     global.fetch.mockResolvedValue(mockResponse([]))
-    const rs = new RemoteStorage(global.fakeAuthToken)
+    const rs = new RemoteStorage()
 
-    await rs.folderExists('fakeprefix', createAppConfig())
+    await rs.folderExists(global.fakeAuthToken, 'fakeprefix', createAppConfig())
 
     expect(global.fetch).toHaveBeenCalledWith(
       expect.stringContaining('https://deploy-service.app-builder.adp.adobe.io'),

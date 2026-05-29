@@ -73,9 +73,9 @@ describe('undeploy-web', () => {
     mockRemoteStorageInstance.folderExists.mockResolvedValue(true)
     mockRemoteStorageInstance.emptyFolder.mockResolvedValue(true)
     await undeployWeb(config)
-    expect(RemoteStorage).toHaveBeenCalledWith('Bearer token')
-    expect(mockRemoteStorageInstance.folderExists).toHaveBeenCalledWith('/', config)
-    expect(mockRemoteStorageInstance.emptyFolder).toHaveBeenCalledWith('/', config)
+    expect(RemoteStorage).toHaveBeenCalledWith()
+    expect(mockRemoteStorageInstance.folderExists).toHaveBeenCalledWith('Bearer token', '/', config)
+    expect(mockRemoteStorageInstance.emptyFolder).toHaveBeenCalledWith('Bearer token', '/', config)
   })
 
   test('throws if remoteStorage folder does not exist', async () => {
@@ -98,8 +98,8 @@ describe('undeploy-web', () => {
     }
     mockRemoteStorageInstance.folderExists.mockResolvedValue(false)
     await expect(undeployWeb(config)).rejects.toThrow('cannot undeploy static files')
-    expect(RemoteStorage).toHaveBeenCalledWith('Bearer token')
-    expect(mockRemoteStorageInstance.folderExists).toHaveBeenCalledWith('/', config)
+    expect(RemoteStorage).toHaveBeenCalledWith()
+    expect(mockRemoteStorageInstance.folderExists).toHaveBeenCalledWith('Bearer token', '/', config)
     expect(mockRemoteStorageInstance.emptyFolder).not.toHaveBeenCalled()
   })
 
