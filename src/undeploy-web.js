@@ -11,22 +11,27 @@ governing permissions and limitations under the License.
 */
 
 const RemoteStorage = require('../lib/remote-storage')
-const getS3Credentials = require('../lib/getS3Creds')
 
 const undeployWeb = async (config) => {
   if (!config || !config.app || !config.app.hasFrontend) {
     throw new Error('cannot undeploy web, app has no frontend or config is invalid')
   }
 
-  const creds = await getS3Credentials(config)
-
-  const remoteStorage = new RemoteStorage(creds)
-
-  if (!(await remoteStorage.folderExists(config.s3.folder + '/'))) {
-    throw new Error(`cannot undeploy static files, there is no deployment for ${config.s3.folder}`)
+  const bearerToken = await config?.ow?.auth_handler?.getAuthHeader()
+  if (!bearerToken) {
+    throw new Error('cannot undeploy web, Authorization is required')
   }
 
-  await remoteStorage.emptyFolder(config.s3.folder + '/')
+  const remoteStorage = new RemoteStorage()
+
+  if (!(await remoteStorage.folderExists(bearerToken, '/', config))) {
+    throw new Error(`cannot undeploy static files, there is no deployment for ${config.ow.namespace}`)
+  }
+
+  const deleted = await remoteStorage.emptyFolder(bearerToken, '/', config)
+  if (!deleted) {
+    throw new Error('cannot undeploy static files, failed to delete deployment files')
+  }
 }
 
 module.exports = undeployWeb
