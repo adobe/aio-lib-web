@@ -24,6 +24,8 @@ const buildWeb = async (config, log) => {
 
   const dist = config.web.distProd
   const src = config.web.src
+  const nodeEnv = process.env.NODE_ENV || 'development'
+  const mode = nodeEnv === 'production' ? 'production' : 'development'
 
   // clean/create needed dirs
   await fs.emptyDir(dist)
@@ -32,10 +34,15 @@ const buildWeb = async (config, log) => {
   const bundler = new Bundler({
     entries: path.join(src, 'index.html'),
     defaultConfig: require.resolve('@parcel/config-default'),
+    mode,
+    env: {
+      NODE_ENV: nodeEnv
+    },
     shouldDisableCache: true,
     defaultTargetOptions: {
       distDir: dist,
-      publicUrl: './'
+      publicUrl: './',
+      shouldOptimize: mode === 'production'
     },
     logLevel: 'none',
     shouldContentHash: true
