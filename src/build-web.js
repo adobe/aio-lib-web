@@ -14,6 +14,8 @@ const fs = require('fs-extra')
 const path = require('path')
 const Bundler = require('@parcel/core').default
 
+const { DEVELOPMENT_ENV, PRODUCTION_ENV } = require('./constants')
+
 /**
  * @deprecated since 4.1.0 ( January, 2021 ), use `bundle` instead
  */
@@ -24,8 +26,9 @@ const buildWeb = async (config, log) => {
 
   const dist = config.web.distProd
   const src = config.web.src
-  const nodeEnv = process.env.NODE_ENV || 'development'
-  const mode = nodeEnv === 'production' ? 'production' : 'development'
+
+  const nodeEnv = process.env.NODE_ENV || DEVELOPMENT_ENV
+  const mode = nodeEnv === PRODUCTION_ENV ? PRODUCTION_ENV : DEVELOPMENT_ENV
 
   // clean/create needed dirs
   await fs.emptyDir(dist)

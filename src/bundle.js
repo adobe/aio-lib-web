@@ -13,6 +13,8 @@ governing permissions and limitations under the License.
 const Bundler = require('@parcel/core').default
 const aioLogger = require('@adobe/aio-lib-core-logging')('@adobe/aio-lib-web:bundle', { provider: 'debug' })
 
+const { DEVELOPMENT_ENV, PRODUCTION_ENV } = require('./constants')
+
 /**
  * @typedef {object} BundleWebObject
  * @property {object} the Parcel bundler object
@@ -57,8 +59,9 @@ module.exports = async (entries, dest, options = {}, log = () => {}) => {
     shouldOptimize,
     ...parcelOptions
   } = options
-  const nodeEnv = env.NODE_ENV || process.env.NODE_ENV || 'development'
-  const mode = parcelOptions.mode || (nodeEnv === 'production' ? 'production' : 'development')
+
+  const nodeEnv = env.NODE_ENV || process.env.NODE_ENV || DEVELOPMENT_ENV
+  const mode = parcelOptions.mode || (nodeEnv === PRODUCTION_ENV ? PRODUCTION_ENV : DEVELOPMENT_ENV)
 
   // set defaults, but allow override by passed in values
   const parcelBundleOptions = {

@@ -25,6 +25,8 @@ const undeployWeb = require('../src/undeploy-web')
 const ENTRY_FILE = path.join(__dirname, 'sample-app/index.html')
 const DEST_FOLDER = path.join(__dirname, 'dist/')
 const CACHE_FILE = path.join(__dirname, '.cache')
+
+// Regex to capture the `src` attribute of a `<script>` tag.
 const SRC_REGEX = /<script.*src=["']?(?<src>[^"'\s>]+)["']?/
 
 const config = {
