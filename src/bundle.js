@@ -13,6 +13,8 @@ governing permissions and limitations under the License.
 const Bundler = require('@parcel/core').default
 const aioLogger = require('@adobe/aio-lib-core-logging')('@adobe/aio-lib-web:bundle', { provider: 'debug' })
 
+const { DEVELOPMENT_ENV, PRODUCTION_ENV } = require('./constants')
+
 /**
  * @typedef {object} BundleWebObject
  * @property {object} the Parcel bundler object
@@ -26,6 +28,10 @@ const aioLogger = require('@adobe/aio-lib-core-logging')('@adobe/aio-lib-web:bun
  * @property {boolean} watch
  * @property {boolean} minify
  * @property {number} logLevel
+ * @property {'development'|'production'} mode
+ * @property {object} env
+ * @property {object} defaultTargetOptions
+ * @property {boolean} shouldOptimize
  */
 
 /**
@@ -37,7 +43,7 @@ const aioLogger = require('@adobe/aio-lib-core-logging')('@adobe/aio-lib-web:bun
  * @param {Function} [log] the app logger
  * @returns {BundleWebObject} the BundleWebObject
  */
-module.exports = async (entries, dest, options = { shouldOptimize: false }, log = () => {}) => {
+module.exports = async (entries, dest, options = {}, log = () => {}) => {
   aioLogger.debug(`bundle options: ${JSON.stringify(options, null, 2)}`)
 
   if (!entries) {
@@ -46,6 +52,16 @@ module.exports = async (entries, dest, options = { shouldOptimize: false }, log 
   if (!dest) {
     throw new Error('cannot build web, missing destination')
   }
+
+  const {
+    defaultTargetOptions = {},
+    env = {},
+    shouldOptimize,
+    ...parcelOptions
+  } = options
+
+  const nodeEnv = env.NODE_ENV || process.env.NODE_ENV || DEVELOPMENT_ENV
+  const mode = parcelOptions.mode || (nodeEnv === PRODUCTION_ENV ? PRODUCTION_ENV : DEVELOPMENT_ENV)
 
   // set defaults, but allow override by passed in values
   const parcelBundleOptions = {
@@ -58,14 +74,20 @@ module.exports = async (entries, dest, options = { shouldOptimize: false }, log 
         distDir: dest
       }
     },
-    defaultTargetOptions: {
-      distDir: dest,
-      shouldOptimize: options.shouldOptimize
-    },
     shouldPatchConsole: false,
     shouldContentHash: true,
     logLevel: 'error',
-    ...options
+    ...parcelOptions,
+    mode,
+    env: {
+      ...env,
+      NODE_ENV: nodeEnv
+    },
+    defaultTargetOptions: {
+      distDir: dest,
+      ...defaultTargetOptions,
+      shouldOptimize: defaultTargetOptions.shouldOptimize ?? shouldOptimize ?? mode === 'production'
+    }
   }
 
   aioLogger.debug(`bundle bundleOptions: ${JSON.stringify(parcelBundleOptions, null, 2)}`)

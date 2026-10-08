@@ -15,6 +15,7 @@ const bundle = require('../../src/bundle')
 const fs = require('fs-extra')
 jest.mock('fs-extra')
 const path = require('path')
+const originalNodeEnv = process.env.NODE_ENV
 
 describe('bundle', () => {
   beforeEach(() => {
@@ -22,6 +23,14 @@ describe('bundle', () => {
     fs.readdir.mockReset()
     jest.restoreAllMocks()
     global.cleanFs(vol)
+  })
+
+  afterEach(() => {
+    if (originalNodeEnv === undefined) {
+      delete process.env.NODE_ENV
+    } else {
+      process.env.NODE_ENV = originalNodeEnv
+    }
   })
 
   test('throws if config does not have an app, or frontEnd', async () => {
@@ -49,6 +58,7 @@ describe('bundle', () => {
   })
 
   test('check build options', async () => {
+    delete process.env.NODE_ENV
     global.addFakeFiles(vol, 'fakeDir', { 'index.html': '' })
     await expect(bundle('fakeDir/index.html', 'distProd')).resolves.toEqual(expect.any(Object))
     expect(global._bundler__arguments).toEqual([
@@ -58,8 +68,10 @@ describe('bundle', () => {
           distDir: 'distProd',
           shouldOptimize: false
         }),
+        env: expect.objectContaining({ NODE_ENV: 'development' }),
         entries: 'fakeDir/index.html',
         logLevel: 'error',
+        mode: 'development',
         shouldContentHash: true,
         shouldDisableCache: false
       })])
@@ -96,6 +108,46 @@ describe('bundle', () => {
         entries: 'fakeDir/index.html',
         shouldContentHash: true,
         shouldDisableCache: false
+      })])
+  })
+
+  test('uses production build options from NODE_ENV', async () => {
+    process.env.NODE_ENV = 'production'
+    global.addFakeFiles(vol, 'fakeDir', { 'index.html': '' })
+
+    await expect(bundle('fakeDir/index.html', 'distProd')).resolves.toEqual(expect.any(Object))
+    expect(global._bundler__arguments).toEqual([
+      expect.objectContaining({
+        defaultTargetOptions: expect.objectContaining({
+          distDir: 'distProd',
+          shouldOptimize: true
+        }),
+        env: expect.objectContaining({ NODE_ENV: 'production' }),
+        mode: 'production'
+      })])
+  })
+
+  test('allows explicit Parcel mode, environment and target option overrides', async () => {
+    process.env.NODE_ENV = 'development'
+    global.addFakeFiles(vol, 'fakeDir', { 'index.html': '' })
+
+    await expect(bundle('fakeDir/index.html', 'distProd', {
+      mode: 'production',
+      env: { NODE_ENV: 'production', CUSTOM_ENV: 'custom' },
+      defaultTargetOptions: { publicUrl: './', shouldOptimize: false }
+    })).resolves.toEqual(expect.any(Object))
+    expect(global._bundler__arguments).toEqual([
+      expect.objectContaining({
+        defaultTargetOptions: expect.objectContaining({
+          distDir: 'distProd',
+          publicUrl: './',
+          shouldOptimize: false
+        }),
+        env: {
+          NODE_ENV: 'production',
+          CUSTOM_ENV: 'custom'
+        },
+        mode: 'production'
       })])
   })
 
