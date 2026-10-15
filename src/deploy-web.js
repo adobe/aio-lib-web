@@ -11,7 +11,6 @@ governing permissions and limitations under the License.
 */
 
 const RemoteStorage = require('../lib/remote-storage')
-const getS3Credentials = require('../lib/getS3Creds')
 
 const fs = require('fs-extra')
 const path = require('path')
@@ -19,6 +18,11 @@ const path = require('path')
 const deployWeb = async (config, log) => {
   if (!config || !config.app || !config.app.hasFrontend) {
     throw new Error('cannot deploy web, app has no frontend or config is invalid')
+  }
+
+  const bearerToken = await config?.ow?.auth_handler?.getAuthHeader()
+  if (!bearerToken) {
+    throw new Error('cannot deploy web, Authorization is required')
   }
 
   /// build files
@@ -30,19 +34,25 @@ const deployWeb = async (config, log) => {
     throw new Error(`missing files in ${dist}, maybe you forgot to build your UI ?`)
   }
 
-  const creds = await getS3Credentials(config)
-
-  const remoteStorage = new RemoteStorage(creds)
-  const exists = await remoteStorage.folderExists(config.s3.folder + '/')
-
-  if (exists) {
+  const remoteStorage = new RemoteStorage()
+  // validate config.app.hostname and config.ow.namespace are not empty and are valid and do not contain invalid characters
+  if (!config.app.hostname || !config.ow.namespace) {
+    throw new Error('config.app.hostname and config.ow.namespace are required')
+  }
+  if (!config.app.hostname.match(/^[a-zA-Z0-9.-]+$/)) {
+    throw new Error('config.app.hostname is invalid')
+  }
+  if (!config.ow.namespace.match(/^[a-zA-Z0-9_-]+$/)) {
+    throw new Error('config.ow.namespace is invalid')
+  }
+  if (await remoteStorage.folderExists(bearerToken, '/', config)) {
     if (log) {
       log('warning: an existing deployment will be overwritten')
     }
-    await remoteStorage.emptyFolder(config.s3.folder + '/')
+    await remoteStorage.emptyFolder(bearerToken, '/', config)
   }
   const _log = log ? (f) => log(`deploying ${path.relative(dist, f)}`) : null
-  await remoteStorage.uploadDir(dist, config.s3.folder, config, _log)
+  await remoteStorage.uploadDir(bearerToken, dist, config.s3.folder, config, _log)
 
   const url = `https://${config.ow.namespace}.${config.app.hostname}/index.html`
   return url
