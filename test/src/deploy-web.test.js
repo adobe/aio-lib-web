@@ -239,7 +239,7 @@ describe('deploy-web', () => {
     fs.readdirSync.mockReturnValue({ length: 1 })
     await expect(deployWeb(config)).resolves.toEqual('https://ns.host/index.html')
     expect(RemoteStorage).toHaveBeenCalledWith()
-    expect(mockRemoteStorageInstance.uploadDir).toHaveBeenCalledWith('Bearer token', 'dist', 'somefolder', config, null)
+    expect(mockRemoteStorageInstance.uploadDir).toHaveBeenCalledWith('Bearer token', 'dist', '', config, null)
   })
 
   test('uploads files with log func', async () => {
@@ -269,7 +269,7 @@ describe('deploy-web', () => {
     mockRemoteStorageInstance.uploadDir.mockImplementation((a, b, c, d, func) => func('dist/somefile'))
     await expect(deployWeb(config, mockLogger)).resolves.toEqual('https://ns.host/index.html')
     expect(RemoteStorage).toHaveBeenCalledWith()
-    expect(mockRemoteStorageInstance.uploadDir).toHaveBeenCalledWith('Bearer token', 'dist', 'somefolder', config, expect.any(Function))
+    expect(mockRemoteStorageInstance.uploadDir).toHaveBeenCalledWith('Bearer token', 'dist', '', config, expect.any(Function))
     expect(mockLogger).toHaveBeenCalledWith('deploying somefile')
   })
 
@@ -301,7 +301,7 @@ describe('deploy-web', () => {
 
     expect(mockRemoteStorageInstance.folderExists).toHaveBeenCalledWith('Bearer token', '/', config)
     expect(mockRemoteStorageInstance.emptyFolder).toHaveBeenCalledWith('Bearer token', '/', config)
-    expect(mockRemoteStorageInstance.uploadDir).toHaveBeenCalledWith('Bearer token', 'dist', 'somefolder', config, null)
+    expect(mockRemoteStorageInstance.uploadDir).toHaveBeenCalledWith('Bearer token', 'dist', '', config, null)
     expect(mockRemoteStorageInstance.emptyFolder.mock.invocationCallOrder[0]).toBeLessThan(
       mockRemoteStorageInstance.uploadDir.mock.invocationCallOrder[0]
     )

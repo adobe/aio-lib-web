@@ -52,7 +52,9 @@ const deployWeb = async (config, log) => {
     await remoteStorage.emptyFolder(bearerToken, '/', config)
   }
   const _log = log ? (f) => log(`deploying ${path.relative(dist, f)}`) : null
-  await remoteStorage.uploadDir(bearerToken, dist, config.s3.folder, config, _log)
+  // deploy-service prepends `${namespace}/` to file.name, so do not send a folder prefix
+  // (config.s3.folder is the namespace and would duplicate it: <ns>/<ns>/...)
+  await remoteStorage.uploadDir(bearerToken, dist, '', config, _log)
 
   const url = `https://${config.ow.namespace}.${config.app.hostname}/index.html`
   return url
