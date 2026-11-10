@@ -25,7 +25,9 @@ const undeployWeb = require('../src/undeploy-web')
 const ENTRY_FILE = path.join(__dirname, 'sample-app/index.html')
 const DEST_FOLDER = path.join(__dirname, 'dist/')
 const CACHE_FILE = path.join(__dirname, '.cache')
-const SRC_REGEX = /<script.*src="(?<src>.*?)"/
+
+// Regex to capture the `src` attribute of a `<script>` tag.
+const SRC_REGEX = /<script.*src=["']?(?<src>[^"'\s>]+)["']?/
 
 const config = {
   app: {
@@ -97,15 +99,21 @@ describe('e2e', () => {
   })
 
   test('undeploy', async () => {
-    let error, response
+    let error, response, contents
     try {
       await undeployWeb(config)
-      response = await fetch(url)
+      // undeployWeb empties the S3 origin, but CloudFront may still serve the previously cached page on the canonical URL for its default TTL
+      // Adding a unique query string bypasses the edge cache so we read the current origin state.
+      response = await fetch(`${url}?nocache=${Date.now()}`)
+      contents = await response.text()
     } catch (e) {
       error = e
       console.error(e)
     }
     expect(error).toBeUndefined()
-    expect(response.status).toEqual(404)
+    // assert that CDN serves its not-found page.
+    expect(response.status).toEqual(200)
+    expect(contents).toContain('404 Not Found')
+    expect(contents).toContain('The page you requested cannot be found.')
   })
 })

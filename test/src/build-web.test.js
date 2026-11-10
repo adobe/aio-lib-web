@@ -15,6 +15,7 @@ const { vol } = global.mockFs()
 const buildWeb = require('../../src/build-web')
 const fs = require('fs-extra')
 jest.mock('fs-extra')
+const originalNodeEnv = process.env.NODE_ENV
 
 describe('build-web', () => {
   beforeEach(() => {
@@ -22,6 +23,14 @@ describe('build-web', () => {
     fs.readdir.mockReset()
     jest.restoreAllMocks()
     global.cleanFs(vol)
+  })
+
+  afterEach(() => {
+    if (originalNodeEnv === undefined) {
+      delete process.env.NODE_ENV
+    } else {
+      process.env.NODE_ENV = originalNodeEnv
+    }
   })
 
   test('throws if config does not have an app, or frontEnd', async () => {
@@ -51,6 +60,7 @@ describe('build-web', () => {
   })
 
   test('check build options', async () => {
+    delete process.env.NODE_ENV
     const config = {
       app: {
         hasFrontend: true
@@ -68,12 +78,41 @@ describe('build-web', () => {
         defaultConfig: expect.stringContaining(path.join('parcel', 'config-default', 'index.json')),
         defaultTargetOptions: expect.objectContaining({
           distDir: 'dist',
-          publicUrl: './'
+          publicUrl: './',
+          shouldOptimize: false
         }),
+        env: expect.objectContaining({ NODE_ENV: 'development' }),
         entries: path.join('fakeDir', 'index.html'),
         logLevel: 'none',
+        mode: 'development',
         shouldContentHash: true,
         shouldDisableCache: true
+      })
+    ])
+  })
+
+  test('uses production build options from NODE_ENV', async () => {
+    process.env.NODE_ENV = 'production'
+    const config = {
+      app: {
+        hasFrontend: true
+      },
+      web: {
+        distProd: 'dist',
+        src: 'fakeDir'
+      }
+    }
+    global.addFakeFiles(vol, 'fakeDir', { 'index.html': '' })
+    fs.readdir.mockReturnValue(['output.html'])
+
+    await expect(buildWeb(config)).resolves.toEqual(['output.html'])
+    expect(global._bundler__arguments).toEqual([
+      expect.objectContaining({
+        defaultTargetOptions: expect.objectContaining({
+          shouldOptimize: true
+        }),
+        env: expect.objectContaining({ NODE_ENV: 'production' }),
+        mode: 'production'
       })
     ])
   })
