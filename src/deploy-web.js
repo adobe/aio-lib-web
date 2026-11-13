@@ -20,9 +20,14 @@ const deployWeb = async (config, log) => {
     throw new Error('cannot deploy web, app has no frontend or config is invalid')
   }
 
-  const bearerToken = await config?.ow?.auth_handler?.getAuthHeader()
-  if (!bearerToken) {
-    throw new Error('cannot deploy web, Authorization is required')
+  // byo: user supplied AWS S3 credentials, files are uploaded directly to the bucket
+  const byoCreds = config.s3 && config.s3.creds
+  let bearerToken
+  if (!byoCreds) {
+    bearerToken = await config?.ow?.auth_handler?.getAuthHeader()
+    if (!bearerToken) {
+      throw new Error('cannot deploy web, Authorization is required')
+    }
   }
 
   /// build files
@@ -34,7 +39,7 @@ const deployWeb = async (config, log) => {
     throw new Error(`missing files in ${dist}, maybe you forgot to build your UI ?`)
   }
 
-  const remoteStorage = new RemoteStorage()
+  const remoteStorage = byoCreds ? new RemoteStorage(byoCreds) : new RemoteStorage()
   // validate config.app.hostname and config.ow.namespace are not empty and are valid and do not contain invalid characters
   if (!config.app.hostname || !config.ow.namespace) {
     throw new Error('config.app.hostname and config.ow.namespace are required')
@@ -45,16 +50,18 @@ const deployWeb = async (config, log) => {
   if (!config.ow.namespace.match(/^[a-zA-Z0-9_-]+$/)) {
     throw new Error('config.ow.namespace is invalid')
   }
-  if (await remoteStorage.folderExists(bearerToken, '/', config)) {
+  // byo uses the s3 folder as prefix in the bucket, deploy-service uses the namespace
+  const folderPrefix = byoCreds ? config.s3.folder + '/' : '/'
+  if (await remoteStorage.folderExists(bearerToken, folderPrefix, config)) {
     if (log) {
       log('warning: an existing deployment will be overwritten')
     }
-    await remoteStorage.emptyFolder(bearerToken, '/', config)
+    await remoteStorage.emptyFolder(bearerToken, folderPrefix, config)
   }
   const _log = log ? (f) => log(`deploying ${path.relative(dist, f)}`) : null
   // deploy-service prepends `${namespace}/` to file.name, so do not send a folder prefix
   // (config.s3.folder is the namespace and would duplicate it: <ns>/<ns>/...)
-  await remoteStorage.uploadDir(bearerToken, dist, '', config, _log)
+  await remoteStorage.uploadDir(bearerToken, dist, byoCreds ? config.s3.folder : '', config, _log)
 
   const url = `https://${config.ow.namespace}.${config.app.hostname}/index.html`
   return url

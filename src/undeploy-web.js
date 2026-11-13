@@ -17,19 +17,26 @@ const undeployWeb = async (config) => {
     throw new Error('cannot undeploy web, app has no frontend or config is invalid')
   }
 
-  const bearerToken = await config?.ow?.auth_handler?.getAuthHeader()
-  if (!bearerToken) {
-    throw new Error('cannot undeploy web, Authorization is required')
+  // byo: user supplied AWS S3 credentials, files are deleted directly from the bucket
+  const byoCreds = config.s3 && config.s3.creds
+  let bearerToken
+  if (!byoCreds) {
+    bearerToken = await config?.ow?.auth_handler?.getAuthHeader()
+    if (!bearerToken) {
+      throw new Error('cannot undeploy web, Authorization is required')
+    }
   }
 
-  const remoteStorage = new RemoteStorage()
+  const remoteStorage = byoCreds ? new RemoteStorage(byoCreds) : new RemoteStorage()
+  const folderPrefix = byoCreds ? config.s3.folder + '/' : '/'
 
-  if (!(await remoteStorage.folderExists(bearerToken, '/', config))) {
-    throw new Error(`cannot undeploy static files, there is no deployment for ${config.ow.namespace}`)
+  if (!(await remoteStorage.folderExists(bearerToken, folderPrefix, config))) {
+    throw new Error(`cannot undeploy static files, there is no deployment for ${byoCreds ? config.s3.folder : config.ow.namespace}`)
   }
 
-  const deleted = await remoteStorage.emptyFolder(bearerToken, '/', config)
-  if (!deleted) {
+  const deleted = await remoteStorage.emptyFolder(bearerToken, folderPrefix, config)
+  // the byo s3 flow does not return a result
+  if (!byoCreds && !deleted) {
     throw new Error('cannot undeploy static files, failed to delete deployment files')
   }
 }
