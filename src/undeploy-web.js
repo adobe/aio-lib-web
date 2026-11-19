@@ -13,7 +13,15 @@ governing permissions and limitations under the License.
 const RemoteStorage = require('../lib/remote-storage')
 const getS3Credentials = require('../lib/getS3Creds')
 
-const undeployWeb = async (config) => {
+/**
+ * Deletes the deployed web assets under `<namespace>/<web.path>/`, or under the namespace root if `web.path` is not set.
+ *
+ * @param {object} config the app config
+ * @param {Function} [log] not used, accepted to match deployWeb
+ * @param {object} [options] undeploy options
+ * @param {Array<string>} [options.keepPaths] web paths of other frontends in the namespace, their files are not deleted
+ */
+const undeployWeb = async (config, log, options = {}) => {
   if (!config || !config.app || !config.app.hasFrontend) {
     throw new Error('cannot undeploy web, app has no frontend or config is invalid')
   }
@@ -22,11 +30,14 @@ const undeployWeb = async (config) => {
 
   const remoteStorage = new RemoteStorage(creds)
 
-  if (!(await remoteStorage.folderExists(config.s3.folder + '/'))) {
-    throw new Error(`cannot undeploy static files, there is no deployment for ${config.s3.folder}`)
+  const folder = config.web.path ? `${config.s3.folder}/${config.web.path}` : config.s3.folder
+
+  if (!(await remoteStorage.folderExists(folder + '/'))) {
+    throw new Error(`cannot undeploy static files, there is no deployment for ${folder}`)
   }
 
-  await remoteStorage.emptyFolder(config.s3.folder + '/')
+  const keepFolders = (options.keepPaths || []).map(keepPath => `${config.s3.folder}/${keepPath}/`)
+  await remoteStorage.emptyFolder(folder + '/', keepFolders)
 }
 
 module.exports = undeployWeb

@@ -193,7 +193,7 @@ describe('deploy-web', () => {
     expect(mockRemoteStorageInstance.folderExists).toHaveBeenCalledWith('somefolder/')
     expect(mockRemoteStorageInstance.uploadDir).toHaveBeenCalledWith('dist', 'somefolder', config, expect.any(Function))
     // empty dir!
-    expect(mockRemoteStorageInstance.emptyFolder).toHaveBeenCalledWith('somefolder/')
+    expect(mockRemoteStorageInstance.emptyFolder).toHaveBeenCalledWith('somefolder/', [])
   })
 
   test('overwrites remote files no log func', async () => {
@@ -224,7 +224,7 @@ describe('deploy-web', () => {
     expect(mockRemoteStorageInstance.folderExists).toHaveBeenCalledWith('somefolder/')
     expect(mockRemoteStorageInstance.uploadDir).toHaveBeenCalledWith('dist', 'somefolder', config, null)
     // empty dir!
-    expect(mockRemoteStorageInstance.emptyFolder).toHaveBeenCalledWith('somefolder/')
+    expect(mockRemoteStorageInstance.emptyFolder).toHaveBeenCalledWith('somefolder/', [])
   })
 
   test('calls to s3 should use ending slash', async () => {
@@ -263,6 +263,64 @@ describe('deploy-web', () => {
     expect(getS3Credentials).toHaveBeenCalled()
     expect(RemoteStorage).toHaveBeenCalledTimes(1)
     expect(folderExists).toHaveBeenLastCalledWith('nsfolder/')
-    expect(emptyFolder).toHaveBeenLastCalledWith('nsfolder/')
+    expect(emptyFolder).toHaveBeenLastCalledWith('nsfolder/', [])
+  })
+
+  test('deploys under the web path and keeps the other web paths', async () => {
+    const config = {
+      ow: {
+        namespace: 'ns'
+      },
+      s3: {
+        folder: 'ns'
+      },
+      app: {
+        hasFrontend: true,
+        hostname: 'host'
+      },
+      web: {
+        distProd: 'dist',
+        path: 'configuration'
+      }
+    }
+    const emptyFolder = jest.fn()
+    const uploadDir = jest.fn()
+    const folderExists = jest.fn(() => true)
+    RemoteStorage.mockImplementation(() => ({ emptyFolder, folderExists, uploadDir }))
+    fs.existsSync.mockReturnValue(true)
+    fs.lstatSync.mockReturnValue({ isDirectory: () => true })
+    fs.readdirSync.mockReturnValue({ length: 1 })
+    await expect(deployWeb(config, null, { keepPaths: ['configuration/nested'] })).resolves.toEqual('https://ns.host/configuration/index.html')
+    expect(folderExists).toHaveBeenCalledWith('ns/configuration/')
+    expect(emptyFolder).toHaveBeenCalledWith('ns/configuration/', ['ns/configuration/nested/'])
+    expect(uploadDir).toHaveBeenCalledWith('dist', 'ns/configuration', config, null)
+  })
+
+  test('deploys to the namespace root and keeps the other web paths', async () => {
+    const config = {
+      ow: {
+        namespace: 'ns'
+      },
+      s3: {
+        folder: 'ns'
+      },
+      app: {
+        hasFrontend: true,
+        hostname: 'host'
+      },
+      web: {
+        distProd: 'dist'
+      }
+    }
+    const emptyFolder = jest.fn()
+    const uploadDir = jest.fn()
+    const folderExists = jest.fn(() => true)
+    RemoteStorage.mockImplementation(() => ({ emptyFolder, folderExists, uploadDir }))
+    fs.existsSync.mockReturnValue(true)
+    fs.lstatSync.mockReturnValue({ isDirectory: () => true })
+    fs.readdirSync.mockReturnValue({ length: 1 })
+    await expect(deployWeb(config, null, { keepPaths: ['configuration', 'other/ui'] })).resolves.toEqual('https://ns.host/index.html')
+    expect(emptyFolder).toHaveBeenCalledWith('ns/', ['ns/configuration/', 'ns/other/ui/'])
+    expect(uploadDir).toHaveBeenCalledWith('dist', 'ns', config, null)
   })
 })

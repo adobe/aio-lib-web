@@ -65,7 +65,40 @@ describe('undeploy-web', () => {
     expect(getS3Credentials).toHaveBeenCalledWith(config)
     expect(RemoteStorage).toHaveBeenCalledWith('fakecreds')
     expect(mockRemoteStorageInstance.folderExists).toHaveBeenCalledWith('somefolder/')
-    expect(mockRemoteStorageInstance.emptyFolder).toHaveBeenCalledWith('somefolder/')
+    expect(mockRemoteStorageInstance.emptyFolder).toHaveBeenCalledWith('somefolder/', [])
+  })
+
+  test('empties only the web path', async () => {
+    const config = {
+      s3: {
+        folder: 'ns'
+      },
+      app: {
+        hasFrontend: true
+      },
+      web: {
+        path: 'configuration'
+      }
+    }
+    mockRemoteStorageInstance.folderExists.mockResolvedValue(true)
+    await undeployWeb(config)
+    expect(mockRemoteStorageInstance.folderExists).toHaveBeenCalledWith('ns/configuration/')
+    expect(mockRemoteStorageInstance.emptyFolder).toHaveBeenCalledWith('ns/configuration/', [])
+  })
+
+  test('empties the namespace root but keeps the other web paths', async () => {
+    const config = {
+      s3: {
+        folder: 'ns'
+      },
+      app: {
+        hasFrontend: true
+      },
+      web: {}
+    }
+    mockRemoteStorageInstance.folderExists.mockResolvedValue(true)
+    await undeployWeb(config, null, { keepPaths: ['configuration'] })
+    expect(mockRemoteStorageInstance.emptyFolder).toHaveBeenCalledWith('ns/', ['ns/configuration/'])
   })
 
   test('throws if remoteStorage folder does not exist', async () => {

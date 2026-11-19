@@ -16,7 +16,16 @@ const getS3Credentials = require('../lib/getS3Creds')
 const fs = require('fs-extra')
 const path = require('path')
 
-const deployWeb = async (config, log) => {
+/**
+ * Deploys the built web assets to `<namespace>/<web.path>/`, or to the namespace root if `web.path` is not set.
+ *
+ * @param {object} config the app config
+ * @param {Function} [log] progress logger
+ * @param {object} [options] deploy options
+ * @param {Array<string>} [options.keepPaths] web paths of other frontends in the namespace, their files are not deleted
+ * @returns {Promise<string>} the URL of the deployed index.html
+ */
+const deployWeb = async (config, log, options = {}) => {
   if (!config || !config.app || !config.app.hasFrontend) {
     throw new Error('cannot deploy web, app has no frontend or config is invalid')
   }
@@ -33,18 +42,21 @@ const deployWeb = async (config, log) => {
   const creds = await getS3Credentials(config)
 
   const remoteStorage = new RemoteStorage(creds)
-  const exists = await remoteStorage.folderExists(config.s3.folder + '/')
+  const folder = config.web.path ? `${config.s3.folder}/${config.web.path}` : config.s3.folder
+  const exists = await remoteStorage.folderExists(folder + '/')
 
   if (exists) {
     if (log) {
       log('warning: an existing deployment will be overwritten')
     }
-    await remoteStorage.emptyFolder(config.s3.folder + '/')
+    const keepFolders = (options.keepPaths || []).map(keepPath => `${config.s3.folder}/${keepPath}/`)
+    await remoteStorage.emptyFolder(folder + '/', keepFolders)
   }
   const _log = log ? (f) => log(`deploying ${path.relative(dist, f)}`) : null
-  await remoteStorage.uploadDir(dist, config.s3.folder, config, _log)
+  await remoteStorage.uploadDir(dist, folder, config, _log)
 
-  const url = `https://${config.ow.namespace}.${config.app.hostname}/index.html`
+  const indexPath = config.web.path ? `${config.web.path}/index.html` : 'index.html'
+  const url = `https://${config.ow.namespace}.${config.app.hostname}/${indexPath}`
   return url
 }
 
