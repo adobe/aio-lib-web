@@ -530,6 +530,26 @@ describe('RemoteStorage', () => {
     expect(mockS3.deleteObjects).toHaveBeenCalledWith({ Bucket: 'fake-bucket', Delete: { Objects: [content[2]] } })
   })
 
+  test('emptyFolder should not delete files under the keep prefixes', async () => {
+    const content = [{ Key: 'ns/index.html' }, { Key: 'ns/configuration/index.html' }, { Key: 'ns/configuration.js' }]
+    mockS3.listObjectsV2.mockResolvedValue({ KeyCount: 3, Contents: content })
+    const rs = new RemoteStorage(global.fakeTVMResponse)
+    await rs.emptyFolder('ns/', ['ns/configuration/'])
+    expect(mockS3.deleteObjects).toHaveBeenCalledTimes(1)
+    expect(mockS3.deleteObjects).toHaveBeenCalledWith({ Bucket: 'fake-bucket', Delete: { Objects: [{ Key: 'ns/index.html' }, { Key: 'ns/configuration.js' }] } })
+  })
+
+  test('emptyFolder should list past a truncated page that only has kept files', async () => {
+    mockS3.listObjectsV2
+      .mockResolvedValueOnce({ KeyCount: 1, Contents: [{ Key: 'ns/a/index.html' }], IsTruncated: true })
+      .mockResolvedValueOnce({ KeyCount: 1, Contents: [{ Key: 'ns/index.html' }], IsTruncated: false })
+    const rs = new RemoteStorage(global.fakeTVMResponse)
+    await rs.emptyFolder('ns/', ['ns/a/'])
+    expect(mockS3.listObjectsV2).toHaveBeenNthCalledWith(2, { Bucket: 'fake-bucket', Prefix: 'ns/', StartAfter: 'ns/a/index.html' })
+    expect(mockS3.deleteObjects).toHaveBeenCalledTimes(1)
+    expect(mockS3.deleteObjects).toHaveBeenCalledWith({ Bucket: 'fake-bucket', Delete: { Objects: [{ Key: 'ns/index.html' }] } })
+  })
+
   test('uploadFile should call S3#upload with the correct parameters', async () => {
     global.addFakeFiles(vol, 'fakeDir', { 'index.js': 'fake content' })
     const rs = new RemoteStorage(global.fakeTVMResponse)
