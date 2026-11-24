@@ -12,10 +12,6 @@ governing permissions and limitations under the License.
 
 const undeployWeb = require('../../src/undeploy-web')
 
-jest.mock('../../lib/getS3Creds')
-const getS3Credentials = require('../../lib/getS3Creds')
-getS3Credentials.mockResolvedValue('fakecreds')
-
 const mockRemoteStorageInstance = {
   emptyFolder: jest.fn(),
   folderExists: jest.fn()
@@ -32,7 +28,6 @@ describe('undeploy-web', () => {
     RemoteStorage.mockClear()
     mockRemoteStorageInstance.emptyFolder.mockReset()
     mockRemoteStorageInstance.folderExists.mockReset()
-    getS3Credentials.mockClear()
   })
 
   test('throws if config does not have an app, or frontEnd', async () => {
@@ -41,15 +36,30 @@ describe('undeploy-web', () => {
     await expect(undeployWeb({ app: { hasFrontEnd: false } })).rejects.toThrow('cannot undeploy web')
   })
 
-  test('calls getS3Credentials and empties folder', async () => {
+  test('throws if no auth token', async () => {
     const config = {
       ow: {
         namespace: 'ns',
-        auth: 'password'
+        auth_handler: {
+          getAuthHeader: jest.fn().mockResolvedValue(null)
+        }
+      },
+      app: {
+        hasFrontend: true
+      }
+    }
+    await expect(undeployWeb(config)).rejects.toThrow('cannot undeploy web, Authorization is required')
+  })
+
+  test('calls folderExists and empties folder', async () => {
+    const config = {
+      ow: {
+        namespace: 'ns',
+        auth_handler: {
+          getAuthHeader: jest.fn().mockResolvedValue('Bearer token')
+        }
       },
       s3: {
-        creds: 'fakes3creds',
-        tvmUrl: 'url',
         folder: 'somefolder'
       },
       app: {
@@ -61,22 +71,22 @@ describe('undeploy-web', () => {
       }
     }
     mockRemoteStorageInstance.folderExists.mockResolvedValue(true)
+    mockRemoteStorageInstance.emptyFolder.mockResolvedValue(true)
     await undeployWeb(config)
-    expect(getS3Credentials).toHaveBeenCalledWith(config)
-    expect(RemoteStorage).toHaveBeenCalledWith('fakecreds')
-    expect(mockRemoteStorageInstance.folderExists).toHaveBeenCalledWith('somefolder/')
-    expect(mockRemoteStorageInstance.emptyFolder).toHaveBeenCalledWith('somefolder/')
+    expect(RemoteStorage).toHaveBeenCalledWith()
+    expect(mockRemoteStorageInstance.folderExists).toHaveBeenCalledWith('Bearer token', '/', config)
+    expect(mockRemoteStorageInstance.emptyFolder).toHaveBeenCalledWith('Bearer token', '/', config)
   })
 
   test('throws if remoteStorage folder does not exist', async () => {
     const config = {
       ow: {
         namespace: 'ns',
-        auth: 'password'
+        auth_handler: {
+          getAuthHeader: jest.fn().mockResolvedValue('Bearer token')
+        }
       },
       s3: {
-        credsCacheFile: 'file',
-        tvmUrl: 'url',
         folder: 'somefolder'
       },
       app: {
@@ -86,10 +96,69 @@ describe('undeploy-web', () => {
         distProd: 'dist'
       }
     }
+    mockRemoteStorageInstance.folderExists.mockResolvedValue(false)
     await expect(undeployWeb(config)).rejects.toThrow('cannot undeploy static files')
-    expect(getS3Credentials).toHaveBeenCalledWith(config)
-    expect(RemoteStorage).toHaveBeenCalledWith('fakecreds')
-    expect(mockRemoteStorageInstance.folderExists).toHaveBeenCalledWith('somefolder/')
+    expect(RemoteStorage).toHaveBeenCalledWith()
+    expect(mockRemoteStorageInstance.folderExists).toHaveBeenCalledWith('Bearer token', '/', config)
     expect(mockRemoteStorageInstance.emptyFolder).not.toHaveBeenCalled()
+  })
+
+  test('throws if config has no ow auth_handler', async () => {
+    const config = { app: { hasFrontend: true } }
+    await expect(undeployWeb(config)).rejects.toThrow('cannot undeploy web, Authorization is required')
+  })
+
+  describe('byo s3 credentials', () => {
+    const byoConfig = () => ({
+      ow: { namespace: 'ns' },
+      s3: {
+        folder: 'somefolder',
+        creds: { accessKeyId: 'fake', secretAccessKey: 'fake', params: { Bucket: 'bucket' } }
+      },
+      app: { hasFrontend: true }
+    })
+
+    test('empties the s3 folder without an auth token and ignores the empty result', async () => {
+      const config = byoConfig()
+      mockRemoteStorageInstance.folderExists.mockResolvedValue(true)
+      mockRemoteStorageInstance.emptyFolder.mockResolvedValue(undefined)
+
+      await expect(undeployWeb(config)).resolves.toBeUndefined()
+
+      expect(RemoteStorage).toHaveBeenCalledWith(config.s3.creds)
+      expect(mockRemoteStorageInstance.folderExists).toHaveBeenCalledWith(undefined, 'somefolder/', config)
+      expect(mockRemoteStorageInstance.emptyFolder).toHaveBeenCalledWith(undefined, 'somefolder/', config)
+    })
+
+    test('throws with the s3 folder name if there is no deployment', async () => {
+      mockRemoteStorageInstance.folderExists.mockResolvedValue(false)
+
+      await expect(undeployWeb(byoConfig())).rejects.toThrow('there is no deployment for somefolder')
+      expect(mockRemoteStorageInstance.emptyFolder).not.toHaveBeenCalled()
+    })
+  })
+
+  test('throws if remoteStorage emptyFolder fails', async () => {
+    const config = {
+      ow: {
+        namespace: 'ns',
+        auth_handler: {
+          getAuthHeader: jest.fn().mockResolvedValue('Bearer token')
+        }
+      },
+      s3: {
+        folder: 'somefolder'
+      },
+      app: {
+        hasFrontend: true
+      },
+      web: {
+        distProd: 'dist'
+      }
+    }
+    mockRemoteStorageInstance.folderExists.mockResolvedValue(true)
+    mockRemoteStorageInstance.emptyFolder.mockResolvedValue(false)
+
+    await expect(undeployWeb(config)).rejects.toThrow('cannot undeploy static files, failed to delete deployment files')
   })
 })
