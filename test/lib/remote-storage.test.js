@@ -18,7 +18,25 @@ jest.mock('undici', () => ({
   EnvHttpProxyAgent: jest.fn(() => mockProxyDispatcher)
 }))
 
+const mockS3Instance = {
+  listObjectsV2: jest.fn(),
+  deleteObjects: jest.fn(),
+  putObject: jest.fn()
+}
+jest.mock('@aws-sdk/client-s3', () => ({
+  S3: jest.fn(() => mockS3Instance)
+}))
+jest.mock('proxy-agent', () => ({
+  ProxyAgent: jest.fn()
+}))
+jest.mock('@smithy/node-http-handler', () => ({
+  NodeHttpHandler: jest.fn()
+}))
+
 const { EnvHttpProxyAgent } = require('undici')
+const { S3 } = require('@aws-sdk/client-s3')
+const { ProxyAgent } = require('proxy-agent')
+const { NodeHttpHandler } = require('@smithy/node-http-handler')
 const RemoteStorage = require('../../lib/remote-storage')
 
 // Helper to create a mock response
@@ -1060,6 +1078,216 @@ describe('RemoteStorage', () => {
       expect(body.file.name).toBe('fakeprefix/index.js')
       expect(body.file.contentType).toBe('application/javascript')
     })
+  })
+})
+
+describe('RemoteStorage BYO S3', () => {
+  const byoCreds = () => ({ ...global.fakeBYOCredentials })
+
+  beforeEach(() => {
+    global.cleanFs(vol)
+    global.fetch.mockReset()
+    S3.mockClear()
+    ProxyAgent.mockClear()
+    NodeHttpHandler.mockClear()
+    mockS3Instance.listObjectsV2.mockReset()
+    mockS3Instance.deleteObjects.mockReset()
+    mockS3Instance.putObject.mockReset()
+  })
+
+  describe('constructor', () => {
+    test('null creds uses deploy-service mode', () => {
+      const rs = new RemoteStorage(null)
+      expect(rs.s3).toBeUndefined()
+      expect(S3).not.toHaveBeenCalled()
+    })
+
+    test('throws on invalid creds', () => {
+      expect(() => new RemoteStorage({ accessKeyId: 'fake' })).toThrow()
+      expect(S3).not.toHaveBeenCalled()
+    })
+
+    test('creates S3 client with default region and proxy agent', () => {
+      const rs = new RemoteStorage(byoCreds())
+
+      expect(rs.bucket).toBe(global.fakeS3Bucket)
+      expect(rs.s3).toBe(mockS3Instance)
+      expect(ProxyAgent).toHaveBeenCalledTimes(1)
+      const agent = ProxyAgent.mock.instances[0]
+      expect(NodeHttpHandler).toHaveBeenCalledWith({ httpAgent: agent, httpsAgent: agent })
+      expect(S3).toHaveBeenCalledWith(expect.objectContaining({
+        region: 'us-east-1',
+        credentials: {
+          accessKeyId: 'fake',
+          secretAccessKey: 'fake',
+          sessionToken: undefined,
+          expiration: undefined
+        }
+      }))
+    })
+
+    test('uses region, sessionToken and expiration from creds', () => {
+      // eslint-disable-next-line no-new
+      new RemoteStorage({ ...global.fakeTVMResponse, region: 'eu-west-1' })
+
+      expect(S3).toHaveBeenCalledWith(expect.objectContaining({
+        region: 'eu-west-1',
+        credentials: {
+          accessKeyId: 'fake',
+          secretAccessKey: 'fake',
+          sessionToken: 'fake',
+          expiration: new Date('1970-01-01T00:00:00.000Z')
+        }
+      }))
+    })
+  })
+
+  describe('folderExists', () => {
+    test('returns true if objects exist under prefix', async () => {
+      mockS3Instance.listObjectsV2.mockResolvedValue({ KeyCount: 2 })
+      const rs = new RemoteStorage(byoCreds())
+
+      await expect(rs.folderExists(undefined, 'fakeprefix/', createAppConfig())).resolves.toBe(true)
+      expect(mockS3Instance.listObjectsV2).toHaveBeenCalledWith({ Bucket: global.fakeS3Bucket, Prefix: 'fakeprefix/' })
+      expect(global.fetch).not.toHaveBeenCalled()
+    })
+
+    test('returns false if no objects under prefix', async () => {
+      mockS3Instance.listObjectsV2.mockResolvedValue({ KeyCount: 0 })
+      const rs = new RemoteStorage(byoCreds())
+
+      await expect(rs.folderExists(undefined, 'fakeprefix/', createAppConfig())).resolves.toBe(false)
+    })
+  })
+
+  describe('emptyFolder', () => {
+    test('does nothing if there are no objects', async () => {
+      mockS3Instance.listObjectsV2.mockResolvedValue({ KeyCount: 0 })
+      const rs = new RemoteStorage(byoCreds())
+
+      await expect(rs.emptyFolder(undefined, 'fakeprefix/', createAppConfig())).resolves.toBeUndefined()
+      expect(mockS3Instance.deleteObjects).not.toHaveBeenCalled()
+    })
+
+    test('deletes all listed objects', async () => {
+      mockS3Instance.listObjectsV2.mockResolvedValue({
+        KeyCount: 2,
+        Contents: [{ Key: 'fakeprefix/a.js' }, { Key: 'fakeprefix/b.js' }],
+        IsTruncated: false
+      })
+      const rs = new RemoteStorage(byoCreds())
+
+      await expect(rs.emptyFolder(undefined, 'fakeprefix/', createAppConfig())).resolves.toBeUndefined()
+      expect(mockS3Instance.listObjectsV2).toHaveBeenCalledTimes(1)
+      expect(mockS3Instance.deleteObjects).toHaveBeenCalledWith({
+        Bucket: global.fakeS3Bucket,
+        Delete: { Objects: [{ Key: 'fakeprefix/a.js' }, { Key: 'fakeprefix/b.js' }] }
+      })
+    })
+
+    test('recurses while the listing is truncated', async () => {
+      mockS3Instance.listObjectsV2
+        .mockResolvedValueOnce({ KeyCount: 1, Contents: [{ Key: 'fakeprefix/a.js' }], IsTruncated: true })
+        .mockResolvedValueOnce({ KeyCount: 1, Contents: [{ Key: 'fakeprefix/b.js' }], IsTruncated: false })
+      const rs = new RemoteStorage(byoCreds())
+
+      await rs.emptyFolder(undefined, 'fakeprefix/', createAppConfig())
+
+      expect(mockS3Instance.listObjectsV2).toHaveBeenCalledTimes(2)
+      expect(mockS3Instance.deleteObjects).toHaveBeenCalledTimes(2)
+    })
+  })
+
+  describe('uploadFile', () => {
+    test('puts object with key, body, content type, cache control and metadata', async () => {
+      global.addFakeFiles(vol, 'fakeDir', { 'index.js': 'fake content' })
+      mockS3Instance.putObject.mockResolvedValue({ ETag: 'etag' })
+      const rs = new RemoteStorage(byoCreds())
+
+      const result = await rs.uploadFile(undefined, 'fakeDir/index.js', 'fakeprefix', createAppConfig(), 'fakeDir')
+
+      expect(result).toEqual({ ETag: 'etag' })
+      expect(mockS3Instance.putObject).toHaveBeenCalledWith({
+        Bucket: global.fakeS3Bucket,
+        Key: 'fakeprefix/index.js',
+        Body: Buffer.from('fake content'),
+        CacheControl: 's-maxage=60, max-age=604800',
+        ContentType: 'application/javascript',
+        Metadata: { 'adp-testHeader': 'foo' }
+      })
+      expect(global.fetch).not.toHaveBeenCalled()
+    })
+
+    test('omits Metadata and CacheControl when there is nothing to set', async () => {
+      global.addFakeFiles(vol, 'fakeDir', { 'index.js': 'fake content' })
+      const rs = new RemoteStorage(byoCreds())
+      const appConfig = createAppConfig({ app: {} })
+      delete appConfig.web
+
+      await rs.uploadFile(undefined, 'fakeDir/index.js', 'fakeprefix', appConfig, 'fakeDir')
+
+      const params = mockS3Instance.putObject.mock.calls[0][0]
+      expect(params).not.toHaveProperty('Metadata')
+      expect(params).not.toHaveProperty('CacheControl')
+      expect(params.ContentType).toBe('application/javascript')
+    })
+
+    test('omits ContentType and CacheControl for unknown mime types', async () => {
+      global.addFakeFiles(vol, 'fakeDir', { 'index.mst': 'fake content' })
+      const rs = new RemoteStorage(byoCreds())
+
+      await rs.uploadFile(undefined, 'fakeDir/index.mst', 'fakeprefix', createAppConfig(), 'fakeDir')
+
+      const params = mockS3Instance.putObject.mock.calls[0][0]
+      expect(params).not.toHaveProperty('ContentType')
+      expect(params).not.toHaveProperty('CacheControl')
+      expect(params.Key).toBe('fakeprefix/index.mst')
+    })
+
+    test('adp-cache-control response header overrides CacheControl and is not sent as Metadata', async () => {
+      global.addFakeFiles(vol, 'fakeDir', { 'index.js': 'fake content' })
+      const rs = new RemoteStorage(byoCreds())
+      const appConfig = global.configWithModifiedWeb(createAppConfig(), {
+        'response-headers': {
+          '/*': {
+            'cache-control': 'max-age=3600',
+            testHeader: 'foo'
+          }
+        }
+      })
+
+      await rs.uploadFile(undefined, 'fakeDir/index.js', 'fakeprefix', appConfig, 'fakeDir')
+
+      const params = mockS3Instance.putObject.mock.calls[0][0]
+      expect(params.CacheControl).toBe('max-age=3600')
+      expect(params.Metadata).toEqual({ 'adp-testHeader': 'foo' })
+    })
+
+    test('adp-cache-control as only response header leaves Metadata unset', async () => {
+      global.addFakeFiles(vol, 'fakeDir', { 'index.js': 'fake content' })
+      const rs = new RemoteStorage(byoCreds())
+      const appConfig = global.configWithModifiedWeb(createAppConfig(), {
+        'response-headers': {
+          '/*': { 'cache-control': 'max-age=3600' }
+        }
+      })
+
+      await rs.uploadFile(undefined, 'fakeDir/index.js', 'fakeprefix', appConfig, 'fakeDir')
+
+      const params = mockS3Instance.putObject.mock.calls[0][0]
+      expect(params.CacheControl).toBe('max-age=3600')
+      expect(params).not.toHaveProperty('Metadata')
+    })
+  })
+
+  test('uploadDir uploads each file to S3', async () => {
+    global.addFakeFiles(vol, 'fakeDir', ['index.js', 'css/index.css'])
+    const rs = new RemoteStorage(byoCreds())
+
+    await rs.uploadDir(undefined, 'fakeDir', 'fakeprefix', createAppConfig())
+
+    const keys = mockS3Instance.putObject.mock.calls.map(c => c[0].Key).sort()
+    expect(keys).toEqual(['fakeprefix/css/index.css', 'fakeprefix/index.js'])
   })
 })
 

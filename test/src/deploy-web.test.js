@@ -307,6 +307,53 @@ describe('deploy-web', () => {
     )
   })
 
+  test('throws if config has no ow auth_handler', async () => {
+    const config = {
+      app: { hasFrontend: true },
+      web: { distProd: 'dist' }
+    }
+    await expect(deployWeb(config)).rejects.toThrow('cannot deploy web, Authorization is required')
+  })
+
+  describe('byo s3 credentials', () => {
+    const byoConfig = () => ({
+      ow: { namespace: 'ns' },
+      s3: {
+        folder: 'somefolder',
+        creds: { accessKeyId: 'fake', secretAccessKey: 'fake', params: { Bucket: 'bucket' } }
+      },
+      app: { hasFrontend: true, hostname: 'host' },
+      web: { distProd: 'dist' }
+    })
+
+    beforeEach(() => {
+      fs.existsSync.mockReturnValue(true)
+      fs.lstatSync.mockReturnValue({ isDirectory: () => true })
+      fs.readdirSync.mockReturnValue({ length: 1 })
+    })
+
+    test('uploads to the s3 folder without requiring an auth token', async () => {
+      const config = byoConfig()
+      mockRemoteStorageInstance.folderExists.mockResolvedValue(false)
+
+      await expect(deployWeb(config)).resolves.toEqual('https://ns.host/index.html')
+
+      expect(RemoteStorage).toHaveBeenCalledWith(config.s3.creds)
+      expect(mockRemoteStorageInstance.folderExists).toHaveBeenCalledWith(undefined, 'somefolder/', config)
+      expect(mockRemoteStorageInstance.emptyFolder).not.toHaveBeenCalled()
+      expect(mockRemoteStorageInstance.uploadDir).toHaveBeenCalledWith(undefined, 'dist', 'somefolder', config, null)
+    })
+
+    test('empties the existing s3 folder before uploading', async () => {
+      const config = byoConfig()
+      mockRemoteStorageInstance.folderExists.mockResolvedValue(true)
+
+      await deployWeb(config)
+
+      expect(mockRemoteStorageInstance.emptyFolder).toHaveBeenCalledWith(undefined, 'somefolder/', config)
+    })
+  })
+
   test('logs overwrite warning when an existing deployment will be replaced', async () => {
     const config = {
       ow: {
